@@ -1,44 +1,45 @@
 #!/bin/bash
 
-echo "Tentando encerrar processos locais do simulador ('go run main.go')..."
+echo "Attempting to terminate local simulator processes ('go run main.go')..."
 
-# pgrep -f compara o padrão com toda a linha de comando.
+# pgrep -f compares the pattern against the full command line.
 PIDS=$(pgrep -f "go run main.go")
 
 if [ -z "$PIDS" ]; then
-  echo "Nenhum processo local do simulador encontrado."
+  echo "No local simulator processes found."
 else
-  echo "Processos locais encontrados com PIDs: $PIDS. Tentando SIGTERM..."
-  kill -SIGTERM "$PIDS"
+  echo "Local processes found with PIDs: $PIDS. Attempting SIGTERM..."
+  kill -SIGTERM $PIDS # No quotes around $PIDS for kill
 
-  sleep 2 # Aguarda encerramento gracioso.
+  sleep 2 # Wait for graceful shutdown.
 
   ALIVE_PIDS=""
   for pid_to_check in $PIDS; do
+    # Check if process is still alive
     if ps -p $pid_to_check > /dev/null; then
       ALIVE_PIDS="$ALIVE_PIDS $pid_to_check"
     fi
   done
 
   if [ -n "$ALIVE_PIDS" ]; then
-    echo "Processos (PIDs:$ALIVE_PIDS) ainda ativos. Tentando SIGKILL..."
-    kill -SIGKILL "$ALIVE_PIDS"
-    echo "Processos locais forçados a encerrar."
+    echo "Processes (PIDs:$ALIVE_PIDS) still active. Attempting SIGKILL..."
+    kill -SIGKILL $ALIVE_PIDS # No quotes around $ALIVE_PIDS for kill
+    echo "Local processes forced to terminate."
   else
-    echo "Processos locais encerrados com SIGTERM."
+    echo "Local processes terminated with SIGTERM."
   fi
 fi
 
 echo ""
-echo "Limpando recursos do Kubernetes (deployments e jobs no namespace default)..."
+echo "Cleaning up Kubernetes resources (deployments and jobs in the default namespace)..."
 kubectl delete deployment --all --namespace default && kubectl delete job --all --namespace default
 
 KUBECTL_EXIT_CODE=$?
 if [ $KUBECTL_EXIT_CODE -eq 0 ]; then
-  echo "Recursos do Kubernetes limpos com sucesso."
+  echo "Kubernetes resources cleaned up successfully."
 else
-  echo "Atenção: Erro ao limpar recursos do Kubernetes (código de saída: $KUBECTL_EXIT_CODE). Verifique o cluster manualmente."
+  echo "Attention: Error cleaning up Kubernetes resources (exit code: $KUBECTL_EXIT_CODE). Check cluster manually."
 fi
 
 echo ""
-echo "Script de encerramento e limpeza concluído." 
+echo "Shutdown and cleanup script finished." 

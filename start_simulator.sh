@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Garante que HOME esteja definida, usando USERPROFILE como fallback (útil para WSL/Git Bash).
+# Ensure HOME is set, using USERPROFILE as a fallback (useful for WSL/Git Bash).
 export HOME="${HOME:-$USERPROFILE}"
 
-echo "Variável de ambiente HOME está definida como: $HOME"
+echo "HOME environment variable is set to: $HOME"
 
-echo "Iniciando o simulador..."
+echo "Starting the simulator..."
 go run main.go 

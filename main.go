@@ -5,8 +5,7 @@ import (
 	"log"
 	"os"
 	"time"
-
-	"github.com/cloud-ai-ufcg/broker/broker" // Corrected import path
+	"github.com/cloud-ai-ufcg/broker/broker"
 )
 
 func monitor() {
@@ -17,10 +16,8 @@ func monitor() {
 }
 
 func main() {
-	// Placeholder paths for broker configuration
-	// TODO: Replace these with actual paths to your CSV and YAML files
-	csv_path := "example_configs/events.csv"   // Using local example CSV
-	yaml_path := "example_configs/config.yaml" // Using local example YAML
+	csv_path := "data/events.csv"   
+	yaml_path := "data/config.yaml" 
 
 	config_yaml, err := os.Open(yaml_path)
 	if err != nil {

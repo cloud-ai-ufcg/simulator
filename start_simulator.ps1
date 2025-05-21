@@ -1,9 +1,9 @@
-# Define a variável de ambiente HOME para o diretório do perfil do usuário atual, crucial para o broker.
+# Set the HOME environment variable to the current user's profile directory, crucial for the broker.
 $env:HOME = $env:USERPROFILE
 
-# Exibe uma mensagem informando que HOME foi definida (opcional, para feedback)
-Write-Host "Variável de ambiente HOME definida como: $env:HOME"
+# Display a message indicating that HOME has been set (optional, for feedback)
+Write-Host "HOME environment variable set to: $env:HOME"
 
-# Executa o programa Go principal do simulador
-Write-Host "Iniciando o simulador..."
+# Execute the main Go program for the simulator
+Write-Host "Starting the simulator..."
 go run main.go 
