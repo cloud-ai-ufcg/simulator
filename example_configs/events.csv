@@ -1,0 +1,2 @@
+timestamp,id,kind,action,replicas,cpu,memory,label,job_duration
+1,2,deployment,create,2,4,0.08,private, 
