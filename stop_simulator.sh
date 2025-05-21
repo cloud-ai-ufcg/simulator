@@ -22,7 +22,7 @@ else
 
   if [ -n "$ALIVE_PIDS" ]; then
     echo "Processos (PIDs:$ALIVE_PIDS) ainda ativos. Tentando SIGKILL..."
-    kill -SIGKILL $ALIVE_PIDS
+    kill -SIGKILL "$ALIVE_PIDS"
     echo "Processos locais forçados a encerrar."
   else
     echo "Processos locais encerrados com SIGTERM."
