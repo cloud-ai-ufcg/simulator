@@ -9,7 +9,7 @@ if [ -z "$PIDS" ]; then
   echo "Nenhum processo local do simulador encontrado."
 else
   echo "Processos locais encontrados com PIDs: $PIDS. Tentando SIGTERM..."
-  kill -SIGTERM $PIDS
+  kill -SIGTERM "$PIDS"
 
   sleep 2 # Aguarda encerramento gracioso.
 
