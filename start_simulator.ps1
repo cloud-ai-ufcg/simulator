@@ -1,4 +1,4 @@
-# Define a variável de ambiente HOME para o diretório do perfil do usuário atual
+# Define a variável de ambiente HOME para o diretório do perfil do usuário atual, crucial para o broker.
 $env:HOME = $env:USERPROFILE
 
 # Exibe uma mensagem informando que HOME foi definida (opcional, para feedback)
