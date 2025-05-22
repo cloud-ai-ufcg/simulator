@@ -7,6 +7,7 @@ import (
 
 	"monitor/internal/config"
 	"monitor/internal/model"
+
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prommodel "github.com/prometheus/common/model"
@@ -41,21 +42,28 @@ func (qb *QueryBuilder) WorkloadCreated() string {
 
 func (qb *QueryBuilder) TotalPods() string {
 	if qb.kind == "job" {
-		// For jobs, we need to sum active and failed pods
-		return fmt.Sprintf(`sum(kube_job_status_active{namespace="%s",job_name="%s"} + kube_job_status_failed{namespace="%s",job_name="%s"})`,
-			qb.namespace, qb.name, qb.namespace, qb.name)
+		// For jobs, we need to sum active, failed and succeeded pods
+		return fmt.Sprintf(`kube_job_status_active{namespace="%s",job_name="%s"} + kube_job_status_failed{namespace="%s",job_name="%s"} + kube_job_status_succeeded{namespace="%s",job_name="%s"}`,
+			qb.namespace, qb.name, qb.namespace, qb.name, qb.namespace, qb.name)
 	}
 	// For deployments, use the original query
 	return fmt.Sprintf(`kube_%s_status_replicas{namespace="%s",%s="%s"}`, qb.kind, qb.namespace, qb.kind, qb.name)
 }
 
-func (qb *QueryBuilder) AvailablePods() string {
-	if qb.kind == "job" {
-		// For jobs, we consider active pods as available
-		return fmt.Sprintf(`kube_job_status_active{namespace="%s",job_name="%s"}`, qb.namespace, qb.name)
+func (qb *QueryBuilder) PendingPods() string {
+	if qb.kind == "deployment" {
+		return fmt.Sprintf(`sum(kube_pod_status_phase{phase="Pending", namespace="%s"}
+  * on (namespace, pod)
+  group_left(owner_name)
+  kube_pod_owner{owner_kind="ReplicaSet", owner_name=~"%s-.*", namespace="%s"}
+)`, qb.namespace, qb.name, qb.namespace)
 	}
-	// For deployments, use the original query
-	return fmt.Sprintf(`kube_%s_status_replicas_available{namespace="%s",%s="%s"}`, qb.kind, qb.namespace, qb.kind, qb.name)
+	return fmt.Sprintf(`sum(
+  kube_pod_status_phase{phase="Pending", namespace="%s"}
+  * on (namespace, pod)
+  group_left(owner_name)
+  kube_pod_owner{owner_kind="Job", owner_name="%s", namespace="%s"}
+)`, qb.namespace, qb.name, qb.namespace)
 }
 
 func (qb *QueryBuilder) ResourceRequests(resource string) string {
@@ -65,7 +73,7 @@ func (qb *QueryBuilder) ResourceRequests(resource string) string {
 // WorkloadMetrics represents the metrics for a single workload
 type WorkloadMetrics struct {
 	TotalPods     int
-	AvailablePods int
+	PendingPods   int
 	CPURequest    float64
 	MemoryRequest float64
 }
@@ -233,10 +241,9 @@ func (c *Collector) queryWorkloadMetrics(ctx context.Context, client v1.API, kin
 			}
 
 			// Calculate pending pods and percentage
-			pendingPods := metrics.TotalPods - metrics.AvailablePods
 			percentPending := 0.0
 			if metrics.TotalPods > 0 {
-				percentPending = float64(pendingPods) / float64(metrics.TotalPods) * 100
+				percentPending = float64(metrics.PendingPods) / float64(metrics.TotalPods) * 100
 			}
 
 			// Create workload entry
@@ -248,7 +255,7 @@ func (c *Collector) queryWorkloadMetrics(ctx context.Context, client v1.API, kin
 					Memory: fmt.Sprintf("%dMi", int(metrics.MemoryRequest/(1024*1024))),
 				},
 				PodsTotal:      metrics.TotalPods,
-				PodsPending:    pendingPods,
+				PodsPending:    metrics.PendingPods,
 				PercentPending: percentPending,
 				ClusterLabel:   clusterLabel,
 			}
@@ -269,10 +276,10 @@ func (c *Collector) getWorkloadMetrics(ctx context.Context, client v1.API, kind,
 		return metrics, fmt.Errorf("error querying total pods: %v", err)
 	}
 
-	// Query for available pods
-	availablePodsResult, _, err := client.Query(ctx, qb.AvailablePods(), time.Now())
+	// Query for pending pods
+	pendingPodsResult, _, err := client.Query(ctx, qb.PendingPods(), time.Now())
 	if err != nil {
-		return metrics, fmt.Errorf("error querying available pods: %v", err)
+		return metrics, fmt.Errorf("error querying pending pods: %v", err)
 	}
 
 	// Query for resource requests
@@ -291,8 +298,8 @@ func (c *Collector) getWorkloadMetrics(ctx context.Context, client v1.API, kind,
 		metrics.TotalPods = int(totalVector[0].Value)
 	}
 
-	if availableVector, ok := availablePodsResult.(prommodel.Vector); ok && len(availableVector) > 0 {
-		metrics.AvailablePods = int(availableVector[0].Value)
+	if pendingVector, ok := pendingPodsResult.(prommodel.Vector); ok && len(pendingVector) > 0 {
+		metrics.PendingPods = int(pendingVector[0].Value)
 	}
 
 	if cpuVector, ok := cpuResult.(prommodel.Vector); ok && len(cpuVector) > 0 {
