@@ -7,3 +7,6 @@
 [submodule "monitor"]
 	path = monitor
 	url = https://github.com/cloud-ai-ufcg/monitor
+[submodule "actuator"]
+	path = actuator
+	url = https://github.com/cloud-ai-ufcg/actuator
