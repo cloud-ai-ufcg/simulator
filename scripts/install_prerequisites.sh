@@ -91,6 +91,31 @@ function instalar_make() {
   fi
 }
 
+function instalar_pip() {
+  if ! command -v pip &> /dev/null; then
+    echo "🐍 Instalando pip..."
+    sudo apt install -y python3-pip
+  else
+    echo "✅ pip já está instalado."
+  fi
+}
+
+function instalar_go() {
+  if ! command -v go &> /dev/null; then
+    echo "🔧 Instalando Golang..."
+    GO_VERSION="1.21.0"
+    curl -LO https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
+    rm go${GO_VERSION}.linux-amd64.tar.gz
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    export PATH=$PATH:/usr/local/go/bin
+    echo "ℹ️ Golang instalado. Reinicie o shell ou rode 'source ~/.bashrc'."
+  else
+    echo "✅ Golang já está instalado."
+  fi
+}
+
 # Executar verificações
 instalar_curl
 instalar_docker
@@ -100,5 +125,7 @@ instalar_helm
 instalar_kind
 instalar_jq
 instalar_make
+instalar_pip
+instalar_go
 
 echo "✅ Ambiente pronto."
