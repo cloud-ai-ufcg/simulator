@@ -65,7 +65,7 @@ function instalar_helm() {
 function instalar_kind() {
   if ! command -v kind &> /dev/null; then
     echo "🧱 Instalando kind..."
-    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
     chmod +x ./kind
     sudo mv ./kind /usr/local/bin/kind
   else
@@ -88,6 +88,15 @@ function instalar_make() {
     sudo apt install -y make
   else
     echo "✅ make já está instalado."
+  fi
+}
+
+function instalar_python3() {
+  if ! command -v python3 &> /dev/null; then
+    echo "🐍 Instalando Python 3..."
+    sudo apt install -y python3
+  else
+    echo "✅ Python 3 já está instalado."
   fi
 }
 

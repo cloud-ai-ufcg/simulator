@@ -1,94 +1,104 @@
-# KIND + KWOK Cluster Setup with Autoscaler and Prometheus
+# KIND + KWOK + Karmada Cluster Setup with Autoscaler and Prometheus
 
-Este repositório automatiza a criação de um cluster local Kubernetes usando KIND e KWOK, integrando o Cluster Autoscaler e Prometheus para simulações de escalabilidade e monitoramento.
-
----
-
-## ✅ Objetivo
-
-Permitir testes locais de escalonamento automático (Cluster Autoscaler) em um cluster Kubernetes simulado, com suporte a observabilidade via Prometheus. Ideal para fins de aprendizado, experimentação e validação de configurações em ambiente controlado.
+This repository automates the creation of a local multi-cluster Kubernetes environment using KIND, KWOK, and Karmada. It integrates the Cluster Autoscaler (in `member2`) and Prometheus (in both `member1` and `member2`) for simulating autoscaling behavior and enabling observability.
 
 ---
 
-## 🧩 Pré-requisitos
+## ✅ Purpose
 
-Antes de iniciar, certifique-se de ter:
-
-- Linux ou WSL (preferencialmente)
-- Permissões de superusuário (`sudo`)
-- Docker instalado e em execução
-- `bash` e ferramentas CLI usuais (`curl`, `git`, etc.)
+Provide a reproducible local environment for testing autoscaling and monitoring setups in a simulated Kubernetes cluster, ideal for learning, experimentation, and controlled validation of scaling configurations.
 
 ---
 
-## ⚙️ Como usar
+## 🧩 Requirements
 
+Make sure you have the following before starting:
 
-1. **Dê permissão de execução aos scripts:**
+- Linux or WSL (recommended)
+- Superuser permissions (`sudo`)
+- Docker installed and running
+- `bash`, `curl`, `git`, and typical CLI utilities
+
+---
+
+## ⚙️ How to Use
+
+1. **Give execution permissions to all scripts:**
 
    ```bash
    chmod +x *.sh
    ```
 
-2. **Execute o script principal:**
+2. **Run the main setup script:**
 
    ```bash
    ./main.sh
    ```
 
-   Esse script irá:
-   - Instalar dependências
-   - Gerar os manifests
-   - Criar o cluster KIND com KWOK
-   - Instalar Prometheus
-   - Configurar o Cluster Autoscaler
+   This will:
+   - Install all prerequisites
+   - Generate the required manifests
+   - Start Karmada with KIND clusters (`member1`, `member2`)
+   - Install Prometheus in `member1` and `member2`
+   - Install Cluster Autoscaler in `member2` only
 
 ---
 
-## 📜 SCRIPTS
+## 📜 Scripts Overview
 
 ### `main.sh`
 
-Script principal que orquestra toda a automação. Executa os scripts na ordem correta e garante permissões necessárias.
+Main entrypoint that orchestrates all setup steps, executing each stage in sequence.
 
 ### `install_prerequisites.sh`
 
-Instala dependências essenciais:
+Installs the following dependencies:
 
 - `docker`
 - `kind`
 - `kubectl`
-- `yq`
 - `helm`
+- `yq`
+- Karmada's CLI components (if applicable)
 
 ### `generate_manifests.sh`
 
-Gera os manifests YAML que definem o comportamento do cluster, incluindo recursos customizados e simulações de carga.
+Generates necessary YAML files, including ClusterPropagationPolicies and workload simulation templates (e.g., stress deployment), with support for Karmada federation.
 
-### `create_kind_cluster.sh`
+### `install_karmada.sh`
 
-Cria o cluster KIND chamado `kwok-cluster`, aplicando as configurações necessárias para simular um ambiente realista com KWOK.
+Bootstraps the Karmada control plane using `hack/local-up-karmada.sh`, registers `member1` and `member2` clusters, and applies required labels.
 
 ### `install_prometheus.sh`
 
-Instala o Prometheus via Helm Chart oficial, incluindo métricas de kubelet, pods, nodes e autoscaling.
+Installs Prometheus via the official Helm Chart. The script runs once per member cluster (`member1`, `member2`), with node selectors pointing to real KIND workers.
 
 ### `ASsetup.sh`
 
-Aplica os ConfigMaps do provider KWOK e cria o Deployment do Cluster Autoscaler. Finaliza a preparação do cluster.
+Configures the Cluster Autoscaler **only in `member2`**, applies KWOK provider ConfigMaps, and ensures the autoscaler uses the correct kubeconfig with KWOK simulation.
 
 ---
 
-## 🧪 Verificação
+## 🧪 Validation
 
-Verifique os pods:
+Check pod status:
 
 ```bash
+kubectl config use-context member2
 kubectl get pods -A
 ```
 
-Para logs do autoscaler:
+Check autoscaler logs:
 
 ```bash
 kubectl logs -l app.kubernetes.io/instance=autoscaler-kwok -n default
 ```
+
+To forward Prometheus (on either cluster):
+
+```bash
+kubectl config use-context member1 # or member2
+kubectl port-forward -n monitoring svc/prometheus-server 9090:80
+```
+
+Then open: [http://localhost:9090](http://localhost:9090)

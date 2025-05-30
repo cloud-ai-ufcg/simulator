@@ -24,9 +24,14 @@ kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE" --timeout
 echo "[3/10] Gerando kubeconfig de member2 para o autoscaler..."
 kubectl config view --raw --context member2 > kwok.kubeconfig
 
-kubectl create configmap kwok-kubeconfig \
-  --from-file=kwok.kubeconfig=kwok.kubeconfig \
-  -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+if kubectl get configmap kwok-kubeconfig -n "$NAMESPACE" &>/dev/null; then
+  echo "[INFO] ConfigMap 'kwok-kubeconfig' já existe. Pulando criação."
+else
+  echo "[INFO] Criando ConfigMap 'kwok-kubeconfig'..."
+  kubectl create configmap kwok-kubeconfig \
+    --from-file=kwok.kubeconfig=kwok.kubeconfig \
+    -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+fi
 
 echo "[4/10] Aplicando ConfigMap kwok-provider-config..."
 kubectl apply -f kwok-provider-config.yaml
@@ -78,13 +83,7 @@ kubectl annotate configmap kwok-provider-templates \
 kubectl label configmap kwok-provider-templates \
   app.kubernetes.io/managed-by=Helm --overwrite
 
-echo "[8/10] Tainting node de controle de member2..."
+echo "[8/8] Tainting node de controle de member2..."
 CONTROL_PLANE=$(kubectl get nodes -o name | grep control-plane | sed 's|node/||')
 kubectl taint nodes "$CONTROL_PLANE" node-role.kubernetes.io/control-plane=:NoSchedule --overwrite
-
-echo "[9/10] Aplicando deployment de stress..."
-kubectl apply -f stress.yaml
-
-echo "[Finalizado] Verifique os pods e logs do autoscaler abaixo:"
-kubectl get pods -n "$NAMESPACE"
 

@@ -9,25 +9,6 @@ else
   echo "[INFO] Diretório 'autoscaler/' já existe. Pulando clone."
 fi
 
-# Gerar kind-config para criacao de cluster
-cat > kind-config.yaml <<EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-  - role: control-plane
-    kubeadmConfigPatches:
-      - |
-        kind: InitConfiguration
-        nodeRegistration:
-          kubeletExtraArgs:
-            node-labels: "ingress-ready=true"
-            authorization-mode: AlwaysAllow
-    extraPortMappings:
-      - containerPort: 30090
-        hostPort: 30090
-        protocol: TCP
-  - role: worker
-EOF
 
 # Gerar kwok-provider-config.yaml
 cat > kwok-provider-config.yaml <<EOF
@@ -103,39 +84,6 @@ data:
       name: kwok-provider-templates
 EOF
 
-# Gerar stress.yaml
-cat > stress.yaml <<EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: stress
-spec:
-  replicas: 30
-  selector:
-    matchLabels:
-      app: stress
-  template:
-    metadata:
-      labels:
-        app: stress
-    spec:
-      containers:
-        - name: stress
-          image: busybox
-          command: ["sh", "-c", "while true; do echo running; sleep 10; done"]
-          resources:
-            requests:
-              cpu: "2"
-              memory: "256Mi"
-            limits:
-              cpu: "2"
-              memory: "512Mi"
-      tolerations:
-        - key: "kwok-provider"
-          operator: "Equal"
-          value: "true"
-          effect: "NoSchedule"
-EOF
 # Gerar clusterpropagationpolicy.yaml
 cat > clusterpropagationpolicy.yaml <<EOF
 apiVersion: policy.karmada.io/v1alpha1
