@@ -183,4 +183,4 @@ echo "[OK] clusterpropagationpolicy.yaml gerado com sucesso."
 
 echo
 echo "[OK] Arquivos gerados com sucesso:"
-ls -1 kwok-provider-config.yaml kwok-provider-templates.yaml stress.yaml kind-config.yaml clusterpropagationpolicy.yaml
+ls -1 kwok-provider-config.yaml kwok-provider-templates.yaml clusterpropagationpolicy.yaml
