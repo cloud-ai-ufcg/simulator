@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
+	// "encoding/json" // Verifique se ainda é necessário
 	"fmt"
-	"log"
+	// "log" // Será substituído por fmt
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,367 +13,388 @@ import (
 	"github.com/cloud-ai-ufcg/broker/broker"
 )
 
-// forceKillMonitorProcesses attempts to forcefully kill known monitor-related processes.
+// ANSI Color Codes
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorBlue   = "\033[34m"
+	colorPurple = "\033[35m"
+	colorCyan   = "\033[36m"
+)
+
+// Emojis
+const (
+	emojiRocket    = "🚀"
+	emojiBroker    = "💼"
+	emojiMonitor   = "📡"
+	emojiAIEngine  = "🧠"
+	emojiActuator  = "🛠️"
+	emojiSuccess   = "✅"
+	emojiError     = "❌"
+	emojiFire      = "🔥"
+	emojiWarning   = "⚠️"
+	emojiInfo      = "ℹ️"
+	emojiPlay      = "▶️"
+	emojiStop      = "⏹️"
+	emojiTool      = "🔧"
+	emojiClean     = "🧹"
+	emojiOutput    = "💬"
+	emojiFile      = "📄"
+	emojiDirectory = "📁"
+	emojiConfig    = "⚙️"
+	emojiKill      = "🔪"
+)
+
+const (
+	logPrefixSimulator = emojiRocket + " Simulador"
+	logPrefixBroker    = emojiBroker + " Broker"
+	logPrefixMonitor   = emojiMonitor + " Monitor"
+	logPrefixAIEngine  = emojiAIEngine + " AI-Engine"
+	logPrefixActuator  = emojiActuator + " Actuator"
+)
+
+// Paths and names (existing constants)
+const (
+	monitorDirName    = "monitor"
+	monitorOutputBase = "monitor_outputs.json"
+
+	aiEngineParentDirName  = "ai-engine"
+	aiEngineWorkSubDir     = "engine"
+	aiEngineTempConfigYAML = "temp_ai_runtime_config.yaml"
+	aiEngineOutputCSVPath  = "ai-engine/actuator/recommendations.csv"
+
+	actuatorDirName      = "actuator"
+	actuatorInputCSVName = "recommendations.csv"
+
+	brokerInputDataCSVPath    = "data/recorte_5min.csv"
+	brokerInputConfigYAMLPath = "data/config.yaml"
+)
+
 func forceKillMonitorProcesses() {
-	log.Println("External Monitor: Forcefully killing any old monitor-related processes...")
+	fmt.Printf("%s%s%s: %s Forçando encerramento de processos antigos do monitor...%s\n", colorCyan, logPrefixMonitor, colorReset, emojiClean, colorReset)
 	processesToKill := []struct {
 		name    string
 		pattern string
 	}{
 		{"port-foward.sh", "port-foward.sh"},
 		{"kubectl port-forward", "kubectl.*port-forward"},
-		{"./monitor executable", "./monitor"}, // In case the monitor itself lingers
+		{"./monitor executable", "./monitor"},
 	}
 
 	for _, proc := range processesToKill {
 		cmd := exec.Command("pkill", "-KILL", "-f", proc.pattern)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			if strings.Contains(string(output), "no process found") || strings.Contains(err.Error(), "exit status 1") {
-				log.Printf("External Monitor: No processes found matching '%s' or already killed.", proc.name)
-			} else {
-				log.Printf("External Monitor: Error trying to pkill -KILL -f '%s': %v, Output: %s", proc.pattern, err, string(output))
+			if !(strings.Contains(string(output), "no process found") || strings.Contains(err.Error(), "exit status 1")) {
+				fmt.Printf("%s%s%s: %s Erro ao tentar forçar o encerramento de '%s%s%s': %v. Output: %s%s\n",
+					colorCyan, logPrefixMonitor, colorReset, emojiError, colorPurple, proc.pattern, colorRed, err, string(output), colorReset)
 			}
 		} else {
-			log.Printf("External Monitor: Successfully sent KILL signal to processes matching '%s'. Output: %s", proc.name, string(output))
+			fmt.Printf("%s%s%s: %s Sinal KILL enviado com sucesso para processos correspondentes a '%s%s%s'. Output: %s%s\n",
+				colorCyan, logPrefixMonitor, colorReset, emojiKill, colorPurple, proc.name, colorGreen, string(output), colorReset)
 		}
 	}
-	// Give a very short time for OS to reap killed processes
 	time.Sleep(100 * time.Millisecond)
 }
 
-// runExternalMonitorAndFetchOutput executes the external monitor using its Makefile,
-// lets it run for a specified duration, stops it, and copies its output.
 func runExternalMonitorAndFetchOutput(duration time.Duration) (string, error) {
-	// Aggressive cleanup before starting
 	forceKillMonitorProcesses()
 
-	fmt.Println("External Monitor: Starting...")
-	monitorDir := "monitor" // Relative path to the monitor's directory
-	monitorOutputFileName := "monitor_outputs.json"
-	simulatorDestOutputFileName := "monitor_output.json"
+	fmt.Printf("%s%s%s: %s Iniciando...%s\n", colorCyan, logPrefixMonitor, colorReset, emojiPlay, colorReset)
 
-	// Get current working directory to return to it later
 	originalWd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("External Monitor: failed to get current working directory: %w", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao obter diretório de trabalho atual: %v%s\n", colorCyan, logPrefixMonitor, colorReset, emojiError, err, colorReset)
+		return "", fmt.Errorf("falha ao obter diretório de trabalho atual: %w", err)
 	}
 
-	// Change to the monitor's directory to run make
-	if err := os.Chdir(monitorDir); err != nil {
-		return "", fmt.Errorf("External Monitor: failed to change directory to %s: %w", monitorDir, err)
+	if err := os.Chdir(monitorDirName); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao mudar para o diretório %s%s%s: %v%s\n", colorCyan, logPrefixMonitor, colorReset, emojiError, colorPurple, monitorDirName, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao mudar para o diretório %s: %w", monitorDirName, err)
 	}
-	// Ensure we change back to the original directory
 	defer func() {
+		fmt.Printf("%s%s%s: %s Voltando para o diretório original %s%s%s...%s\n",
+			colorCyan, logPrefixMonitor, colorReset, emojiDirectory, colorPurple, originalWd, colorBlue, colorReset)
 		if err := os.Chdir(originalWd); err != nil {
-			log.Printf("External Monitor: CRITICAL - failed to change back to original directory %s: %v", originalWd, err)
+			fmt.Fprintf(os.Stderr, "%s%s%s: %s CRÍTICO - Falha ao voltar para o diretório original %s%s%s: %v. Encerrando.%s\n",
+				colorCyan, logPrefixMonitor, colorReset, emojiFire, colorPurple, originalWd, colorRed, err, colorReset)
+			os.Exit(1)
 		}
 	}()
 
-	fmt.Printf("External Monitor: Running 'make all' in %s for %v...\n", monitorDir, duration)
+	fmt.Printf("%s%s%s: %s Executando 'make all' em %s%s%s por %s%v%s...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, emojiTool, colorPurple, monitorDirName, colorBlue, colorPurple, duration, colorBlue, colorReset)
 	cmd := exec.Command("make", "all")
-	// cmd.Dir is not strictly necessary here as we already changed dir, but doesn't hurt.
-	// cmd.Dir = monitorDir
 
-	// Capture output for debugging
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		return "", fmt.Errorf("External Monitor: failed to start 'make all': %w", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao iniciar 'make all': %v%s\n", colorCyan, logPrefixMonitor, colorReset, emojiError, err, colorReset)
+		return "", fmt.Errorf("falha ao iniciar 'make all': %w", err)
 	}
 
-	fmt.Printf("External Monitor: Process started (PID %d), waiting for %v...\n", cmd.Process.Pid, duration)
+	fmt.Printf("%s%s%s: %s Processo iniciado (PID %s%d%s), aguardando %s%v%s...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, emojiInfo, colorPurple, cmd.Process.Pid, colorBlue, colorPurple, duration, colorBlue, colorReset)
 	time.Sleep(duration)
 
-	fmt.Println("External Monitor: Duration elapsed. Sending interrupt signal to 'make all' process...")
+	fmt.Printf("%s%s%s: %s Duração esgotada. Enviando sinal de interrupção para 'make all'...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, emojiStop, colorReset)
 	if err := cmd.Process.Signal(os.Interrupt); err != nil {
-		// Log the error but try to proceed with cmd.Wait() as the process might have exited already or signal failed
-		log.Printf("External Monitor: Failed to send interrupt signal: %v. Attempting to wait for process.", err)
+		fmt.Printf("%s%s%s: %s %s Falha ao enviar sinal de interrupção: %v. Tentando aguardar processo.%s\n",
+			colorCyan, logPrefixMonitor, colorReset, emojiWarning, emojiError, err, colorReset)
 	}
 
-	fmt.Println("External Monitor: Waiting for 'make all' to complete cleanup and exit...")
+	fmt.Printf("%s%s%s: %s Aguardando 'make all' completar limpeza e sair...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, emojiInfo, colorReset)
 
-	// Wait for the command to exit, but with a timeout for the wait itself.
 	waitChan := make(chan error, 1)
 	go func() {
-		waitChan <- cmd.Wait() // This will block until the command exits
+		waitChan <- cmd.Wait()
 	}()
 
 	select {
 	case err := <-waitChan:
-		// Process exited (or an error occurred starting/waiting for it)
 		if err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok {
-				log.Printf("External Monitor: 'make all' exited with error after interrupt: %v. Stderr: %s", exitErr, string(exitErr.Stderr))
+				fmt.Printf("%s%s%s: %s 'make all' saiu com erro após interrupção: %v. Stderr: %s%s%s\n",
+					colorCyan, logPrefixMonitor, colorReset, emojiError, exitErr, colorRed, string(exitErr.Stderr), colorReset)
 			} else {
-				log.Printf("External Monitor: 'make all' failed to complete after interrupt: %v", err)
+				fmt.Printf("%s%s%s: %s 'make all' falhou ao completar após interrupção: %v%s\n",
+					colorCyan, logPrefixMonitor, colorReset, emojiError, err, colorReset)
 			}
 		} else {
-			fmt.Println("External Monitor: 'make all' completed successfully after interrupt.")
+			fmt.Printf("%s%s%s: %s 'make all' completado com sucesso após interrupção.%s\n",
+				colorCyan, logPrefixMonitor, colorReset, emojiSuccess, colorReset)
 		}
-	case <-time.After(5 * time.Second): // 5-second timeout for cmd.Wait()
-		log.Println("External Monitor: 'make all' did not exit promptly after interrupt. Sending kill signal...")
+	case <-time.After(5 * time.Second):
+		fmt.Printf("%s%s%s: %s %s 'make all' não saiu prontamente após interrupção. Enviando sinal KILL...%s\n",
+			colorCyan, logPrefixMonitor, colorReset, emojiWarning, emojiKill, colorReset)
 		if killErr := cmd.Process.Kill(); killErr != nil {
-			log.Printf("External Monitor: Failed to send kill signal: %v", killErr)
-			// If kill fails, we might be in a bad state, but we must try to unblock.
-			// We still need to wait for the process to be reaped after kill.
-			<-waitChan // Drain the channel, wait for the goroutine to finish
-			return "", fmt.Errorf("External Monitor: failed to kill 'make all' process after timeout: %w", killErr)
+			fmt.Printf("%s%s%s: %s %s Falha ao enviar sinal KILL: %v%s\n",
+				colorCyan, logPrefixMonitor, colorReset, emojiWarning, emojiError, killErr, colorReset)
+			<-waitChan
+			fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao matar processo 'make all' após timeout: %v%s\n", colorCyan, logPrefixMonitor, colorReset, emojiFire, killErr, colorReset)
+			return "", fmt.Errorf("falha ao matar processo 'make all' após timeout: %w", killErr)
 		}
-		// After sending kill, Wait() should unblock. Drain the channel.
 		finalWaitErr := <-waitChan
-		log.Printf("External Monitor: 'make all' process killed. Wait result: %v", finalWaitErr)
+		fmt.Printf("%s%s%s: %s Processo 'make all' morto. Resultado do Wait: %v%s\n",
+			colorCyan, logPrefixMonitor, colorReset, emojiKill, finalWaitErr, colorReset)
 	}
 
-	// Aggressive cleanup after attempting to stop/kill
 	forceKillMonitorProcesses()
 
-	// Define paths relative to the original working directory for the copy
-	// The monitor_outputs.json is created inside the 'monitor' directory by its makefile/program
-	sourcePathInMonitorDir := monitorOutputFileName
-	// Destination is in the simulator's root
-	destPathInSimulatorRoot := filepath.Join(originalWd, simulatorDestOutputFileName)
-	// Source path from originalWd's perspective
-	absSourcePath := filepath.Join(originalWd, monitorDir, sourcePathInMonitorDir)
+	originalMonitorOutputPath := monitorOutputBase
+	fullOriginalMonitorPath := filepath.Join(originalWd, monitorDirName, monitorOutputBase)
 
-	fmt.Printf("External Monitor: Copying output from %s to %s...\n", absSourcePath, destPathInSimulatorRoot)
-
-	// Read the source file
-	monitorJsonData, err := os.ReadFile(sourcePathInMonitorDir) // Reading from monitor/monitor_outputs.json
-	if err != nil {
-		return "", fmt.Errorf("External Monitor: failed to read monitor output file %s: %w", sourcePathInMonitorDir, err)
+	fmt.Printf("%s%s%s: %s Verificando arquivo de saída do monitor em %s%s%s (dentro de %s%s%s)...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, emojiFile, colorPurple, originalMonitorOutputPath, colorBlue, colorPurple, monitorDirName, colorBlue, colorReset)
+	if _, err := os.Stat(originalMonitorOutputPath); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Arquivo de saída do monitor %s%s%s não encontrado em %s%s%s após execução: %v%s\n", colorCyan, logPrefixMonitor, colorReset, emojiError, colorPurple, originalMonitorOutputPath, colorRed, colorPurple, monitorDirName, colorRed, err, colorReset)
+		return "", fmt.Errorf("arquivo de saída do monitor %s não encontrado em %s após execução: %w", originalMonitorOutputPath, monitorDirName, err)
 	}
 
-	// Write to the destination file (in simulator root)
-	if err := os.WriteFile(filepath.Join("..", simulatorDestOutputFileName), monitorJsonData, 0644); err != nil {
-		// We are currently in monitorDir, so dest is one level up
-		return "", fmt.Errorf("External Monitor: failed to write monitor output to %s: %w", simulatorDestOutputFileName, err)
-	}
-
-	fmt.Printf("External Monitor: Finished. Output available at %s\n", simulatorDestOutputFileName)
-	return simulatorDestOutputFileName, nil // Return path relative to simulator root
+	returnedPath := filepath.Join(monitorDirName, monitorOutputBase)
+	fmt.Printf("%s%s%s: %s Monitor finalizado. Saída disponível em %s%s%s.%s\n",
+		colorCyan, logPrefixMonitor, colorReset, emojiSuccess, colorPurple, fullOriginalMonitorPath, colorGreen, colorReset)
+	return returnedPath, nil
 }
 
-// runAIEngine executa o script Python do AI-Engine usando arquivos temporários para input e configuração,
-// para evitar modificar o submódulo ai-engine.
 func runAIEngine(monitorStaticFile string) (string, error) {
-	fmt.Printf("AI-Engine: Iniciando. Input estático do monitor: %s\n", monitorStaticFile)
+	fmt.Printf("%s%s%s: %s Iniciando. Input estático do monitor: %s%s%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, emojiPlay, colorPurple, monitorStaticFile, colorReset)
 
-	// aiEngineDir is where main.py and temp files will be, e.g. "ai-engine/engine"
-	// aiEngineDirParent is where the Makefile is, e.g. "ai-engine"
-	aiEngineDirParent := "ai-engine"
-	aiEngineDir := filepath.Join(aiEngineDirParent, "engine")
+	aiEngineTopDir := aiEngineParentDirName
+	aiEngineWorkDir := filepath.Join(aiEngineTopDir, aiEngineWorkSubDir)
 
-	// Nomes para os arquivos temporários que serão criados dentro de aiEngineDir
-	tempWorkloadsJsonFile := "temp_ai_input_workloads.json"
-	tempRuntimeConfigFile := "temp_ai_runtime_config.yaml"
-	// Caminho relativo (ao simulador) para o output esperado do AI-Engine
-	recommendationsFileRel := "ai-engine/actuator/recommendations.csv"
+	tempRuntimeConfigFile := aiEngineTempConfigYAML
+	recommendationsFileRel := aiEngineOutputCSVPath
 
-	// --- 1. Preparar o JSON de entrada para o AI-Engine ---
 	absMonitorStaticFile, err := filepath.Abs(monitorStaticFile)
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao obter caminho absoluto para %s: %v", monitorStaticFile, err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao obter caminho absoluto para o arquivo de monitor %s%s%s: %v%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiError, colorPurple, monitorStaticFile, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao obter caminho absoluto para o arquivo de monitor %s: %w", monitorStaticFile, err)
 	}
 
-	fmt.Printf("AI-Engine: Lendo arquivo de monitor estático: %s\n", absMonitorStaticFile)
-	monitorDataBytes, err := os.ReadFile(absMonitorStaticFile)
+	absAiEngineWorkDir, err := filepath.Abs(aiEngineWorkDir)
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao ler arquivo de monitor estático %s: %v", absMonitorStaticFile, err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao obter caminho absoluto para o diretório de trabalho do AI Engine %s%s%s: %v%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiError, colorPurple, aiEngineWorkDir, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao obter caminho absoluto para o diretório de trabalho do AI Engine %s: %w", aiEngineWorkDir, err)
 	}
 
-	var parsedMonitorData map[string]interface{}
-	if err := json.Unmarshal(monitorDataBytes, &parsedMonitorData); err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao parsear JSON do monitor estático %s: %v", absMonitorStaticFile, err)
-	}
-
-	var workloadsList []interface{}
-	if len(parsedMonitorData) > 0 {
-		var firstTimestampKey string
-		for k := range parsedMonitorData {
-			firstTimestampKey = k
-			break
-		}
-		if firstTimestampKey == "" {
-			return "", fmt.Errorf("AI-Engine: Não foi possível obter um timestamp do JSON do monitor, embora não esteja vazio")
-		}
-
-		if tsData, ok := parsedMonitorData[firstTimestampKey].(map[string]interface{}); ok {
-			if workloads, ok := tsData["workloads"].([]interface{}); ok {
-				workloadsList = workloads
-				fmt.Printf("AI-Engine: Extraídos %d workloads do timestamp '%s' do arquivo de monitor.\n", len(workloadsList), firstTimestampKey)
-			} else {
-				return "", fmt.Errorf("AI-Engine: Chave 'workloads' não é uma lista no timestamp '%s' do JSON do monitor", firstTimestampKey)
-			}
-		} else {
-			return "", fmt.Errorf("AI-Engine: Conteúdo para o timestamp '%s' não é um objeto no JSON do monitor", firstTimestampKey)
-		}
-	} else {
-		return "", fmt.Errorf("AI-Engine: JSON do monitor estático está vazio ou não é um objeto de timestamps")
-	}
-
-	if len(workloadsList) == 0 {
-		return "", fmt.Errorf("AI-Engine: Nenhuma workload encontrada no primeiro timestamp do arquivo de monitor")
-	}
-
-	workloadsJsonBytes, err := json.MarshalIndent(workloadsList, "", "  ")
+	relativePathToMonitorFileForAI, err := filepath.Rel(absAiEngineWorkDir, absMonitorStaticFile)
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao serializar lista de workloads para JSON: %v", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao calcular o caminho relativo de %s%s%s para %s%s%s: %v%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiError, colorPurple, absAiEngineWorkDir, colorRed, colorPurple, absMonitorStaticFile, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao calcular o caminho relativo de %s para %s: %w", absAiEngineWorkDir, absMonitorStaticFile, err)
 	}
+	fmt.Printf("%s%s%s: %s AI Engine usará o arquivo de input: %s%s%s (relativo a %s%s%s)%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, emojiInfo, colorPurple, relativePathToMonitorFileForAI, colorBlue, colorPurple, aiEngineWorkDir, colorBlue, colorReset)
 
-	// Caminho absoluto para o arquivo JSON temporário de workloads
-	absTempWorkloadsJsonFile := filepath.Join(aiEngineDir, tempWorkloadsJsonFile)
-	fmt.Printf("AI-Engine: Escrevendo JSON de workloads processado para: %s\n", absTempWorkloadsJsonFile)
-	if err := os.WriteFile(absTempWorkloadsJsonFile, workloadsJsonBytes, 0644); err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao escrever JSON de workloads temporário %s: %v", absTempWorkloadsJsonFile, err)
-	}
-	// Defer para limpar o JSON temporário de workloads
-	defer func() {
-		fmt.Printf("AI-Engine: Removendo arquivo JSON de workloads temporário: %s\n", absTempWorkloadsJsonFile)
-		os.Remove(absTempWorkloadsJsonFile)
-	}()
-
-	// --- 2. Preparar o arquivo de configuração YAML temporário para o AI-Engine ---
-	// O input_json no YAML deve ser relativo ao diretório aiEngineDir, ou absoluto.
-	// Usar o nome do arquivo relativo é mais simples se o CWD do script for aiEngineDir.
-	yamlContent := fmt.Sprintf("data:\n  input_json: \"%s\"\n", tempWorkloadsJsonFile)
-	absTempRuntimeConfigFile := filepath.Join(aiEngineDir, tempRuntimeConfigFile)
-	fmt.Printf("AI-Engine: Escrevendo YAML de configuração temporário para: %s\n", absTempRuntimeConfigFile)
+	yamlContent := fmt.Sprintf("data:\n  input_json: \"%s\"\n", relativePathToMonitorFileForAI)
+	absTempRuntimeConfigFile := filepath.Join(aiEngineWorkDir, tempRuntimeConfigFile)
+	fmt.Printf("%s%s%s: %s Escrevendo YAML de configuração temporário para: %s%s%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, emojiConfig, colorPurple, absTempRuntimeConfigFile, colorReset)
 	if err := os.WriteFile(absTempRuntimeConfigFile, []byte(yamlContent), 0644); err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao escrever YAML de configuração temporário %s: %v", absTempRuntimeConfigFile, err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao escrever YAML de configuração temporário %s%s%s: %v%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiError, colorPurple, absTempRuntimeConfigFile, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao escrever YAML de configuração temporário %s: %w", absTempRuntimeConfigFile, err)
 	}
-	// Defer para limpar o YAML de configuração temporário
 	defer func() {
-		fmt.Printf("AI-Engine: Removendo arquivo YAML de configuração temporário: %s\n", absTempRuntimeConfigFile)
+		fmt.Printf("%s%s%s: %s Removendo arquivo YAML de configuração temporário: %s%s%s\n",
+			colorCyan, logPrefixAIEngine, colorReset, emojiClean, colorPurple, absTempRuntimeConfigFile, colorReset)
 		os.Remove(absTempRuntimeConfigFile)
 	}()
 
-	// --- 3. Executar o script Python do AI-Engine via Makefile ---
-	// O tempRuntimeConfigFile (e.g., temp_ai_runtime_config.yaml) é criado em aiEngineDir (ai-engine/engine).
-	// O Makefile's run-with-config target cd's para aiEngineDir antes de executar python.
-	// Então, o CONFIG_FILE para make deve ser o nome base do arquivo.
 	makeTarget := "run-with-config"
-	makeConfigFileVar := "CONFIG_FILE=" + tempRuntimeConfigFile // tempRuntimeConfigFile is just the filename
+	makeConfigFileVar := "CONFIG_FILE=" + tempRuntimeConfigFile
 
-	fmt.Printf("AI-Engine: Executando via Makefile: make %s %s (CWD: %s)\n", makeTarget, makeConfigFileVar, aiEngineDirParent)
+	fmt.Printf("%s%s%s: %s Executando via Makefile: %smake %s %s%s (CWD: %s%s%s)%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, emojiTool, colorPurple, makeTarget, makeConfigFileVar, colorBlue, colorPurple, aiEngineTopDir, colorBlue, colorReset)
 	cmd := exec.Command("make", makeTarget, makeConfigFileVar)
-	cmd.Dir = aiEngineDirParent // Run make from "ai-engine/"
+	cmd.Dir = aiEngineTopDir
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao executar Makefile target '%s' com config (%s): %v. Output:\n%s",
-			makeTarget, tempRuntimeConfigFile, err, string(cmdOutput))
+		fmt.Printf("%s%s%s: %s --- %s AI-Engine Output Start (Error) %s --- %s\n", colorCyan, logPrefixAIEngine, colorReset, emojiOutput, colorYellow, emojiOutput, colorReset)
+		fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+		fmt.Printf("%s%s%s: %s --- %s AI-Engine Output End (Error) %s --- %s\n", colorCyan, logPrefixAIEngine, colorReset, emojiOutput, colorYellow, emojiOutput, colorReset)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao executar Makefile target '%s%s%s' com config (%s%s%s): %v%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiError, colorPurple, makeTarget, colorRed, colorPurple, tempRuntimeConfigFile, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao executar Makefile target '%s' com config (%s): %w", makeTarget, tempRuntimeConfigFile, err)
 	}
-	fmt.Printf("AI-Engine: Makefile target executado. Output:\n%s\n", string(cmdOutput))
+	fmt.Printf("%s%s%s: %s Makefile target executado.%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiSuccess, colorReset)
+	fmt.Printf("%s%s%s: %s --- %s AI-Engine Output Start %s --- %s\n", colorCyan, logPrefixAIEngine, colorReset, emojiOutput, colorGreen, emojiOutput, colorReset)
+	fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+	fmt.Printf("%s%s%s: %s --- %s AI-Engine Output End %s --- %s\n", colorCyan, logPrefixAIEngine, colorReset, emojiOutput, colorGreen, emojiOutput, colorReset)
 
-	// --- 4. Verificar output e retornar caminho ---
 	absRecommendationsFile, err := filepath.Abs(recommendationsFileRel)
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Erro ao obter caminho absoluto para %s: %v", recommendationsFileRel, err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Erro ao obter caminho absoluto para %s%s%s: %v%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiError, colorPurple, recommendationsFileRel, colorRed, err, colorReset)
+		return "", fmt.Errorf("erro ao obter caminho absoluto para %s: %w", recommendationsFileRel, err)
 	}
 
 	if _, err := os.Stat(absRecommendationsFile); os.IsNotExist(err) {
-		return "", fmt.Errorf("AI-Engine: Arquivo de recomendações esperado (%s) não foi encontrado após execução", absRecommendationsFile)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Arquivo de recomendações esperado (%s%s%s) não foi encontrado após execução%s\n", colorCyan, logPrefixAIEngine, colorReset, emojiError, colorPurple, absRecommendationsFile, colorRed, colorReset)
+		return "", fmt.Errorf("arquivo de recomendações esperado (%s) não foi encontrado após execução", absRecommendationsFile)
 	}
 
-	fmt.Printf("AI-Engine: Finalizado. Recomendações esperadas em %s\n", absRecommendationsFile)
+	fmt.Printf("%s%s%s: %s Finalizado. Recomendações esperadas em %s%s%s.%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, emojiSuccess, colorPurple, absRecommendationsFile, colorGreen, colorReset)
 	return absRecommendationsFile, nil
 }
 
-// runActuator executa o programa Go do Actuator.
-// recommendationsCsvFile é o caminho absoluto para o arquivo de recomendações, usado para verificação.
 func runActuator(recommendationsCsvFile string) error {
-	fmt.Printf("Actuator: Iniciando. Verificando input: %s\n", recommendationsCsvFile)
+	fmt.Printf("%s%s%s: %s Iniciando. Input original: %s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, emojiPlay, colorPurple, recommendationsCsvFile, colorReset)
 
-	// Diretório onde o main.go do Actuator está e onde recommendations.csv deve estar.
-	actuatorDir := "actuator"
-	// O programa Go do Actuator lê "recommendations.csv" diretamente do seu CWD.
-	// actuatorScript := "main.go" // Não é um script, é um programa Go
+	currentActuatorDir := actuatorDirName
+	destCsvInActuatorDir := filepath.Join(currentActuatorDir, actuatorInputCSVName)
 
-	// Verificar se o recommendationsCsvFile (que o AI-Engine deveria ter criado) existe
-	if _, err := os.Stat(recommendationsCsvFile); os.IsNotExist(err) {
-		log.Printf("Actuator: Arquivo de recomendações %s não encontrado (esperado ser criado pelo AI-Engine).", recommendationsCsvFile)
-		return fmt.Errorf("actuator: arquivo de recomendações %s não encontrado", recommendationsCsvFile)
+	fmt.Printf("%s%s%s: %s Copiando %s%s%s para %s%s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, emojiFile, colorPurple, recommendationsCsvFile, colorBlue, colorPurple, destCsvInActuatorDir, colorBlue, colorReset)
+	sourceData, err := os.ReadFile(recommendationsCsvFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s falha ao ler arquivo de recomendações original %s%s%s: %v%s\n", colorCyan, logPrefixActuator, colorReset, emojiError, colorPurple, recommendationsCsvFile, colorRed, err, colorReset)
+		return fmt.Errorf("falha ao ler arquivo de recomendações original %s: %w", recommendationsCsvFile, err)
 	}
-	fmt.Printf("Actuator: Arquivo de recomendações %s encontrado.\n", recommendationsCsvFile)
+	if err := os.WriteFile(destCsvInActuatorDir, sourceData, 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s falha ao escrever recomendações para %s%s%s: %v%s\n", colorCyan, logPrefixActuator, colorReset, emojiError, colorPurple, destCsvInActuatorDir, colorRed, err, colorReset)
+		return fmt.Errorf("falha ao escrever recomendações para %s: %w", destCsvInActuatorDir, err)
+	}
+	defer func() {
+		fmt.Printf("%s%s%s: %s Removendo arquivo de recomendações copiado: %s%s%s\n",
+			colorCyan, logPrefixActuator, colorReset, emojiClean, colorPurple, destCsvInActuatorDir, colorReset)
+		os.Remove(destCsvInActuatorDir)
+	}()
 
-	fmt.Printf("Actuator: Executando programa Go: go run main.go --csv %s no diretório %s\n", recommendationsCsvFile, actuatorDir)
+	fmt.Printf("%s%s%s: %s Executando programa Go: %sgo run main.go%s no diretório %s%s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, emojiTool, colorPurple, colorBlue, colorPurple, currentActuatorDir, colorBlue, colorReset)
 
-	cmd := exec.Command("go", "run", "main.go", "--csv", recommendationsCsvFile)
-	cmd.Dir = actuatorDir // Define o diretório de trabalho para actuator/
-	// KUBECONFIG setting is now handled within actuator/orchestrators/karmada.go
-	// homeDir, err := os.UserHomeDir()
-	// if err != nil {
-	// 	return fmt.Errorf("actuator: failed to get user home directory: %w", err)
-	// }
-	// karmadaKubeconfigPath := filepath.Join(homeDir, ".kube", "karmada.config")
-	// cmd.Env = append(os.Environ(), "KUBECONFIG="+karmadaKubeconfigPath)
-	// log.Printf("Actuator: Setting KUBECONFIG for Actuator to: %s", karmadaKubeconfigPath)
+	cmd := exec.Command("go", "run", "main.go")
+	cmd.Dir = currentActuatorDir
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Actuator: Falha ao executar programa Go (go run main.go em %s): %v", actuatorDir, err)
-		log.Printf("Actuator: Output do programa Go:\n%s", string(cmdOutput))
-		return fmt.Errorf("actuator: falha ao executar programa Go: %w. Output: %s", err, string(cmdOutput))
+		fmt.Printf("%s%s%s: %s Falha ao executar programa Go (go run main.go em %s%s%s): %v%s\n",
+			colorCyan, logPrefixActuator, colorReset, emojiError, colorPurple, currentActuatorDir, colorRed, err, colorReset)
+		fmt.Printf("%s%s%s: %s --- %s Actuator Output Start (Error) %s --- %s\n", colorCyan, logPrefixActuator, colorReset, emojiOutput, colorYellow, emojiOutput, colorReset)
+		fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+		fmt.Printf("%s%s%s: %s --- %s Actuator Output End (Error) %s --- %s\n", colorCyan, logPrefixActuator, colorReset, emojiOutput, colorYellow, emojiOutput, colorReset)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s falha ao executar programa Go: %v%s\n", colorCyan, logPrefixActuator, colorReset, emojiError, err, colorReset)
+		return fmt.Errorf("falha ao executar programa Go: %w", err)
 	}
 
-	fmt.Printf("Actuator: Programa Go executado com sucesso. Output:\n%s", string(cmdOutput))
-	fmt.Println("Actuator: Finalizou a aplicação das recomendações.")
+	fmt.Printf("%s%s%s: %s Programa Go executado com sucesso.%s\n", colorCyan, logPrefixActuator, colorReset, emojiSuccess, colorReset)
+	fmt.Printf("%s%s%s: %s --- %s Actuator Output Start %s --- %s\n", colorCyan, logPrefixActuator, colorReset, emojiOutput, colorGreen, emojiOutput, colorReset)
+	fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+	fmt.Printf("%s%s%s: %s --- %s Actuator Output End %s --- %s\n", colorCyan, logPrefixActuator, colorReset, emojiOutput, colorGreen, emojiOutput, colorReset)
+	fmt.Printf("%s%s%s: %s Finalizou a aplicação das recomendações.%s\n", colorCyan, logPrefixActuator, colorReset, emojiSuccess, colorReset)
 	return nil
 }
 
 func main() {
-	fmt.Println("Simulador iniciando o ciclo de operações...")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: Iniciando o ciclo de operações...%s\n", colorCyan, logPrefixSimulator, colorReset, colorReset)
 
-	csv_path := "data/recorte_5min.csv"
-	yaml_path := "data/config.yaml"
+	csvPath := brokerInputDataCSVPath
+	yamlPath := brokerInputConfigYAMLPath
 
-	config_yaml, err := os.Open(yaml_path)
+	configYaml, err := os.Open(yamlPath)
 	if err != nil {
-		log.Fatalf("Falha ao abrir configuração YAML %s: %v", yaml_path, err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao abrir configuração YAML %s%s%s: %v%s\n",
+			colorRed, logPrefixSimulator, colorReset, emojiFire, colorPurple, yamlPath, colorRed, err, colorReset)
+		os.Exit(1)
 	}
-	// defer config_yaml.Close() // Fecharemos explicitamente após o uso pelo Broker
 
-	csv_data, err := os.Open(csv_path)
+	csvData, err := os.Open(csvPath)
 	if err != nil {
-		log.Fatalf("Falha ao abrir dados CSV %s: %v", csv_path, err)
+		fmt.Println("")
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha ao abrir dados CSV %s%s%s: %v%s\n",
+			colorRed, logPrefixSimulator, colorReset, emojiFire, colorPurple, csvPath, colorRed, err, colorReset)
+		os.Exit(1)
 	}
-	// defer csv_data.Close() // Fecharemos explicitamente após o uso pelo Broker
 
-	// Etapa 1: Broker
-	fmt.Println("\n--- Iniciando Broker ---")
-	broker.Run(csv_data, config_yaml) // Passando os leitores originais
-	csv_data.Close()                  // Fechando após o uso pelo broker
-	config_yaml.Close()               // Fechando após o uso pelo broker
-	fmt.Println("--- Broker finalizou ---")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: --- %s%s%s Iniciando --- %s\n", colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixBroker, colorGreen, colorReset)
+	broker.Run(csvData, configYaml)
+	csvData.Close()
+	configYaml.Close()
+	fmt.Printf("%s%s%s: --- %s%s%s finalizado --- %s\n", colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixBroker, colorGreen, colorReset)
 
-	// Etapa 2: Monitor
-	fmt.Println("\n--- Iniciando Monitor Externo ---")
-	// Run the external monitor for 10 seconds (adjust as needed)
+	fmt.Println("")
+	fmt.Printf("%s%s%s: --- %s%s%s Iniciando --- %s\n", colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixMonitor, colorGreen, colorReset)
 	monitorOutputFile, err := runExternalMonitorAndFetchOutput(10 * time.Second)
 	if err != nil {
-		log.Fatalf("Monitor Externo falhou: %v. Encerrando simulador.", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha: %v. Encerrando simulador.%s\n",
+			colorRed, logPrefixMonitor, colorReset, emojiFire, err, colorReset)
+		os.Exit(1)
 	}
-	fmt.Printf("--- Output do Monitor Externo em: %s ---\n", monitorOutputFile)
+	fmt.Printf("%s%s%s: --- %s%s%s Output em: %s%s%s --- %s\n",
+		colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixMonitor, colorGreen, colorPurple, monitorOutputFile, colorGreen, colorReset)
 
-	// Etapa 3: AI-Engine
-	// O AI-Engine utilizará o monitor_output.json (gerado)
-	fmt.Println("\n--- Iniciando AI-Engine ---")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: --- %s%s%s Iniciando --- %s\n", colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixAIEngine, colorGreen, colorReset)
 	recommendationsCsvFile, err := runAIEngine(monitorOutputFile)
 	if err != nil {
-		log.Fatalf("AI-Engine falhou: %v. Encerrando simulador.", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha: %v. Encerrando simulador.%s\n",
+			colorRed, logPrefixAIEngine, colorReset, emojiFire, err, colorReset)
+		os.Exit(1)
 	}
-	fmt.Printf("--- AI-Engine finalizou, recomendações em: %s ---\n", recommendationsCsvFile)
+	fmt.Printf("%s%s%s: --- %s%s%s finalizou, recomendações em: %s%s%s --- %s\n",
+		colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixAIEngine, colorGreen, colorPurple, recommendationsCsvFile, colorGreen, colorReset)
 
-	// Etapa 4: Actuator
-	// O Actuator utilizará o recommendations.csv gerado pelo AI-Engine.
-	fmt.Println("\n--- Iniciando Actuator ---")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: --- %s%s%s Iniciando --- %s\n", colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixActuator, colorGreen, colorReset)
 	err = runActuator(recommendationsCsvFile)
 	if err != nil {
-		log.Fatalf("Actuator falhou: %v. Encerrando simulador.", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %s Falha: %v. Encerrando simulador.%s\n",
+			colorRed, logPrefixActuator, colorReset, emojiFire, err, colorReset)
+		os.Exit(1)
 	}
-	fmt.Println("--- Actuator finalizou ---")
+	fmt.Printf("%s%s%s: --- %s%s%s finalizou --- %s\n", colorCyan, logPrefixSimulator, colorReset, colorCyan, logPrefixActuator, colorGreen, colorReset)
 
-	fmt.Println("\nSimulador completou todas as etapas com sucesso!")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: %s %s Simulador completou todas as etapas com sucesso! %s %s %s%s\n",
+		colorGreen, logPrefixSimulator, colorReset,
+		colorGreen, emojiRocket, emojiSuccess, emojiRocket, colorReset)
 }
