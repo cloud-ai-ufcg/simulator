@@ -1,16 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
-# Verificar se o repositório autoscaler já existe
+# Color (Green for this script)
+COLOR="\033[1;32m"
+RESET="\033[0m"
+
+# Check if autoscaler repo already exists
 if [ ! -d "autoscaler" ]; then
-  echo "[INFO] Diretório 'autoscaler/' não encontrado. Clonando repositório..."
+  echo -e "${COLOR}[INFO] 'autoscaler/' directory not found. Cloning repository...${RESET}"
   git clone --depth 1 https://github.com/kubernetes/autoscaler.git
 else
-  echo "[INFO] Diretório 'autoscaler/' já existe. Pulando clone."
+  echo -e "${COLOR}[INFO] 'autoscaler/' directory already exists. Skipping clone.${RESET}"
 fi
 
-
-# Gerar kwok-provider-config.yaml
+# Generate kwok-provider-config.yaml
 cat > kwok-provider-config.yaml <<EOF
 apiVersion: v1
 kind: ConfigMap
@@ -34,7 +37,7 @@ data:
         maxSize: 100
 EOF
 
-# Gerar kwok-provider-templates.yaml
+# Generate kwok-provider-templates.yaml
 cat > kwok-provider-templates.yaml <<EOF
 apiVersion: v1
 kind: ConfigMap
@@ -84,7 +87,7 @@ data:
       name: kwok-provider-templates
 EOF
 
-# Gerar clusterpropagationpolicy.yaml
+# Generate clusterpropagationpolicy.yaml
 cat > clusterpropagationpolicy.yaml <<EOF
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
@@ -172,15 +175,14 @@ spec:
             operator: DoesNotExist
   placement:
     clusterAffinity:
-      labelSelector: {}  # qualquer cluster
+      labelSelector: {}  # any cluster
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
 EOF
 
-echo "[OK] clusterpropagationpolicy.yaml gerado com sucesso."
-
+echo -e "${COLOR}[OK] clusterpropagationpolicy.yaml generated successfully.${RESET}"
 
 echo
-echo "[OK] Arquivos gerados com sucesso:"
+echo -e "${COLOR}[OK] Files generated successfully:${RESET}"
 ls -1 kwok-provider-config.yaml kwok-provider-templates.yaml clusterpropagationpolicy.yaml
