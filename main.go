@@ -7,54 +7,152 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloud-ai-ufcg/broker/broker"
 )
 
-// MonitorDataEntry representa uma entrada de dados do monitor
-type MonitorDataEntry struct {
-	Timestamp string `json:"timestamp"`
-	Message   string `json:"message"`
+// forceKillMonitorProcesses attempts to forcefully kill known monitor-related processes.
+func forceKillMonitorProcesses() {
+	log.Println("External Monitor: Forcefully killing any old monitor-related processes...")
+	processesToKill := []struct {
+		name    string
+		pattern string
+	}{
+		{"port-foward.sh", "port-foward.sh"},
+		{"kubectl port-forward", "kubectl.*port-forward"},
+		{"./monitor executable", "./monitor"}, // In case the monitor itself lingers
+	}
+
+	for _, proc := range processesToKill {
+		cmd := exec.Command("pkill", "-KILL", "-f", proc.pattern)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			if strings.Contains(string(output), "no process found") || strings.Contains(err.Error(), "exit status 1") {
+				log.Printf("External Monitor: No processes found matching '%s' or already killed.", proc.name)
+			} else {
+				log.Printf("External Monitor: Error trying to pkill -KILL -f '%s': %v, Output: %s", proc.pattern, err, string(output))
+			}
+		} else {
+			log.Printf("External Monitor: Successfully sent KILL signal to processes matching '%s'. Output: %s", proc.name, string(output))
+		}
+	}
+	// Give a very short time for OS to reap killed processes
+	time.Sleep(100 * time.Millisecond)
 }
 
-// monitor coleta métricas por um período definido e salva em um arquivo JSON.
-// Retorna o caminho do arquivo de output e um erro, se houver.
-func monitor() (string, error) {
-	fmt.Println("Monitor iniciando...")
-	outputFilePath := "monitor_output.json" // Nome do arquivo de saída conforme solicitado
-	var metricsLog []MonitorDataEntry
+// runExternalMonitorAndFetchOutput executes the external monitor using its Makefile,
+// lets it run for a specified duration, stops it, and copies its output.
+func runExternalMonitorAndFetchOutput(duration time.Duration) (string, error) {
+	// Aggressive cleanup before starting
+	forceKillMonitorProcesses()
 
-	totalDuration := 30 * time.Second
-	interval := 3 * time.Second
-	iterations := int(totalDuration / interval)
+	fmt.Println("External Monitor: Starting...")
+	monitorDir := "monitor" // Relative path to the monitor's directory
+	monitorOutputFileName := "monitor_outputs.json"
+	simulatorDestOutputFileName := "monitor_output.json"
 
-	fmt.Printf("Monitor coletando métricas por %v (intervalo de %v)...\n", totalDuration, interval)
-	for i := 0; i < iterations; i++ {
-		entry := MonitorDataEntry{
-			Timestamp: time.Now().Format(time.RFC3339),
-			Message:   fmt.Sprintf("Coleta de métricas #%d", i+1),
+	// Get current working directory to return to it later
+	originalWd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("External Monitor: failed to get current working directory: %w", err)
+	}
+
+	// Change to the monitor's directory to run make
+	if err := os.Chdir(monitorDir); err != nil {
+		return "", fmt.Errorf("External Monitor: failed to change directory to %s: %w", monitorDir, err)
+	}
+	// Ensure we change back to the original directory
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			log.Printf("External Monitor: CRITICAL - failed to change back to original directory %s: %v", originalWd, err)
 		}
-		metricsLog = append(metricsLog, entry)
-		// Log no console para acompanhamento
-		fmt.Printf("Monitor: %s - %s\n", entry.Timestamp, entry.Message)
-		time.Sleep(interval)
+	}()
+
+	fmt.Printf("External Monitor: Running 'make all' in %s for %v...\n", monitorDir, duration)
+	cmd := exec.Command("make", "all")
+	// cmd.Dir is not strictly necessary here as we already changed dir, but doesn't hurt.
+	// cmd.Dir = monitorDir
+
+	// Capture output for debugging
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("External Monitor: failed to start 'make all': %w", err)
 	}
 
-	jsonData, err := json.MarshalIndent(metricsLog, "", "  ")
+	fmt.Printf("External Monitor: Process started (PID %d), waiting for %v...\n", cmd.Process.Pid, duration)
+	time.Sleep(duration)
+
+	fmt.Println("External Monitor: Duration elapsed. Sending interrupt signal to 'make all' process...")
+	if err := cmd.Process.Signal(os.Interrupt); err != nil {
+		// Log the error but try to proceed with cmd.Wait() as the process might have exited already or signal failed
+		log.Printf("External Monitor: Failed to send interrupt signal: %v. Attempting to wait for process.", err)
+	}
+
+	fmt.Println("External Monitor: Waiting for 'make all' to complete cleanup and exit...")
+
+	// Wait for the command to exit, but with a timeout for the wait itself.
+	waitChan := make(chan error, 1)
+	go func() {
+		waitChan <- cmd.Wait() // This will block until the command exits
+	}()
+
+	select {
+	case err := <-waitChan:
+		// Process exited (or an error occurred starting/waiting for it)
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				log.Printf("External Monitor: 'make all' exited with error after interrupt: %v. Stderr: %s", exitErr, string(exitErr.Stderr))
+			} else {
+				log.Printf("External Monitor: 'make all' failed to complete after interrupt: %v", err)
+			}
+		} else {
+			fmt.Println("External Monitor: 'make all' completed successfully after interrupt.")
+		}
+	case <-time.After(5 * time.Second): // 5-second timeout for cmd.Wait()
+		log.Println("External Monitor: 'make all' did not exit promptly after interrupt. Sending kill signal...")
+		if killErr := cmd.Process.Kill(); killErr != nil {
+			log.Printf("External Monitor: Failed to send kill signal: %v", killErr)
+			// If kill fails, we might be in a bad state, but we must try to unblock.
+			// We still need to wait for the process to be reaped after kill.
+			<-waitChan // Drain the channel, wait for the goroutine to finish
+			return "", fmt.Errorf("External Monitor: failed to kill 'make all' process after timeout: %w", killErr)
+		}
+		// After sending kill, Wait() should unblock. Drain the channel.
+		finalWaitErr := <-waitChan
+		log.Printf("External Monitor: 'make all' process killed. Wait result: %v", finalWaitErr)
+	}
+
+	// Aggressive cleanup after attempting to stop/kill
+	forceKillMonitorProcesses()
+
+	// Define paths relative to the original working directory for the copy
+	// The monitor_outputs.json is created inside the 'monitor' directory by its makefile/program
+	sourcePathInMonitorDir := monitorOutputFileName
+	// Destination is in the simulator's root
+	destPathInSimulatorRoot := filepath.Join(originalWd, simulatorDestOutputFileName)
+	// Source path from originalWd's perspective
+	absSourcePath := filepath.Join(originalWd, monitorDir, sourcePathInMonitorDir)
+
+	fmt.Printf("External Monitor: Copying output from %s to %s...\n", absSourcePath, destPathInSimulatorRoot)
+
+	// Read the source file
+	monitorJsonData, err := os.ReadFile(sourcePathInMonitorDir) // Reading from monitor/monitor_outputs.json
 	if err != nil {
-		log.Printf("Falha ao gerar JSON dos dados do monitor: %v", err)
-		return "", err
+		return "", fmt.Errorf("External Monitor: failed to read monitor output file %s: %w", sourcePathInMonitorDir, err)
 	}
 
-	err = os.WriteFile(outputFilePath, jsonData, 0644)
-	if err != nil {
-		log.Printf("Falha ao escrever output do monitor para %s: %v", outputFilePath, err)
-		return "", err
+	// Write to the destination file (in simulator root)
+	if err := os.WriteFile(filepath.Join("..", simulatorDestOutputFileName), monitorJsonData, 0644); err != nil {
+		// We are currently in monitorDir, so dest is one level up
+		return "", fmt.Errorf("External Monitor: failed to write monitor output to %s: %w", simulatorDestOutputFileName, err)
 	}
 
-	fmt.Printf("Monitor finalizado. Output escrito em %s\n", outputFilePath)
-	return outputFilePath, nil
+	fmt.Printf("External Monitor: Finished. Output available at %s\n", simulatorDestOutputFileName)
+	return simulatorDestOutputFileName, nil // Return path relative to simulator root
 }
 
 // runAIEngine executa o script Python do AI-Engine usando arquivos temporários para input e configuração,
@@ -62,8 +160,11 @@ func monitor() (string, error) {
 func runAIEngine(monitorStaticFile string) (string, error) {
 	fmt.Printf("AI-Engine: Iniciando. Input estático do monitor: %s\n", monitorStaticFile)
 
-	aiEngineDir := "ai-engine/engine"
-	aiEngineScript := "main.py"
+	// aiEngineDir is where main.py and temp files will be, e.g. "ai-engine/engine"
+	// aiEngineDirParent is where the Makefile is, e.g. "ai-engine"
+	aiEngineDirParent := "ai-engine"
+	aiEngineDir := filepath.Join(aiEngineDirParent, "engine")
+
 	// Nomes para os arquivos temporários que serão criados dentro de aiEngineDir
 	tempWorkloadsJsonFile := "temp_ai_input_workloads.json"
 	tempRuntimeConfigFile := "temp_ai_runtime_config.yaml"
@@ -148,18 +249,23 @@ func runAIEngine(monitorStaticFile string) (string, error) {
 		os.Remove(absTempRuntimeConfigFile)
 	}()
 
-	// --- 3. Executar o script Python do AI-Engine ---
-	// Assumimos que o main.py original do submódulo aceita --config <nome_do_arquivo_yaml>
-	fmt.Printf("AI-Engine: Executando script: python %s --config %s (CWD: %s)\n", aiEngineScript, tempRuntimeConfigFile, aiEngineDir)
-	cmd := exec.Command("python", aiEngineScript, "--config", tempRuntimeConfigFile)
-	cmd.Dir = aiEngineDir
+	// --- 3. Executar o script Python do AI-Engine via Makefile ---
+	// O tempRuntimeConfigFile (e.g., temp_ai_runtime_config.yaml) é criado em aiEngineDir (ai-engine/engine).
+	// O Makefile's run-with-config target cd's para aiEngineDir antes de executar python.
+	// Então, o CONFIG_FILE para make deve ser o nome base do arquivo.
+	makeTarget := "run-with-config"
+	makeConfigFileVar := "CONFIG_FILE=" + tempRuntimeConfigFile // tempRuntimeConfigFile is just the filename
+
+	fmt.Printf("AI-Engine: Executando via Makefile: make %s %s (CWD: %s)\n", makeTarget, makeConfigFileVar, aiEngineDirParent)
+	cmd := exec.Command("make", makeTarget, makeConfigFileVar)
+	cmd.Dir = aiEngineDirParent // Run make from "ai-engine/"
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao executar script Python (%s) com config (%s): %v. Output:\n%s",
-			aiEngineScript, tempRuntimeConfigFile, err, string(cmdOutput))
+		return "", fmt.Errorf("AI-Engine: Falha ao executar Makefile target '%s' com config (%s): %v. Output:\n%s",
+			makeTarget, tempRuntimeConfigFile, err, string(cmdOutput))
 	}
-	fmt.Printf("AI-Engine: Script Python executado. Output:\n%s\n", string(cmdOutput))
+	fmt.Printf("AI-Engine: Makefile target executado. Output:\n%s\n", string(cmdOutput))
 
 	// --- 4. Verificar output e retornar caminho ---
 	absRecommendationsFile, err := filepath.Abs(recommendationsFileRel)
@@ -181,7 +287,7 @@ func runActuator(recommendationsCsvFile string) error {
 	fmt.Printf("Actuator: Iniciando. Verificando input: %s\n", recommendationsCsvFile)
 
 	// Diretório onde o main.go do Actuator está e onde recommendations.csv deve estar.
-	actuatorDir := "ai-engine/actuator"
+	actuatorDir := "actuator"
 	// O programa Go do Actuator lê "recommendations.csv" diretamente do seu CWD.
 	// actuatorScript := "main.go" // Não é um script, é um programa Go
 
@@ -192,10 +298,18 @@ func runActuator(recommendationsCsvFile string) error {
 	}
 	fmt.Printf("Actuator: Arquivo de recomendações %s encontrado.\n", recommendationsCsvFile)
 
-	fmt.Printf("Actuator: Executando programa Go: go run main.go no diretório %s\n", actuatorDir)
+	fmt.Printf("Actuator: Executando programa Go: go run main.go --csv %s no diretório %s\n", recommendationsCsvFile, actuatorDir)
 
-	cmd := exec.Command("go", "run", "main.go")
-	cmd.Dir = actuatorDir // Define o diretório de trabalho para ai-engine/actuator/
+	cmd := exec.Command("go", "run", "main.go", "--csv", recommendationsCsvFile)
+	cmd.Dir = actuatorDir // Define o diretório de trabalho para actuator/
+	// KUBECONFIG setting is now handled within actuator/orchestrators/karmada.go
+	// homeDir, err := os.UserHomeDir()
+	// if err != nil {
+	// 	return fmt.Errorf("actuator: failed to get user home directory: %w", err)
+	// }
+	// karmadaKubeconfigPath := filepath.Join(homeDir, ".kube", "karmada.config")
+	// cmd.Env = append(os.Environ(), "KUBECONFIG="+karmadaKubeconfigPath)
+	// log.Printf("Actuator: Setting KUBECONFIG for Actuator to: %s", karmadaKubeconfigPath)
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
@@ -234,23 +348,17 @@ func main() {
 	config_yaml.Close()               // Fechando após o uso pelo broker
 	fmt.Println("--- Broker finalizou ---")
 
-	// Etapa 2: Monitor (Usando arquivo de exemplo estático)
-	fmt.Println("\n--- Usando output estático do Monitor --- ")
-	monitorOutputFile := "monitor_outputs.json" // Caminho para o arquivo de exemplo
-	// Verificar se o arquivo de exemplo do monitor existe
-	if _, err := os.Stat(monitorOutputFile); os.IsNotExist(err) {
-		log.Fatalf("Arquivo de output do monitor de exemplo '%s' não encontrado. Certifique-se de que ele existe na raiz do projeto.", monitorOutputFile)
+	// Etapa 2: Monitor
+	fmt.Println("\n--- Iniciando Monitor Externo ---")
+	// Run the external monitor for 10 seconds (adjust as needed)
+	monitorOutputFile, err := runExternalMonitorAndFetchOutput(10 * time.Second)
+	if err != nil {
+		log.Fatalf("Monitor Externo falhou: %v. Encerrando simulador.", err)
 	}
-	// // Chamada original para a função monitor, agora comentada:
-	// fmt.Println("\n--- Iniciando Monitor ---")
-	// monitorOutputFile, err := monitor()
-	// if err != nil {
-	// 	log.Fatalf("Monitor falhou: %v. Encerrando simulador.", err)
-	// }
-	fmt.Printf("--- Usando output do Monitor de: %s ---\n", monitorOutputFile)
+	fmt.Printf("--- Output do Monitor Externo em: %s ---\n", monitorOutputFile)
 
 	// Etapa 3: AI-Engine
-	// O AI-Engine utilizará o monitor_output.json (estático ou gerado)
+	// O AI-Engine utilizará o monitor_output.json (gerado)
 	fmt.Println("\n--- Iniciando AI-Engine ---")
 	recommendationsCsvFile, err := runAIEngine(monitorOutputFile)
 	if err != nil {
