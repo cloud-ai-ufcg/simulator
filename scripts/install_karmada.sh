@@ -39,11 +39,11 @@ export KUBECONFIG=~/.kube/members.config
 kubectl config delete-context member3 || true
 kubectl config delete-cluster kind-member3 || true
 
-CONTAINER_ID=$(docker ps -q --filter "name=kind-member3")
+CONTAINER_ID=$(docker ps -q --filter "name=member3-control-plane")
 if [ -n "$CONTAINER_ID" ]; then
   echo -e "${COLOR}🧹 Stopping container $CONTAINER_ID for cluster member3...${RESET}"
   docker stop "$CONTAINER_ID"
   docker rm "$CONTAINER_ID"
 else
-  echo -e "${COLOR}ℹ️ Container kind-member3 is not running.${RESET}"
+  echo -e "${COLOR}ℹ️ Container member3-control-plane is not running.${RESET}"
 fi
