@@ -25,6 +25,7 @@ go.work.sum
 .env
 .venv
 .DS_Store
+venv
 
 # AI Engine
 logs

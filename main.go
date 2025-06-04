@@ -1,271 +1,335 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloud-ai-ufcg/broker/broker"
 )
 
-// MonitorDataEntry representa uma entrada de dados do monitor
-type MonitorDataEntry struct {
-	Timestamp string `json:"timestamp"`
-	Message   string `json:"message"`
-}
+// ANSI Color Codes
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorBlue   = "\033[34m"
+	colorPurple = "\033[35m"
+	colorCyan   = "\033[36m"
+)
 
-// monitor coleta métricas por um período definido e salva em um arquivo JSON.
-// Retorna o caminho do arquivo de output e um erro, se houver.
-func monitor() (string, error) {
-	fmt.Println("Monitor iniciando...")
-	outputFilePath := "monitor_output.json" // Nome do arquivo de saída conforme solicitado
-	var metricsLog []MonitorDataEntry
+const (
+	logPrefixSimulator = " Simulador"
+	logPrefixBroker    = " Broker"
+	logPrefixMonitor   = " Monitor"
+	logPrefixAIEngine  = " AI-Engine"
+	logPrefixActuator  = " Actuator"
+)
 
-	totalDuration := 30 * time.Second
-	interval := 3 * time.Second
-	iterations := int(totalDuration / interval)
+// Paths and names (existing constants)
+const (
+	monitorDirName    = "monitor"
+	monitorOutputBase = "monitor_outputs.json"
 
-	fmt.Printf("Monitor coletando métricas por %v (intervalo de %v)...\n", totalDuration, interval)
-	for i := 0; i < iterations; i++ {
-		entry := MonitorDataEntry{
-			Timestamp: time.Now().Format(time.RFC3339),
-			Message:   fmt.Sprintf("Coleta de métricas #%d", i+1),
-		}
-		metricsLog = append(metricsLog, entry)
-		// Log no console para acompanhamento
-		fmt.Printf("Monitor: %s - %s\n", entry.Timestamp, entry.Message)
-		time.Sleep(interval)
+	aiEngineParentDirName  = "ai-engine"
+	aiEngineWorkSubDir     = "engine"
+	aiEngineTempConfigYAML = "temp_ai_runtime_config.yaml"
+	aiEngineOutputCSVPath  = "ai-engine/actuator/recommendations.csv"
+
+	actuatorDirName      = "actuator"
+	actuatorInputCSVName = "recommendations.csv"
+
+	brokerInputDataCSVPath    = "data/recorte_5min.csv"
+	brokerInputConfigYAMLPath = "data/config.yaml"
+)
+
+func forceKillMonitorProcesses() {
+	fmt.Printf("%s%s%s: %sForçando encerramento de processos antigos do monitor...%s\n", colorCyan, logPrefixMonitor, colorReset, colorBlue, colorReset)
+	processesToKill := []struct {
+		name    string
+		pattern string
+	}{
+		{"port-foward.sh", "port-foward.sh"},
+		{"kubectl port-forward", "kubectl.*port-forward"},
+		{"./monitor executable", "./monitor"},
 	}
 
-	jsonData, err := json.MarshalIndent(metricsLog, "", "  ")
-	if err != nil {
-		log.Printf("Falha ao gerar JSON dos dados do monitor: %v", err)
-		return "", err
-	}
-
-	err = os.WriteFile(outputFilePath, jsonData, 0644)
-	if err != nil {
-		log.Printf("Falha ao escrever output do monitor para %s: %v", outputFilePath, err)
-		return "", err
-	}
-
-	fmt.Printf("Monitor finalizado. Output escrito em %s\n", outputFilePath)
-	return outputFilePath, nil
-}
-
-// runAIEngine executa o script Python do AI-Engine usando arquivos temporários para input e configuração,
-// para evitar modificar o submódulo ai-engine.
-func runAIEngine(monitorStaticFile string) (string, error) {
-	fmt.Printf("AI-Engine: Iniciando. Input estático do monitor: %s\n", monitorStaticFile)
-
-	aiEngineDir := "ai-engine/engine"
-	aiEngineScript := "main.py"
-	// Nomes para os arquivos temporários que serão criados dentro de aiEngineDir
-	tempWorkloadsJsonFile := "temp_ai_input_workloads.json"
-	tempRuntimeConfigFile := "temp_ai_runtime_config.yaml"
-	// Caminho relativo (ao simulador) para o output esperado do AI-Engine
-	recommendationsFileRel := "ai-engine/actuator/recommendations.csv"
-
-	// --- 1. Preparar o JSON de entrada para o AI-Engine ---
-	absMonitorStaticFile, err := filepath.Abs(monitorStaticFile)
-	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao obter caminho absoluto para %s: %v", monitorStaticFile, err)
-	}
-
-	fmt.Printf("AI-Engine: Lendo arquivo de monitor estático: %s\n", absMonitorStaticFile)
-	monitorDataBytes, err := os.ReadFile(absMonitorStaticFile)
-	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao ler arquivo de monitor estático %s: %v", absMonitorStaticFile, err)
-	}
-
-	var parsedMonitorData map[string]interface{}
-	if err := json.Unmarshal(monitorDataBytes, &parsedMonitorData); err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao parsear JSON do monitor estático %s: %v", absMonitorStaticFile, err)
-	}
-
-	var workloadsList []interface{}
-	if len(parsedMonitorData) > 0 {
-		var firstTimestampKey string
-		for k := range parsedMonitorData {
-			firstTimestampKey = k
-			break
-		}
-		if firstTimestampKey == "" {
-			return "", fmt.Errorf("AI-Engine: Não foi possível obter um timestamp do JSON do monitor, embora não esteja vazio")
-		}
-
-		if tsData, ok := parsedMonitorData[firstTimestampKey].(map[string]interface{}); ok {
-			if workloads, ok := tsData["workloads"].([]interface{}); ok {
-				workloadsList = workloads
-				fmt.Printf("AI-Engine: Extraídos %d workloads do timestamp '%s' do arquivo de monitor.\n", len(workloadsList), firstTimestampKey)
-			} else {
-				return "", fmt.Errorf("AI-Engine: Chave 'workloads' não é uma lista no timestamp '%s' do JSON do monitor", firstTimestampKey)
+	for _, proc := range processesToKill {
+		cmd := exec.Command("pkill", "-KILL", "-f", proc.pattern)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			if !(strings.Contains(string(output), "no process found") || strings.Contains(err.Error(), "exit status 1")) {
+				fmt.Printf("%s%s%s: %sErro ao tentar forçar o encerramento de '%s%s%s': %s%v%s. %sOutput: %s%s%s%s\n",
+					colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, proc.pattern, colorBlue, colorRed, err, colorBlue, colorBlue, colorRed, string(output), colorBlue, colorReset)
 			}
 		} else {
-			return "", fmt.Errorf("AI-Engine: Conteúdo para o timestamp '%s' não é um objeto no JSON do monitor", firstTimestampKey)
+			fmt.Printf("%s%s%s: %sSinal KILL enviado com sucesso para processos correspondentes a '%s%s%s'. %sOutput: %s%s%s%s\n",
+				colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, proc.name, colorBlue, colorBlue, colorGreen, string(output), colorBlue, colorReset)
 		}
-	} else {
-		return "", fmt.Errorf("AI-Engine: JSON do monitor estático está vazio ou não é um objeto de timestamps")
 	}
+	time.Sleep(100 * time.Millisecond)
+}
 
-	if len(workloadsList) == 0 {
-		return "", fmt.Errorf("AI-Engine: Nenhuma workload encontrada no primeiro timestamp do arquivo de monitor")
-	}
+func runExternalMonitorAndFetchOutput(duration time.Duration) (string, error) {
+	forceKillMonitorProcesses()
 
-	workloadsJsonBytes, err := json.MarshalIndent(workloadsList, "", "  ")
+	fmt.Printf("%s%s%s: %sIniciando...%s\n", colorCyan, logPrefixMonitor, colorReset, colorBlue, colorReset)
+
+	originalWd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao serializar lista de workloads para JSON: %v", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha ao obter diretório de trabalho atual: %v%s\n", colorCyan, logPrefixMonitor, colorReset, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao obter diretório de trabalho atual: %w", err)
 	}
 
-	// Caminho absoluto para o arquivo JSON temporário de workloads
-	absTempWorkloadsJsonFile := filepath.Join(aiEngineDir, tempWorkloadsJsonFile)
-	fmt.Printf("AI-Engine: Escrevendo JSON de workloads processado para: %s\n", absTempWorkloadsJsonFile)
-	if err := os.WriteFile(absTempWorkloadsJsonFile, workloadsJsonBytes, 0644); err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao escrever JSON de workloads temporário %s: %v", absTempWorkloadsJsonFile, err)
+	if err := os.Chdir(monitorDirName); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha ao mudar para o diretório %s%s%s: %v%s\n", colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, monitorDirName, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao mudar para o diretório %s: %w", monitorDirName, err)
 	}
-	// Defer para limpar o JSON temporário de workloads
 	defer func() {
-		fmt.Printf("AI-Engine: Removendo arquivo JSON de workloads temporário: %s\n", absTempWorkloadsJsonFile)
-		os.Remove(absTempWorkloadsJsonFile)
+		fmt.Printf("%s%s%s: %sVoltando para o diretório original %s%s%s...%s\n",
+			colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, originalWd, colorBlue, colorReset)
+		if err := os.Chdir(originalWd); err != nil {
+			fmt.Fprintf(os.Stderr, "%s%s%s: %sCRÍTICO - Falha ao voltar para o diretório original %s%s%s: %v. %sEncerrando.%s\n",
+				colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, originalWd, colorRed, err, colorBlue, colorReset)
+			os.Exit(1)
+		}
 	}()
 
-	// --- 2. Preparar o arquivo de configuração YAML temporário para o AI-Engine ---
-	// O input_json no YAML deve ser relativo ao diretório aiEngineDir, ou absoluto.
-	// Usar o nome do arquivo relativo é mais simples se o CWD do script for aiEngineDir.
-	yamlContent := fmt.Sprintf("data:\n  input_json: \"%s\"\n", tempWorkloadsJsonFile)
-	absTempRuntimeConfigFile := filepath.Join(aiEngineDir, tempRuntimeConfigFile)
-	fmt.Printf("AI-Engine: Escrevendo YAML de configuração temporário para: %s\n", absTempRuntimeConfigFile)
-	if err := os.WriteFile(absTempRuntimeConfigFile, []byte(yamlContent), 0644); err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao escrever YAML de configuração temporário %s: %v", absTempRuntimeConfigFile, err)
+	fmt.Printf("%s%s%s: %sExecutando 'make all' em %s%s%s por %s%v%s...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, monitorDirName, colorBlue, colorPurple, duration, colorBlue, colorReset)
+	cmd := exec.Command("make", "all")
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha ao iniciar 'make all': %v%s\n", colorCyan, logPrefixMonitor, colorReset, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao iniciar 'make all': %w", err)
 	}
-	// Defer para limpar o YAML de configuração temporário
-	defer func() {
-		fmt.Printf("AI-Engine: Removendo arquivo YAML de configuração temporário: %s\n", absTempRuntimeConfigFile)
-		os.Remove(absTempRuntimeConfigFile)
+
+	fmt.Printf("%s%s%s: %sProcesso iniciado (PID %s%d%s), aguardando %s%v%s...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, cmd.Process.Pid, colorBlue, colorPurple, duration, colorBlue, colorReset)
+	time.Sleep(duration)
+
+	fmt.Printf("%s%s%s: %sDuração esgotada. Enviando sinal de interrupção para 'make all'...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, colorBlue, colorReset)
+	if err := cmd.Process.Signal(os.Interrupt); err != nil {
+		fmt.Printf("%s%s%s: %sFalha ao enviar sinal de interrupção: %v. %sTentando aguardar processo.%s\n",
+			colorCyan, logPrefixMonitor, colorReset, colorRed, err, colorBlue, colorReset)
+	}
+
+	fmt.Printf("%s%s%s: %sAguardando 'make all' completar limpeza e sair...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, colorBlue, colorReset)
+
+	waitChan := make(chan error, 1)
+	go func() {
+		waitChan <- cmd.Wait()
 	}()
 
-	// --- 3. Executar o script Python do AI-Engine ---
-	// Assumimos que o main.py original do submódulo aceita --config <nome_do_arquivo_yaml>
-	fmt.Printf("AI-Engine: Executando script: python %s --config %s (CWD: %s)\n", aiEngineScript, tempRuntimeConfigFile, aiEngineDir)
-	cmd := exec.Command("python", aiEngineScript, "--config", tempRuntimeConfigFile)
-	cmd.Dir = aiEngineDir
+	select {
+	case err := <-waitChan:
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				fmt.Printf("%s%s%s: %s'make all' saiu com erro após interrupção: %v. %sStderr: %s%s%s\n",
+					colorCyan, logPrefixMonitor, colorReset, colorRed, exitErr, colorBlue, colorRed, string(exitErr.Stderr), colorReset)
+			} else {
+				fmt.Printf("%s%s%s: %s'make all' falhou ao completar após interrupção: %v%s\n",
+					colorCyan, logPrefixMonitor, colorReset, colorRed, err, colorReset)
+			}
+		} else {
+			fmt.Printf("%s%s%s: %s'make all' completado com sucesso após interrupção.%s\n",
+				colorCyan, logPrefixMonitor, colorReset, colorBlue, colorReset)
+		}
+	case <-time.After(5 * time.Second):
+		fmt.Printf("%s%s%s: %s'make all' não saiu prontamente após interrupção. Enviando sinal KILL...%s\n",
+			colorCyan, logPrefixMonitor, colorReset, colorBlue, colorReset)
+		if killErr := cmd.Process.Kill(); killErr != nil {
+			fmt.Printf("%s%s%s: %sFalha ao enviar sinal KILL: %v%s\n",
+				colorCyan, logPrefixMonitor, colorReset, colorRed, killErr, colorReset)
+			<-waitChan
+			fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha ao matar processo 'make all' após timeout: %v%s\n", colorCyan, logPrefixMonitor, colorReset, colorRed, killErr, colorReset)
+			return "", fmt.Errorf("falha ao matar processo 'make all' após timeout: %w", killErr)
+		}
+		finalWaitErr := <-waitChan
+		fmt.Printf("%s%s%s: %sProcesso 'make all' morto. Resultado do Wait: %v%s\n",
+			colorCyan, logPrefixMonitor, colorReset, colorRed, finalWaitErr, colorReset)
+	}
+
+	forceKillMonitorProcesses()
+
+	originalMonitorOutputPath := monitorOutputBase
+	fullOriginalMonitorPath := filepath.Join(originalWd, monitorDirName, monitorOutputBase)
+
+	fmt.Printf("%s%s%s: %sVerificando arquivo de saída do monitor em %s%s%s (dentro de %s%s%s)...%s\n",
+		colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, originalMonitorOutputPath, colorBlue, colorPurple, monitorDirName, colorBlue, colorReset)
+	if _, err := os.Stat(originalMonitorOutputPath); os.IsNotExist(err) {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sArquivo de saída do monitor %s%s%s não encontrado em %s%s%s após execução: %v%s\n", colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, originalMonitorOutputPath, colorBlue, colorPurple, monitorDirName, colorRed, err, colorReset)
+		return "", fmt.Errorf("arquivo de saída do monitor %s não encontrado em %s após execução: %w", originalMonitorOutputPath, monitorDirName, err)
+	}
+
+	returnedPath := filepath.Join(monitorDirName, monitorOutputBase)
+	fmt.Printf("%s%s%s: %sMonitor finalizado. Saída disponível em %s%s%s.%s\n",
+		colorCyan, logPrefixMonitor, colorReset, colorBlue, colorPurple, fullOriginalMonitorPath, colorBlue, colorReset)
+	return returnedPath, nil
+}
+
+func runAIEngine() (string, error) {
+	fmt.Printf("%s%s%s: %sIniciando AI-Engine.%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorReset)
+
+	aiEngineTopDir := aiEngineParentDirName
+	
+	recommendationsFileRel := aiEngineOutputCSVPath
+
+	makeTarget := "run-with-config"
+
+	fmt.Printf("%s%s%s: %sExecutando via Makefile: %smake %s%s (CWD: %s%s%s)%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorPurple, makeTarget, colorBlue, colorPurple, aiEngineTopDir, colorBlue, colorReset)
+	cmd := exec.Command("make", makeTarget) // CONFIG_FILE não é mais passado
+	cmd.Dir = aiEngineTopDir
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Falha ao executar script Python (%s) com config (%s): %v. Output:\n%s",
-			aiEngineScript, tempRuntimeConfigFile, err, string(cmdOutput))
+		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorYellow, "AI-Engine Output Start (Error)", colorBlue, colorReset, colorReset)
+		fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorYellow, "AI-Engine Output End (Error)", colorBlue, colorReset, colorReset)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha ao executar Makefile target '%s%s%s': %v%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorPurple, makeTarget, colorRed, err, colorReset)
+		return "", fmt.Errorf("falha ao executar Makefile target '%s': %w", makeTarget, err)
 	}
-	fmt.Printf("AI-Engine: Script Python executado. Output:\n%s\n", string(cmdOutput))
+	fmt.Printf("%s%s%s: %sMakefile target executado.%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorReset)
+	fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorGreen, "AI-Engine Output Start", colorBlue, colorReset, colorReset)
+	fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+	fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorGreen, "AI-Engine Output End", colorBlue, colorReset, colorReset)
 
-	// --- 4. Verificar output e retornar caminho ---
 	absRecommendationsFile, err := filepath.Abs(recommendationsFileRel)
 	if err != nil {
-		return "", fmt.Errorf("AI-Engine: Erro ao obter caminho absoluto para %s: %v", recommendationsFileRel, err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sErro ao obter caminho absoluto para %s%s%s: %v%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorPurple, recommendationsFileRel, colorRed, err, colorReset)
+		return "", fmt.Errorf("erro ao obter caminho absoluto para %s: %w", recommendationsFileRel, err)
 	}
 
 	if _, err := os.Stat(absRecommendationsFile); os.IsNotExist(err) {
-		return "", fmt.Errorf("AI-Engine: Arquivo de recomendações esperado (%s) não foi encontrado após execução", absRecommendationsFile)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sArquivo de recomendações esperado (%s%s%s) não foi encontrado após execução%s\n", colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorPurple, absRecommendationsFile, colorReset, colorReset)
+		return "", fmt.Errorf("arquivo de recomendações esperado (%s) não foi encontrado após execução", absRecommendationsFile)
 	}
 
-	fmt.Printf("AI-Engine: Finalizado. Recomendações esperadas em %s\n", absRecommendationsFile)
+	fmt.Printf("%s%s%s: %sFinalizado. Recomendações esperadas em %s%s%s.%s\n",
+		colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorPurple, absRecommendationsFile, colorBlue, colorReset)
 	return absRecommendationsFile, nil
 }
 
-// runActuator executa o programa Go do Actuator.
-// recommendationsCsvFile é o caminho absoluto para o arquivo de recomendações, usado para verificação.
 func runActuator(recommendationsCsvFile string) error {
-	fmt.Printf("Actuator: Iniciando. Verificando input: %s\n", recommendationsCsvFile)
+	fmt.Printf("%s%s%s: %sIniciando. Input original: %s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorReset)
 
-	// Diretório onde o main.go do Actuator está e onde recommendations.csv deve estar.
-	actuatorDir := "ai-engine/actuator"
-	// O programa Go do Actuator lê "recommendations.csv" diretamente do seu CWD.
-	// actuatorScript := "main.go" // Não é um script, é um programa Go
+	currentActuatorDir := actuatorDirName
+	destCsvInActuatorDir := filepath.Join(currentActuatorDir, actuatorInputCSVName)
 
-	// Verificar se o recommendationsCsvFile (que o AI-Engine deveria ter criado) existe
-	if _, err := os.Stat(recommendationsCsvFile); os.IsNotExist(err) {
-		log.Printf("Actuator: Arquivo de recomendações %s não encontrado (esperado ser criado pelo AI-Engine).", recommendationsCsvFile)
-		return fmt.Errorf("actuator: arquivo de recomendações %s não encontrado", recommendationsCsvFile)
+	fmt.Printf("%s%s%s: %sCopiando %s%s%s para %s%s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorBlue, colorPurple, destCsvInActuatorDir, colorBlue, colorReset)
+	sourceData, err := os.ReadFile(recommendationsCsvFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sfalha ao ler arquivo de recomendações original %s%s%s: %v%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorRed, err, colorReset)
+		return fmt.Errorf("falha ao ler arquivo de recomendações original %s: %w", recommendationsCsvFile, err)
 	}
-	fmt.Printf("Actuator: Arquivo de recomendações %s encontrado.\n", recommendationsCsvFile)
+	if err := os.WriteFile(destCsvInActuatorDir, sourceData, 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sfalha ao escrever recomendações para %s%s%s: %v%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, destCsvInActuatorDir, colorRed, err, colorReset)
+		return fmt.Errorf("falha ao escrever recomendações para %s: %w", destCsvInActuatorDir, err)
+	}
+	defer func() {
+		fmt.Printf("%s%s%s: %sRemovendo arquivo de recomendações copiado: %s%s%s\n",
+			colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, destCsvInActuatorDir, colorReset)
+		os.Remove(destCsvInActuatorDir)
+	}()
 
-	fmt.Printf("Actuator: Executando programa Go: go run main.go no diretório %s\n", actuatorDir)
+	fmt.Printf("%s%s%s: %sExecutando programa Go: %s%s%s no diretório %s%s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, "go run main.go", colorBlue, colorPurple, currentActuatorDir, colorBlue, colorReset)
 
 	cmd := exec.Command("go", "run", "main.go")
-	cmd.Dir = actuatorDir // Define o diretório de trabalho para ai-engine/actuator/
+	cmd.Dir = currentActuatorDir
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Actuator: Falha ao executar programa Go (go run main.go em %s): %v", actuatorDir, err)
-		log.Printf("Actuator: Output do programa Go:\n%s", string(cmdOutput))
-		return fmt.Errorf("actuator: falha ao executar programa Go: %w. Output: %s", err, string(cmdOutput))
+		fmt.Printf("%s%s%s: %sFalha ao executar programa Go (go run main.go em %s%s%s): %v%s\n",
+			colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, currentActuatorDir, colorRed, err, colorReset)
+		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorYellow, "Actuator Output Start (Error)", colorBlue, colorReset, colorReset)
+		fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorYellow, "Actuator Output End (Error)", colorBlue, colorReset, colorReset)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sfalha ao executar programa Go: %v%s\n", colorCyan, logPrefixActuator, colorReset, colorRed, err, colorReset)
+		return fmt.Errorf("falha ao executar programa Go: %w", err)
 	}
 
-	fmt.Printf("Actuator: Programa Go executado com sucesso. Output:\n%s", string(cmdOutput))
-	fmt.Println("Actuator: Finalizou a aplicação das recomendações.")
+	fmt.Printf("%s%s%s: %sPrograma Go executado com sucesso.%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorReset)
+	fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorGreen, "Actuator Output Start", colorBlue, colorReset, colorReset)
+	fmt.Print(string(cmdOutput)) // Raw output, no extra newline
+	fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorGreen, "Actuator Output End", colorBlue, colorReset, colorReset)
+	fmt.Printf("%s%s%s: %sFinalizou a aplicação das recomendações.%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorReset)
 	return nil
 }
 
 func main() {
-	fmt.Println("Simulador iniciando o ciclo de operações...")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: %sIniciando o ciclo de operações...%s\n", colorCyan, logPrefixSimulator, colorReset, colorBlue, colorReset)
 
-	csv_path := "data/recorte_5min.csv"
-	yaml_path := "data/config.yaml"
+	csvPath := brokerInputDataCSVPath
+	yamlPath := brokerInputConfigYAMLPath
 
-	config_yaml, err := os.Open(yaml_path)
+	configYaml, err := os.Open(yamlPath)
 	if err != nil {
-		log.Fatalf("Falha ao abrir configuração YAML %s: %v", yaml_path, err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha ao abrir configuração YAML %s%s%s: %v%s\n",
+			colorRed, logPrefixSimulator, colorReset, colorBlue, colorPurple, yamlPath, colorRed, err, colorReset)
+		os.Exit(1)
 	}
-	// defer config_yaml.Close() // Fecharemos explicitamente após o uso pelo Broker
 
-	csv_data, err := os.Open(csv_path)
+	csvData, err := os.Open(csvPath)
 	if err != nil {
-		log.Fatalf("Falha ao abrir dados CSV %s: %v", csv_path, err)
+		fmt.Println("")
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha ao abrir dados CSV %s%s%s: %v%s\n",
+			colorRed, logPrefixSimulator, colorReset, colorBlue, colorPurple, csvPath, colorRed, err, colorReset)
+		os.Exit(1)
 	}
-	// defer csv_data.Close() // Fecharemos explicitamente após o uso pelo Broker
 
-	// Etapa 1: Broker
-	fmt.Println("\n--- Iniciando Broker ---")
-	broker.Run(csv_data, config_yaml) // Passando os leitores originais
-	csv_data.Close()                  // Fechando após o uso pelo broker
-	config_yaml.Close()               // Fechando após o uso pelo broker
-	fmt.Println("--- Broker finalizou ---")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s Iniciando %s--- %s\n", colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixBroker, colorGreen, colorBlue, colorBlue, colorReset)
+	broker.Run(csvData, configYaml)
+	csvData.Close()
+	configYaml.Close()
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s finalizado %s--- %s\n", colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixBroker, colorGreen, colorBlue, colorBlue, colorReset)
 
-	// Etapa 2: Monitor (Usando arquivo de exemplo estático)
-	fmt.Println("\n--- Usando output estático do Monitor --- ")
-	monitorOutputFile := "monitor_outputs.json" // Caminho para o arquivo de exemplo
-	// Verificar se o arquivo de exemplo do monitor existe
-	if _, err := os.Stat(monitorOutputFile); os.IsNotExist(err) {
-		log.Fatalf("Arquivo de output do monitor de exemplo '%s' não encontrado. Certifique-se de que ele existe na raiz do projeto.", monitorOutputFile)
-	}
-	// // Chamada original para a função monitor, agora comentada:
-	// fmt.Println("\n--- Iniciando Monitor ---")
-	// monitorOutputFile, err := monitor()
-	// if err != nil {
-	// 	log.Fatalf("Monitor falhou: %v. Encerrando simulador.", err)
-	// }
-	fmt.Printf("--- Usando output do Monitor de: %s ---\n", monitorOutputFile)
-
-	// Etapa 3: AI-Engine
-	// O AI-Engine utilizará o monitor_output.json (estático ou gerado)
-	fmt.Println("\n--- Iniciando AI-Engine ---")
-	recommendationsCsvFile, err := runAIEngine(monitorOutputFile)
+	fmt.Println("")
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s Iniciando %s--- %s\n", colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixMonitor, colorGreen, colorBlue, colorBlue, colorReset)
+	monitorOutputFile, err := runExternalMonitorAndFetchOutput(10 * time.Second)
 	if err != nil {
-		log.Fatalf("AI-Engine falhou: %v. Encerrando simulador.", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha: %v. %sEncerrando simulador.%s\n",
+			colorRed, logPrefixMonitor, colorReset, colorRed, err, colorBlue, colorReset)
+		os.Exit(1)
 	}
-	fmt.Printf("--- AI-Engine finalizou, recomendações em: %s ---\n", recommendationsCsvFile)
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s Output em: %s%s%s%s --- %s\n",
+		colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixMonitor, colorGreen, colorBlue, colorPurple, monitorOutputFile, colorGreen, colorBlue, colorReset)
 
-	// Etapa 4: Actuator
-	// O Actuator utilizará o recommendations.csv gerado pelo AI-Engine.
-	fmt.Println("\n--- Iniciando Actuator ---")
+	fmt.Println("")
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s Iniciando %s--- %s\n", colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixAIEngine, colorGreen, colorBlue, colorBlue, colorReset)
+	recommendationsCsvFile, err := runAIEngine()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha: %v. %sEncerrando simulador.%s\n",
+			colorRed, logPrefixAIEngine, colorReset, colorRed, err, colorBlue, colorReset)
+		os.Exit(1)
+	}
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s finalizou, recomendações em: %s%s%s%s --- %s\n",
+		colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixAIEngine, colorGreen, colorBlue, colorPurple, recommendationsCsvFile, colorGreen, colorBlue, colorReset)
+
+	fmt.Println("")
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s Iniciando %s--- %s\n", colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixActuator, colorGreen, colorBlue, colorBlue, colorReset)
 	err = runActuator(recommendationsCsvFile)
 	if err != nil {
-		log.Fatalf("Actuator falhou: %v. Encerrando simulador.", err)
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sFalha: %v. %sEncerrando simulador.%s\n",
+			colorRed, logPrefixActuator, colorReset, colorRed, err, colorBlue, colorReset)
+		os.Exit(1)
 	}
-	fmt.Println("--- Actuator finalizou ---")
+	fmt.Printf("%s%s%s: %s--- %s%s%s%s finalizou %s--- %s\n", colorCyan, logPrefixSimulator, colorReset, colorBlue, colorCyan, logPrefixActuator, colorGreen, colorBlue, colorBlue, colorReset)
 
-	fmt.Println("\nSimulador completou todas as etapas com sucesso!")
+	fmt.Println("")
 }
