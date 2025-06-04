@@ -33,12 +33,11 @@ const (
 // Paths and names (existing constants)
 const (
 	monitorDirName    = "monitor"
-	monitorOutputBase = "monitor_outputs.json"
+	monitorOutputBase = "../data/output/monitor_outputs.json"
 
-	aiEngineParentDirName  = "ai-engine"
-	aiEngineWorkSubDir     = "engine"
-	aiEngineTempConfigYAML = "temp_ai_runtime_config.yaml"
-	aiEngineOutputCSVPath  = "ai-engine/actuator/recommendations.csv"
+	aiEngineParentDirName = "ai-engine"
+	aiEngineWorkSubDir    = "engine"
+	aiEngineOutputCSVPath = "data/output/recommendations.csv"
 
 	actuatorDirName      = "actuator"
 	actuatorInputCSVName = "recommendations.csv"
@@ -182,7 +181,7 @@ func runAIEngine() (string, error) {
 		colorCyan, logPrefixAIEngine, colorReset, colorBlue, colorReset)
 
 	aiEngineTopDir := aiEngineParentDirName
-	
+
 	recommendationsFileRel := aiEngineOutputCSVPath
 
 	makeTarget := "run-with-config"
@@ -222,44 +221,29 @@ func runAIEngine() (string, error) {
 }
 
 func runActuator(recommendationsCsvFile string) error {
-	fmt.Printf("%s%s%s: %sIniciando. Input original: %s%s%s\n",
-		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorReset)
+	fmt.Printf("%s%s%s: %sIniciando. Input CSV: %s%s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorBlue, colorReset)
 
 	currentActuatorDir := actuatorDirName
-	destCsvInActuatorDir := filepath.Join(currentActuatorDir, actuatorInputCSVName)
 
-	fmt.Printf("%s%s%s: %sCopiando %s%s%s para %s%s%s%s\n",
-		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorBlue, colorPurple, destCsvInActuatorDir, colorBlue, colorReset)
-	sourceData, err := os.ReadFile(recommendationsCsvFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sfalha ao ler arquivo de recomendações original %s%s%s: %v%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorRed, err, colorReset)
-		return fmt.Errorf("falha ao ler arquivo de recomendações original %s: %w", recommendationsCsvFile, err)
-	}
-	if err := os.WriteFile(destCsvInActuatorDir, sourceData, 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sfalha ao escrever recomendações para %s%s%s: %v%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, destCsvInActuatorDir, colorRed, err, colorReset)
-		return fmt.Errorf("falha ao escrever recomendações para %s: %w", destCsvInActuatorDir, err)
-	}
-	defer func() {
-		fmt.Printf("%s%s%s: %sRemovendo arquivo de recomendações copiado: %s%s%s\n",
-			colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, destCsvInActuatorDir, colorReset)
-		os.Remove(destCsvInActuatorDir)
-	}()
+	// A cópia do arquivo para o diretório do atuador foi removida.
+	// O caminho absoluto do CSV será passado diretamente como argumento.
 
-	fmt.Printf("%s%s%s: %sExecutando programa Go: %s%s%s no diretório %s%s%s%s\n",
-		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, "go run main.go", colorBlue, colorPurple, currentActuatorDir, colorBlue, colorReset)
+	fmt.Printf("%s%s%s: %sExecutando programa Go: %s%s %s%s no diretório %s%s%s com input CSV %s%s%s%s\n",
+		colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, "go run main.go", recommendationsCsvFile, colorBlue, colorPurple, currentActuatorDir, colorBlue, colorPurple, recommendationsCsvFile, colorBlue, colorReset)
 
-	cmd := exec.Command("go", "run", "main.go")
+	cmd := exec.Command("go", "run", "main.go", recommendationsCsvFile) // Passa o caminho do CSV como argumento
 	cmd.Dir = currentActuatorDir
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("%s%s%s: %sFalha ao executar programa Go (go run main.go em %s%s%s): %v%s\n",
-			colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, currentActuatorDir, colorRed, err, colorReset)
+		fmt.Printf("%s%s%s: %sFalha ao executar programa Go (go run main.go %s%s%s em %s%s%s): %v%s\n",
+			colorCyan, logPrefixActuator, colorReset, colorBlue, colorPurple, recommendationsCsvFile, colorBlue, colorPurple, currentActuatorDir, colorRed, err, colorReset)
 		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorYellow, "Actuator Output Start (Error)", colorBlue, colorReset, colorReset)
 		fmt.Print(string(cmdOutput)) // Raw output, no extra newline
 		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorYellow, "Actuator Output End (Error)", colorBlue, colorReset, colorReset)
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sfalha ao executar programa Go: %v%s\n", colorCyan, logPrefixActuator, colorReset, colorRed, err, colorReset)
-		return fmt.Errorf("falha ao executar programa Go: %w", err)
+		return fmt.Errorf("falha ao executar programa Go com input %s: %w", recommendationsCsvFile, err)
 	}
 
 	fmt.Printf("%s%s%s: %sPrograma Go executado com sucesso.%s\n", colorCyan, logPrefixActuator, colorReset, colorBlue, colorReset)
