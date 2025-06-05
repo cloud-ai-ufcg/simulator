@@ -54,17 +54,19 @@ func waitForFile(path string, timeout time.Duration) error {
 	start := time.Now()
 	for {
 		if _, err := os.Stat(path); err == nil {
-			fmt.Printf("%s%s%s: %sArquivo detectado: %s%s%s.%s\n",
-				colorCyan, logPrefixSimulator, colorReset, colorBlue, colorPurple, path, colorBlue, colorReset)
+			fmt.Printf("%s%s%s: %sArquivo detectado: %s%s%s após %v.%s\n",
+				colorCyan, logPrefixSimulator, colorReset, colorGreen, colorPurple, path, colorGreen, time.Since(start), colorReset)
 			return nil
 		}
 
-		if time.Since(start) > timeout {
+		if timeout > 0 && time.Since(start) > timeout {
 			return fmt.Errorf("tempo limite ao esperar pelo arquivo: %s", path)
 		}
+
 		time.Sleep(500 * time.Millisecond)
 	}
 }
+
 
 
 func runExternalMonitorAndFetchOutput(_ time.Duration) (string, error) {
@@ -302,7 +304,7 @@ func main() {
 		}
 
 
-		if err := waitForFile(recommendationsPath, 60*time.Second); err != nil {
+		if err := waitForFile(recommendationsPath, 0); err != nil {
 			actuatorErrChan <- fmt.Errorf("timeout aguardando saída do AI Engine: %w", err)
 			return
 		}
@@ -315,23 +317,39 @@ func main() {
 	wg.Wait()
 
 	// Finalização
+	
+	// Monitor
 	select {
-	case err := <-monitorErrChan:
-		fmt.Fprintf(os.Stderr, "Erro no monitor: %v\n", err)
+	case err, ok := <-monitorErrChan:
+		if ok && err != nil {
+			fmt.Fprintf(os.Stderr, "Erro no monitor: %v\n", err)
+		} else {
+			fmt.Println("Monitor completado com sucesso.")
+		}
 	default:
 		fmt.Println("Monitor completado com sucesso.")
 	}
 
+	// AI Engine
 	select {
-	case err := <-engineErrChan:
-		fmt.Fprintf(os.Stderr, "Erro no AI Engine: %v\n", err)
+	case err, ok := <-engineErrChan:
+		if ok && err != nil {
+			fmt.Fprintf(os.Stderr, "Erro no AI Engine: %v\n", err)
+		} else {
+			fmt.Println("AI Engine completado com sucesso.")
+		}
 	default:
 		fmt.Println("AI Engine completado com sucesso.")
 	}
 
+	// Actuator
 	select {
-	case err := <-actuatorErrChan:
-		fmt.Fprintf(os.Stderr, "Erro no actuator: %v\n", err)
+	case err, ok := <-actuatorErrChan:
+		if ok && err != nil {
+			fmt.Fprintf(os.Stderr, "Erro no actuator: %v\n", err)
+		} else {
+			fmt.Println("Actuator completado com sucesso.")
+		}
 	default:
 		fmt.Println("Actuator completado com sucesso.")
 	}
