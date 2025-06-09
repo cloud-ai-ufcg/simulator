@@ -15,8 +15,8 @@ run:
 			echo "Ambiente detectado: WSL"; \
 			_WIN_USER=$$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\\r'); \
 			if [ -z "$$_WIN_USER" ]; then \
-				echo "Não foi possível detectar o usuário Windows, usando valor padrão 'yalle'"; \
-				_WIN_USER="yalle"; \
+				echo "Erro: Não foi possível detectar o usuário do Windows. Certifique-se de que o WSL está configurado corretamente."; \
+				exit 1; \
 			fi; \
 			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
 			echo "HOME for this session will be set to: $$_EFFECTIVE_HOME"; \
@@ -43,4 +43,4 @@ help:
 	@echo "Available targets:"
 	@echo "  all                  : Instala dependências do AI-Engine e roda o simulador"
 	@echo "  run                  : Roda a aplicação principal do simulador (go run main.go)"
-	@echo "  help                 : Mostra esta mensagem de ajuda" 
+	@echo "  help                 : Mostra esta mensagem de ajuda"
