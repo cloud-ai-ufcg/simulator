@@ -1,0 +1,41 @@
+{
+  "data": [
+    {
+      "timestamp": 1,
+      "id": "2",
+      "kind": "deployment",
+      "action": "create",
+      "replicas": "2", 
+      "cpu": "4",
+      "memory": "0.08",
+      "label": "public",
+      "job_duration": ""
+    },
+    {
+      "timestamp": 1,
+      "id": "20",
+      "kind": "job",
+      "action": "create",
+      "replicas": "20",
+      "cpu": "4",
+      "memory": "0.08",
+      "label": "public",
+      "job_duration": "3"
+    },
+    {
+      "timestamp": 1,
+      "id": "21",
+      "kind": "job",
+      "action": "create",
+      "replicas": "20",
+      "cpu": "4",
+      "memory": "0.08",
+      "label": "public",
+      "job_duration": "3"
+    }
+  ],
+  "config": {
+    "kubeconfig": "karmada.config",
+    "namespace": "default"
+  }
+}
