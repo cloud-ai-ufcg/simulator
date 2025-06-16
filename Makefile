@@ -1,12 +1,45 @@
 SHELL := /bin/bash
-.PHONY: all setup-and-start start setup-kubernetes-infra install-ai-deps help
+.PHONY: all setup-and-start start setup-kubernetes-infra install-ai-deps start-broker-container help
 
 # Default target: setups infrastructure and runs the simulator
 all: setup-and-start
 
 # Target to setup infrastructure (Kubernetes, AI-Engine dependencies) AND run the simulator
-setup-and-start: setup-kubernetes-infra install-ai-deps start
+setup-and-start: setup-kubernetes-infra install-ai-deps start-broker-container start
 	@echo -e "\\e[32mProcesso de configuração da infraestrutura completa e inicialização do simulador concluído.\\e[0m"
+
+# Sobe o container do Broker se não estiver rodando
+start-broker-container:
+	@echo "Verificando se o container do Broker já está rodando..."
+	@if [ $$(docker ps -q -f name=broker-simulator) ]; then \
+		echo "Container do Broker já está rodando. Pulando..."; \
+	else \
+		echo "Container do Broker não está rodando. Subindo..."; \
+		if [ -z "$$HOME" ]; then echo "Variável HOME não definida!"; exit 1; fi; \
+		if ! docker image inspect broker:latest > /dev/null 2>&1; then \
+			echo "Procurando Dockerfile.api em: $$(pwd)/broker/Dockerfile.api"; \
+			if [ ! -f broker/Dockerfile.api ]; then \
+				echo "ERRO: broker/Dockerfile.api não encontrado! Impossível construir a imagem broker:latest."; \
+				exit 2; \
+			fi; \
+			echo "Imagem broker:latest não encontrada localmente. Construindo a imagem..."; \
+			if [ ! -d broker/cmd ]; then \
+				echo "ERRO: O diretório broker/cmd não existe. O build do Dockerfile irá falhar!"; \
+				echo "Crie o diretório broker/cmd e coloque o main.go nele, ou ajuste o Dockerfile.api para o caminho correto."; \
+				exit 5; \
+			fi; \
+			docker build -f broker/Dockerfile.api -t broker:latest broker || { \
+				echo "ERRO: Falha ao construir a imagem broker:latest. Verifique o erro do build acima."; \
+				exit 3; \
+			}; \
+		fi; \
+		echo "Usando arquivo kubeconfig: $$HOME/.kube/karmada.config -> /root/.kube/karmada.config no container"; \
+		docker run -p 8080:80 --network host -v $$HOME/.kube/karmada.config:/root/.kube/karmada.config broker:latest || { \
+			echo "ERRO: Falha ao iniciar o container broker:latest. Verifique se a imagem foi construída corretamente."; \
+			exit 4; \
+		}; \
+		echo "Container do Broker iniciado."; \
+	fi
 
 # Target to ONLY start the Go simulator (assumes infrastructure and dependencies are already set up)
 start:

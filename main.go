@@ -62,7 +62,7 @@ func forceKillMonitorProcesses() {
 	}{
 		{pattern: "port-foward.sh"},
 		{pattern: "kubectl.*port-forward"},
-		{pattern: "./monitor"}, 
+		{pattern: "./monitor"},
 	}
 
 	for _, proc := range processesToKill {
@@ -86,15 +86,15 @@ func runAIEngine() (string, error) {
 		constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorBlue, constants.ColorReset)
 
 	aiEngineTopDir := constants.AIEngineParentDirName
-	
+
 	recommendationsFileRel := constants.AIEngineOutputCSVPath
 
-	makeTarget := "run-with-config" 
+	makeTarget := "run-with-config"
 
 	fmt.Printf("%s%s%s: %sExecutando via Makefile: %smake %s%s (CWD: %s%s%s)%s\n",
 		constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorBlue, constants.ColorPurple, makeTarget, constants.ColorBlue, constants.ColorPurple, aiEngineTopDir, constants.ColorBlue, constants.ColorReset)
 	cmd := exec.Command("make", makeTarget)
-	cmd.Dir = aiEngineTopDir 
+	cmd.Dir = aiEngineTopDir
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorBlue, constants.ColorYellow, "AI-Engine Output Start (Error)", constants.ColorBlue, constants.ColorReset, constants.ColorReset)
@@ -159,7 +159,14 @@ func runActuator(recommendationsCsvFile string) error {
 func main() {
 	fmt.Println("")
 
-	outputDir := "data/output" 
+	outputDir := "data/output"
+	// Garante que o diretório existe antes de limpar
+	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Erro ao criar diretório de saída: %v\n", err)
+			os.Exit(1)
+		}
+	}
 	if err := utils.ClearOutputDir(outputDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Erro ao limpar diretório de saída: %v\n", err)
 		os.Exit(1)
@@ -201,7 +208,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		defer close(engineErrChan)
-		
+
 		monitorOutputExpectedPath := filepath.Clean(filepath.Join(constants.MonitorDirName, constants.MonitorOutputBase))
 
 		if err := utils.WaitForFile(monitorOutputExpectedPath, 30*time.Second); err != nil {
