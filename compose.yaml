@@ -1,0 +1,30 @@
+services:
+    broker:
+        build:
+            context: ./broker
+            dockerfile: Dockerfile.api
+        ports:
+            - "8081:8081"
+    monitor:
+        build:
+            context: ./monitor
+            dockerfile: Dockerfile
+        ports:
+            - "8082:8082"
+    ai-engine:
+        build:
+            context: ./ai-engine
+            dockerfile: Dockerfile.api
+        ports:
+            - "8083:8083"
+    actuator:
+        build:
+            context: ./actuator
+            dockerfile: Dockerfile.api
+        ports:
+            - "8084:8084"
+
+networks:
+    default:
+        name: cloud-ai
+        driver: bridge
