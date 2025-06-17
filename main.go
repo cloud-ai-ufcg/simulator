@@ -30,7 +30,8 @@ func runExternalMonitorAndFetchOutput(_ time.Duration) (string, error) {
 	}
 	defer os.Chdir(originalWd)
 
-	cmd := exec.Command("make", "all")
+	monitorArgs := "--cli"
+	cmd := exec.Command("make", "all", fmt.Sprintf("MONITOR_ARGS=%s", monitorArgs))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -123,37 +124,6 @@ func runAIEngine() (string, error) {
 	fmt.Printf("%s%s%s: %sFinalizado. Recomendações esperadas em %s%s%s.%s\n",
 		constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorBlue, constants.ColorPurple, absRecommendationsFile, constants.ColorBlue, constants.ColorReset)
 	return absRecommendationsFile, nil
-}
-
-func runActuator(recommendationsCsvFile string) error {
-	fmt.Printf("%s%s%s: %sIniciando. Input CSV: %s%s%s%s\n",
-		constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorPurple, recommendationsCsvFile, constants.ColorBlue, constants.ColorReset)
-
-	currentActuatorDir := constants.ActuatorDirName
-
-	fmt.Printf("%s%s%s: %sExecutando programa Go: %s%s %s%s no diretório %s%s%s com input CSV %s%s%s%s\n",
-		constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorPurple, "go run main.go", recommendationsCsvFile, constants.ColorBlue, constants.ColorPurple, currentActuatorDir, constants.ColorBlue, constants.ColorPurple, recommendationsCsvFile, constants.ColorBlue, constants.ColorReset)
-
-	cmd := exec.Command("go", "run", "main.go", recommendationsCsvFile)
-	cmd.Dir = currentActuatorDir
-
-	cmdOutput, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("%s%s%s: %sFalha ao executar programa Go (go run main.go %s%s%s em %s%s%s): %v%s\n",
-			constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorPurple, recommendationsCsvFile, constants.ColorBlue, constants.ColorPurple, currentActuatorDir, constants.ColorRed, err, constants.ColorReset)
-		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorYellow, "Actuator Output Start (Error)", constants.ColorBlue, constants.ColorReset, constants.ColorReset)
-		fmt.Print(string(cmdOutput))
-		fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorYellow, "Actuator Output End (Error)", constants.ColorBlue, constants.ColorReset, constants.ColorReset)
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sfalha ao executar programa Go: %v%s\n", constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
-		return fmt.Errorf("falha ao executar programa Go com input %s: %w", recommendationsCsvFile, err)
-	}
-
-	fmt.Printf("%s%s%s: %sPrograma Go executado com sucesso.%s\n", constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorReset)
-	fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorGreen, "Actuator Output Start", constants.ColorBlue, constants.ColorReset, constants.ColorReset)
-	fmt.Print(string(cmdOutput))
-	fmt.Printf("%s%s%s: %s%s--- %s%s%s ---%s\n", constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorGreen, "Actuator Output End", constants.ColorBlue, constants.ColorReset, constants.ColorReset)
-	fmt.Printf("%s%s%s: %sFinalizou a aplicação das recomendações.%s\n", constants.ColorCyan, constants.LogPrefixActuator, constants.ColorReset, constants.ColorBlue, constants.ColorReset)
-	return nil
 }
 
 func main() {
