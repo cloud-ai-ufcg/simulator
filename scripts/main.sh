@@ -1,66 +1,81 @@
 #!/bin/bash
-set -euo pipefail
-
-# Color (Red for this script)
-COLOR="\033[1;31m"
+# -----------------------------------------------------------------------------
+# Main Orchestrator – provisions the full simulation stack using Karmada,
+# KWOK, Cluster Autoscaler, and Prometheus, driven by a YAML config file.
+# -----------------------------------------------------------------------------
+# ‣ Behaviour
+#   • Loads cluster definitions from initialization.yaml.
+#   • Installs prerequisites, generates manifests, starts Karmada.
+#   • Deploys Prometheus, KWOK, Cluster Autoscaler (conditionally), and nodes.
+# -----------------------------------------------------------------------------
+COLOR="\033[1;32m"  # Green – this script's identity color
 RESET="\033[0m"
 
-# Ensure execution permissions for all required scripts
-chmod +x install_prerequisites.sh generate_manifests.sh install_karmada.sh install_prometheus.sh ASsetup.sh
+set -euo pipefail
+trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
-echo -e "${COLOR}[1/5] 📦 Installing prerequisites...${RESET}"
+# -----------------------------------------------------------------------------
+# 1. Load configuration from YAML
+# -----------------------------------------------------------------------------
+CONFIG_FILE="initialization.yaml"
+[[ ! -f $CONFIG_FILE ]] && { echo "❌ $CONFIG_FILE not found."; exit 1; }
+
+export MEMBER1_NODES=$(yq '.clusters.member1.nodes' "$CONFIG_FILE")
+export MEMBER1_CPU=$(yq '.clusters.member1.cpu' "$CONFIG_FILE")
+export MEMBER1_MEM=$(yq '.clusters.member1.memory' "$CONFIG_FILE")
+export MEMBER2_NODES=$(yq '.clusters.member2.nodes' "$CONFIG_FILE")
+export MEMBER2_CPU=$(yq '.clusters.member2.cpu' "$CONFIG_FILE")
+export MEMBER2_MEM=$(yq '.clusters.member2.memory' "$CONFIG_FILE")
+export MEMBER2_AUTOSCALER=$(yq '.clusters.member2.autoscaler' "$CONFIG_FILE")
+
+echo -e "\n🔧 Loaded configuration from $CONFIG_FILE:"
+echo "member1: $MEMBER1_NODES nodes, ${MEMBER1_CPU} CPU, ${MEMBER1_MEM} RAM"
+echo "member2: $MEMBER2_NODES nodes, ${MEMBER2_CPU} CPU, ${MEMBER2_MEM} RAM, autoscaler=$MEMBER2_AUTOSCALER"
+echo ""
+
+# -----------------------------------------------------------------------------
+# 2. Ensure all scripts are executable
+# -----------------------------------------------------------------------------
+chmod +x install_prerequisites.sh generate_manifests.sh install_karmada.sh \
+        install_prometheus.sh install_kwok.sh install_autoscaler.sh \
+        taint_control_plane.sh create_kwok_nodes.sh
+
+# -----------------------------------------------------------------------------
+# 3. Provision infrastructure
+# -----------------------------------------------------------------------------
+echo -e "${COLOR}[1/7] 📦 Installing prerequisites...${RESET}"
 ./install_prerequisites.sh
 
-echo -e "${COLOR}[2/5] 📝 Generating configuration files (manifests)...${RESET}"
+echo -e "${COLOR}[2/7] 📝 Generating configuration files...${RESET}"
 ./generate_manifests.sh
 
-echo -e "${COLOR}[3/5] ☸️ Bringing up Karmada environment...${RESET}"
+echo -e "${COLOR}[3/7] ☸️  Bringing up Karmada...${RESET}"
 ./install_karmada.sh
-
 export KUBECONFIG=~/.kube/karmada.config
 
-# Wait for kubectl to respond
-echo -e "${COLOR}[⏳] Verifying kubectl access...${RESET}"
-for i in {1..30}; do
-  if kubectl version --client &> /dev/null && kubectl get nodes &> /dev/null; then
-    echo -e "${COLOR}[✅] kubectl is working and cluster is accessible.${RESET}"
-    break
-  fi
-  echo -e "${COLOR}[...] Attempt $i: waiting for cluster (3s)...${RESET}"
-  sleep 3
-done
+echo -e "${COLOR}[4/7] 📊 Installing Prometheus...${RESET}"
+./install_prometheus.sh  # includes readiness check and port-forwards
 
-# Wait for at least one node to be Ready
-echo -e "${COLOR}[⏳] Checking if any node in the cluster is Ready...${RESET}"
-for i in {1..20}; do
-  if kubectl get nodes | grep -q " Ready"; then
-    echo -e "${COLOR}[✅] At least one node is Ready.${RESET}"
-    break
-  fi
-  echo -e "${COLOR}[...] Attempt $i: waiting for a Ready node (3s)...${RESET}"
-  sleep 3
-done
+# -----------------------------------------------------------------------------
+# 4. Setup KWOK & Autoscaler stack
+# -----------------------------------------------------------------------------
+export KUBECONFIG=~/.kube/members.config
 
-echo -e "${COLOR}[4/5] 📊 Installing Prometheus...${RESET}"
-./install_prometheus.sh
+echo -e "${COLOR}[5/7] ☁️ Installing KWOK controller...${RESET}"
+./install_kwok.sh
 
-# Wait for Prometheus server pod to be running
-echo -e "${COLOR}[⏳] Checking if Prometheus is running...${RESET}"
-for i in {1..30}; do
-  STATUS=$(kubectl get pod -n monitoring -l app.kubernetes.io/name=prometheus,app.kubernetes.io/component=server \
-    -o jsonpath="{.items[0].status.phase}" 2>/dev/null || echo "NotFound")
-  READY=$(kubectl get pod -n monitoring -l app.kubernetes.io/name=prometheus,app.kubernetes.io/component=server \
-    -o jsonpath="{.items[0].status.containerStatuses[0].ready}" 2>/dev/null || echo "false")
-  if [[ "$STATUS" == "Running" && "$READY" == "true" ]]; then
-    echo -e "${COLOR}[✅] Prometheus is running correctly.${RESET}"
-    break
-  fi
-  echo -e "${COLOR}[...] Attempt $i: waiting for Prometheus to be ready (3s)...${RESET}"
-  sleep 3
-done
+if [[ "${MEMBER2_AUTOSCALER:-true}" == "true" ]]; then
+  echo -e "${COLOR}[6/7] ⚙️ Installing Cluster Autoscaler...${RESET}"
+  ./install_autoscaler.sh
+else
+  echo -e "${COLOR}[6/7] ⚙️ Skipping Autoscaler installation (disabled in config)...${RESET}"
+fi
 
-echo -e "${COLOR}[5/5] ⚙️ Applying Cluster Autoscaler configuration...${RESET}"
-./ASsetup.sh
+echo -e "${COLOR}[7/7] 🧪 Applying taints and creating KWOK nodes...${RESET}"
+./taint_control_plane.sh
+./create_kwok_nodes.sh
 
-echo ""
-echo -e "${COLOR}[🎉] Kubernetes environment with Karmada and Autoscaler provisioned successfully!${RESET}"
+# -----------------------------------------------------------------------------
+# 5. Final message
+# -----------------------------------------------------------------------------
+echo -e "\n${COLOR}[🎉] Environment provisioned successfully!${RESET}"

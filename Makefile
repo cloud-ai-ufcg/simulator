@@ -1,85 +1,102 @@
 SHELL := /bin/bash
-.PHONY: all setup-and-start start setup-kubernetes-infra install-ai-deps start-broker-container start-actuator-container help
 
-# Default target: setups infrastructure and runs the simulator
+# Variáveis globais
+ACTUATOR_CONTAINER_NAME := actuator-simulator
+ACTUATOR_IMAGE_NAME := actuator-api
+ACTUATOR_DIR := actuator
+ACTUATOR_DOCKERFILE := Dockerfile.api
+
+BROKER_CONTAINER_NAME := broker-simulator
+BROKER_IMAGE_NAME := broker:latest
+BROKER_DIR := broker
+BROKER_DOCKERFILE := Dockerfile.api
+
+.PHONY: all setup-and-start start setup-kubernetes-infra install-ai-deps \
+        start-broker-container start-actuator-container stop-all-containers help
+
+# Alvo padrão: configura infraestrutura e executa o simulador
 all: setup-and-start
 
-# Target to setup infrastructure (Kubernetes, AI-Engine dependencies) AND run the simulator
+# Configura infraestrutura completa e executa o simulador
 setup-and-start: setup-kubernetes-infra install-ai-deps start-broker-container start-actuator-container start
 	@echo -e "\\e[32mProcesso de configuração da infraestrutura completa e inicialização do simulador concluído.\\e[0m"
 
 # Sobe o container do Broker se não estiver rodando
 start-broker-container:
-	@echo "Verificando se o container do Broker já está rodando..."
-	@if [ $$(docker ps -q -f name=broker-simulator) ]; then \
-		echo "Container do Broker já está rodando. Pulando..."; \
+	@echo "Verificando se o container $(BROKER_CONTAINER_NAME) já está rodando..."
+	@container_id_check=$$(sudo docker ps -q -f name=$(BROKER_CONTAINER_NAME)); \
+	if [ -n "$$container_id_check" ]; then \
+		echo "INFO: O container $(BROKER_CONTAINER_NAME) (ID: $$container_id_check) já está rodando."; \
 	else \
-		echo "Container do Broker não está rodando. Subindo..."; \
-		if [ -z "$$HOME" ]; then echo "Variável HOME não definida!"; exit 1; fi; \
-		if ! docker image inspect broker:latest > /dev/null 2>&1; then \
-			echo "Procurando Dockerfile.api em: $$(pwd)/broker/Dockerfile.api"; \
-			if [ ! -f broker/Dockerfile.api ]; then \
-				echo "ERRO: broker/Dockerfile.api não encontrado! Impossível construir a imagem broker:latest."; \
+		echo "INFO: O container $(BROKER_CONTAINER_NAME) não está rodando. Prosseguindo com a inicialização..."; \
+		echo "Limpando container antigo (se existir)..."; \
+		sudo docker stop $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true; \
+		sudo docker rm $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true; \
+		if ! sudo docker image inspect $(BROKER_IMAGE_NAME) > /dev/null 2>&1; then \
+			echo "Construindo imagem $(BROKER_IMAGE_NAME) a partir de $(BROKER_DIR)/$(BROKER_DOCKERFILE)..."; \
+			if [ ! -f $(BROKER_DIR)/$(BROKER_DOCKERFILE) ]; then \
+				echo "ERRO: $(BROKER_DIR)/$(BROKER_DOCKERFILE) não encontrado! Impossível construir a imagem $(BROKER_IMAGE_NAME)."; \
 				exit 2; \
 			fi; \
-			echo "Imagem broker:latest não encontrada localmente. Construindo a imagem..."; \
-			if [ ! -d broker/cmd ]; then \
-				echo "ERRO: O diretório broker/cmd não existe. O build do Dockerfile irá falhar!"; \
-				echo "Crie o diretório broker/cmd e coloque o main.go nele, ou ajuste o Dockerfile.api para o caminho correto."; \
-				exit 5; \
-			fi; \
-			docker build -f broker/Dockerfile.api -t broker:latest broker || { \
-				echo "ERRO: Falha ao construir a imagem broker:latest. Verifique o erro do build acima."; \
+			sudo docker build -t $(BROKER_IMAGE_NAME) -f $(BROKER_DIR)/$(BROKER_DOCKERFILE) $(BROKER_DIR) || { \
+				echo "ERRO: Falha ao construir a imagem $(BROKER_IMAGE_NAME). Verifique o erro do build acima."; \
 				exit 3; \
 			}; \
 		fi; \
-		echo "Usando arquivo kubeconfig: $$HOME/.kube/karmada.config -> /root/.kube/karmada.config no container"; \
-		docker run -p 8080:80 --network host -v $$HOME/.kube/karmada.config:/root/.kube/karmada.config broker:latest || { \
-			echo "ERRO: Falha ao iniciar o container broker:latest. Verifique se a imagem foi construída corretamente."; \
-			exit 4; \
-		}; \
-		echo "Container do Broker iniciado."; \
+		echo "Iniciando container $(BROKER_CONTAINER_NAME) a partir da imagem $(BROKER_IMAGE_NAME)..."; \
+		sudo docker run -d --rm \
+			--name $(BROKER_CONTAINER_NAME) \
+			--network host \
+			-p 8080:80 \
+			-v $$HOME/.kube/karmada.config:/root/.kube/karmada.config \
+			$(BROKER_IMAGE_NAME); \
+		echo "Verificando o status do container $(BROKER_CONTAINER_NAME)..."; \
+		sleep 2; \
+		new_container_id=$$(sudo docker ps -q -f name=$(BROKER_CONTAINER_NAME)); \
+		if [ -n "$$new_container_id" ]; then \
+			echo "SUCESSO: O container $(BROKER_CONTAINER_NAME) (ID: $$new_container_id) está rodando."; \
+		else \
+			echo "ERRO: O container $(BROKER_CONTAINER_NAME) não iniciou corretamente após a tentativa."; \
+			echo "Verifique os logs do Docker com: sudo docker logs $(BROKER_CONTAINER_NAME)"; \
+			exit 1; \
+		fi; \
+		echo "Verificação do container $(BROKER_CONTAINER_NAME) concluída."; \
 	fi
 
 # Sobe o container do Actuator se não estiver rodando
 start-actuator-container:
-	@echo "Verificando se o Docker está acessível (usando sudo)..."
-	@if ! sudo docker info > /dev/null 2>&1; then \
-		echo "ERRO: Não foi possível acessar o Docker nem com sudo. Verifique se o serviço está rodando e se você tem permissão (talvez precise adicionar seu usuário ao grupo docker)."; \
-		exit 10; \
-	fi; \
-	sudo docker ps -q -f name=actuator-simulator > /dev/null 2>&1 && { \
-		echo "Container do Actuator já está rodando. Pulando..."; \
-	} || { \
-		echo "Container do Actuator não está rodando. Subindo..."; \
-		if [ -z "$$HOME" ]; then echo "Variável HOME não definida!"; exit 1; fi; \
-		if ! sudo docker image inspect actuator:latest > /dev/null 2>&1; then \
-			echo "Procurando Dockerfile.actuator em: $$(pwd)/actuator/Dockerfile.actuator"; \
-			if [ ! -f actuator/Dockerfile.actuator ]; then \
-				echo "ERRO: actuator/Dockerfile.actuator não encontrado! Impossível construir a imagem actuator:latest."; \
-				echo "Crie o arquivo actuator/Dockerfile.actuator ou ajuste o caminho no Makefile."; \
-				exit 2; \
-			fi; \
-			echo "Imagem actuator:latest não encontrada localmente. Construindo a imagem..."; \
-			if [ ! -d actuator/cmd ]; then \
-				echo "ERRO: O diretório actuator/cmd não existe. O build do Dockerfile irá falhar!"; \
-				echo "Crie o diretório actuator/cmd e coloque o main.go nele, ou ajuste o Dockerfile.actuator para o caminho correto."; \
-				exit 5; \
-			fi; \
-			sudo docker build -f actuator/Dockerfile.actuator -t actuator:latest actuator || { \
-				echo "ERRO: Falha ao construir a imagem actuator:latest. Verifique o erro do build acima."; \
-				exit 3; \
-			}; \
+	@echo "Verificando se o container $(ACTUATOR_CONTAINER_NAME) já está rodando..."
+	@container_id_check=$$(sudo docker ps -q -f name=$(ACTUATOR_CONTAINER_NAME)); \
+	if [ -n "$$container_id_check" ]; then \
+		echo "INFO: O container $(ACTUATOR_CONTAINER_NAME) (ID: $$container_id_check) já está rodando."; \
+	else \
+		echo "INFO: O container $(ACTUATOR_CONTAINER_NAME) não está rodando. Prosseguindo com a inicialização..."; \
+		echo "Limpando container antigo (se existir)..."; \
+		sudo docker stop $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true; \
+		sudo docker rm $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true; \
+		echo "Construindo imagem $(ACTUATOR_IMAGE_NAME) a partir de $(ACTUATOR_DIR)/$(ACTUATOR_DOCKERFILE)..."; \
+		sudo docker build -t $(ACTUATOR_IMAGE_NAME) -f $(ACTUATOR_DIR)/$(ACTUATOR_DOCKERFILE) $(ACTUATOR_DIR); \
+		echo "Iniciando container $(ACTUATOR_CONTAINER_NAME) a partir da imagem $(ACTUATOR_IMAGE_NAME)..."; \
+		sudo docker run -d --rm \
+			--name $(ACTUATOR_CONTAINER_NAME) \
+			--network host \
+			-v $$HOME/.kube/karmada.config:/root/.kube/config \
+			-v $$HOME/.kwok:/home/$$USER/.kwok \
+			$(ACTUATOR_IMAGE_NAME); \
+		echo "Verificando o status do container $(ACTUATOR_CONTAINER_NAME)..."; \
+		sleep 2; \
+		new_container_id=$$(sudo docker ps -q -f name=$(ACTUATOR_CONTAINER_NAME)); \
+		if [ -n "$$new_container_id" ]; then \
+			echo "SUCESSO: O container $(ACTUATOR_CONTAINER_NAME) (ID: $$new_container_id) está rodando."; \
+		else \
+			echo "ERRO: O container $(ACTUATOR_CONTAINER_NAME) não iniciou corretamente após a tentativa."; \
+			echo "Verifique os logs do Docker com: sudo docker logs $(ACTUATOR_CONTAINER_NAME)"; \
+			exit 1; \
 		fi; \
-		echo "Usando arquivo kubeconfig: $$HOME/.kube/karmada.config -> /root/.kube/karmada.config no container"; \
-		sudo docker run -p 8081:81 --network host -v $$HOME/.kube/karmada.config:/root/.kube/karmada.config --name actuator-simulator actuator:latest || { \
-			echo "ERRO: Falha ao iniciar o container actuator:latest. Verifique se a imagem foi construída corretamente."; \
-			exit 4; \
-		}; \
-		echo "Container do Actuator iniciado."; \
-	}
+		echo "Verificação do container $(ACTUATOR_CONTAINER_NAME) concluída."; \
+	fi
 
-# Target to ONLY start the Go simulator (assumes infrastructure and dependencies are already set up)
+# Inicia apenas o simulador Go (infraestrutura já deve estar pronta)
 start:
 	@echo "Iniciando o Simulador Go..."
 	@( \
@@ -98,13 +115,12 @@ start:
 		else \
 			echo "Ambiente detectado para execução do Go: Linux normal. Usando HOME existente: $$_EFFECTIVE_HOME"; \
 		fi; \
-		\
 		echo -e "\\e[36mIniciando o Simulador Go (usando HOME=$$_EFFECTIVE_HOME)...\\e[0m"; \
 		HOME="$$_EFFECTIVE_HOME" go run main.go; \
 		echo -e "\\e[36mSimulador Go finalizado.\\e[0m"; \
 	)
 
-# Target to setup the Kubernetes infrastructure using scripts/main.sh
+# Configura infraestrutura Kubernetes
 setup-kubernetes-infra:
 	@echo -e "\\e[35mIniciando configuração da infraestrutura Kubernetes (scripts/main.sh)...\\e[0m"
 	@( \
@@ -112,7 +128,7 @@ setup-kubernetes-infra:
 	)
 	@echo -e "\\e[35mConfiguração da infraestrutura Kubernetes concluída.\\e[0m"
 
-# Target to install AI-Engine dependencies
+# Instala dependências do AI-Engine
 install-ai-deps:
 	@echo "Configurando dependências do AI-Engine..."
 	@( \
@@ -131,17 +147,24 @@ install-ai-deps:
 		else \
 			echo "Ambiente detectado para instalação de dependências: Linux normal. Usando HOME existente: $$_EFFECTIVE_HOME"; \
 		fi; \
-		\
 		echo -e "\\e[32mInstalando dependências do AI-Engine (usando HOME=$$_EFFECTIVE_HOME)...\\e[0m"; \
 		HOME="$$_EFFECTIVE_HOME" python3 -m pip install -r ai-engine/requirements.txt; \
 		echo -e "\\e[32mDependências do AI-Engine configuradas com sucesso.\\e[0m"; \
 	)
 
-# To clean up (optional, but good practice)
-# clean:
-# @echo "Cleaning up..."
-# Add cleanup commands here if needed, e.g., removing build artifacts or virtual environments.
+# Para e remove containers do Actuator e Broker
+stop-all-containers:
+	@echo "Tentando parar e remover o container $(ACTUATOR_CONTAINER_NAME)..."
+	@sudo docker stop $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@sudo docker rm $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@echo "Container $(ACTUATOR_CONTAINER_NAME) parado e removido (se existia)."
+	@echo "Tentando parar e remover o container $(BROKER_CONTAINER_NAME)..."
+	@sudo docker stop $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@sudo docker rm $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@echo "Container $(BROKER_CONTAINER_NAME) parado e removido (se existia)."
+	@echo "Processo de parada de containers concluído."
 
+# Ajuda
 help:
 	@echo "Available targets:"
 	@echo "  all                      : Alias para 'setup-and-start'."
@@ -150,6 +173,6 @@ help:
 	@echo "  ---"
 	@echo "  Individual setup steps (geralmente chamados por 'setup-and-start'):"
 	@echo "    setup-kubernetes-infra : Executa scripts/main.sh para configurar a infraestrutura Kubernetes."
-	@echo "    install-ai-deps      : Instala APENAS as dependências Python do AI-Engine."
+	@echo "    install-ai-deps        : Instala APENAS as dependências Python do AI-Engine."
 	@echo "  ---"
 	@echo "  help                     : Mostra esta mensagem de ajuda."

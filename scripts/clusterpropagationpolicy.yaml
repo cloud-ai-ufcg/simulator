@@ -84,7 +84,7 @@ spec:
             operator: DoesNotExist
   placement:
     clusterAffinity:
-      labelSelector: {}  # any cluster
+      labelSelector: {}
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted

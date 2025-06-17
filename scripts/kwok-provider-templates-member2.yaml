@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kwok-provider-templates
+  namespace: default
+data:
+  nodes: |-
+    - name: member2-template
+      status: "Ready"
+      resources:
+        cpu: "4"
+        memory: "4Gi"
+      labels:
+        cloud: public
+        kwok.x-k8s.io/node: fake
+      taints:
+        - effect: NoSchedule
+          key: kwok-provider
+          value: "true"
