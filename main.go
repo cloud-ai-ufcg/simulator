@@ -232,13 +232,15 @@ func main() {
 			return
 		}
 
-		if err := utils.WaitForFile(recommendationsPath, 0); err != nil { // Timeout 0 para esperar indefinidamente ou ajuste
+		if err := utils.WaitForFile(recommendationsPath, 0); err != nil {
 			actuatorErrChan <- fmt.Errorf("timeout aguardando saída do AI Engine (%s): %w", recommendationsPath, err)
 			return
 		}
 
-		if err := runActuator(recommendationsPath); err != nil {
-			actuatorErrChan <- err
+		// Usar a API em vez do comando Go
+		actuatorAPIURL := "http://localhost:8085/"
+		if err := api.CallActuatorAPI(recommendationsPath, actuatorAPIURL); err != nil {
+			actuatorErrChan <- fmt.Errorf("erro ao chamar API do Actuator: %w", err)
 		}
 	}()
 

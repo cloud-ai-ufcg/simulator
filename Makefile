@@ -1,11 +1,11 @@
 SHELL := /bin/bash
-.PHONY: all setup-and-start start setup-kubernetes-infra install-ai-deps start-broker-container help
+.PHONY: all setup-and-start start setup-kubernetes-infra install-ai-deps start-broker-container start-actuator-container help
 
 # Default target: setups infrastructure and runs the simulator
 all: setup-and-start
 
 # Target to setup infrastructure (Kubernetes, AI-Engine dependencies) AND run the simulator
-setup-and-start: setup-kubernetes-infra install-ai-deps start-broker-container start
+setup-and-start: setup-kubernetes-infra install-ai-deps start-broker-container start-actuator-container start
 	@echo -e "\\e[32mProcesso de configuração da infraestrutura completa e inicialização do simulador concluído.\\e[0m"
 
 # Sobe o container do Broker se não estiver rodando
@@ -40,6 +40,44 @@ start-broker-container:
 		}; \
 		echo "Container do Broker iniciado."; \
 	fi
+
+# Sobe o container do Actuator se não estiver rodando
+start-actuator-container:
+	@echo "Verificando se o Docker está acessível (usando sudo)..."
+	@if ! sudo docker info > /dev/null 2>&1; then \
+		echo "ERRO: Não foi possível acessar o Docker nem com sudo. Verifique se o serviço está rodando e se você tem permissão (talvez precise adicionar seu usuário ao grupo docker)."; \
+		exit 10; \
+	fi; \
+	sudo docker ps -q -f name=actuator-simulator > /dev/null 2>&1 && { \
+		echo "Container do Actuator já está rodando. Pulando..."; \
+	} || { \
+		echo "Container do Actuator não está rodando. Subindo..."; \
+		if [ -z "$$HOME" ]; then echo "Variável HOME não definida!"; exit 1; fi; \
+		if ! sudo docker image inspect actuator:latest > /dev/null 2>&1; then \
+			echo "Procurando Dockerfile.actuator em: $$(pwd)/actuator/Dockerfile.actuator"; \
+			if [ ! -f actuator/Dockerfile.actuator ]; then \
+				echo "ERRO: actuator/Dockerfile.actuator não encontrado! Impossível construir a imagem actuator:latest."; \
+				echo "Crie o arquivo actuator/Dockerfile.actuator ou ajuste o caminho no Makefile."; \
+				exit 2; \
+			fi; \
+			echo "Imagem actuator:latest não encontrada localmente. Construindo a imagem..."; \
+			if [ ! -d actuator/cmd ]; then \
+				echo "ERRO: O diretório actuator/cmd não existe. O build do Dockerfile irá falhar!"; \
+				echo "Crie o diretório actuator/cmd e coloque o main.go nele, ou ajuste o Dockerfile.actuator para o caminho correto."; \
+				exit 5; \
+			fi; \
+			sudo docker build -f actuator/Dockerfile.actuator -t actuator:latest actuator || { \
+				echo "ERRO: Falha ao construir a imagem actuator:latest. Verifique o erro do build acima."; \
+				exit 3; \
+			}; \
+		fi; \
+		echo "Usando arquivo kubeconfig: $$HOME/.kube/karmada.config -> /root/.kube/karmada.config no container"; \
+		sudo docker run -p 8081:81 --network host -v $$HOME/.kube/karmada.config:/root/.kube/karmada.config --name actuator-simulator actuator:latest || { \
+			echo "ERRO: Falha ao iniciar o container actuator:latest. Verifique se a imagem foi construída corretamente."; \
+			exit 4; \
+		}; \
+		echo "Container do Actuator iniciado."; \
+	}
 
 # Target to ONLY start the Go simulator (assumes infrastructure and dependencies are already set up)
 start:
