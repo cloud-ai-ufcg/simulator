@@ -11,67 +11,98 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"simulator/constants"
 )
 
-// CallBrokerAPI envia uma requisição POST para a API do Broker.
+// CallBrokerAPI sends a POST request to the Broker API.
 func CallBrokerAPI(inputFilePath string, apiURL string) error {
-	fmt.Printf("Chamando API do Broker em %s com o arquivo %s...\n", apiURL, inputFilePath)
+	fmt.Printf("Calling Broker API at %s with file %s...\n", apiURL, inputFilePath)
 
-	// Ler o arquivo JSON de entrada
+	// Read the input JSON file
 	inputData, err := ioutil.ReadFile(inputFilePath)
 	if err != nil {
-		return fmt.Errorf("erro ao ler arquivo de entrada %s: %w", inputFilePath, err)
+		return fmt.Errorf("error reading input file %s: %w", inputFilePath, err)
 	}
 
-	// Criar a requisição HTTP
+	// Create the HTTP request
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(inputData))
 	if err != nil {
-		return fmt.Errorf("erro ao criar requisição HTTP: %w", err)
+		return fmt.Errorf("error creating HTTP request: %w", err)
 	}
 
-	// Configurar os headers
+	// Set the headers
 	req.Header.Set("Content-Type", "application/json")
 
-	// Enviar a requisição
+	// Send the request
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("erro ao enviar requisição para API do Broker: %w", err)
+		return fmt.Errorf("error sending request to Broker API: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Verificar o status da resposta
+	// Check the response status
 	if resp.StatusCode != http.StatusOK {
 		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("API retornou status %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
-	fmt.Println("Broker API chamada com sucesso.")
+	fmt.Println("Broker API called successfully.")
 	return nil
 }
 
-// ActuatorRecommendation representa uma recomendação para ser enviada à API do Actuator
+// CallAIEngineAPI sends a POST request to the AI-Engine API to start the process.
+func CallAIEngineAPI(apiURL string) error {
+	fmt.Printf("%s%s%s: %sStarting AI-Engine via API at %s%s%s...%s\n",
+		constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorBlue, constants.ColorPurple, apiURL, constants.ColorBlue, constants.ColorReset)
+
+	// Using POST as it triggers an action. We assume there is no request body.
+	resp, err := http.Post(apiURL, "application/json", nil)
+	if err != nil {
+		return fmt.Errorf("failed to make request to AI-Engine API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response from AI-Engine API: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("AI-Engine API returned error status %d: %s", resp.StatusCode, string(body))
+	}
+
+	fmt.Printf("%s%s%s: %sAI-Engine API responded successfully.%s\n",
+		constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
+	fmt.Printf("%s%s%s: %sResponse: %s%s\n",
+		constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorGreen, string(body), constants.ColorReset)
+
+	return nil
+}
+
+// ActuatorRecommendation represents a recommendation to be sent to the Actuator API
 type ActuatorRecommendation struct {
 	WorkloadID string `json:"workload_id"` // string
 	Label      int    `json:"label"`       // int
 	Kind       string `json:"kind"`        // string
 }
 
-// ConvertCSVToJSON lê um arquivo CSV de recomendações e retorna um JSON pronto para envio
+// ConvertCSVToJSON reads a recommendations CSV file and returns a JSON ready to be sent
 func ConvertCSVToJSON(csvFilePath string) ([]byte, error) {
-	// Abrir arquivo CSV
+	// Open CSV file
 	file, err := os.Open(csvFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao abrir arquivo de recomendações: %w", err)
+		return nil, fmt.Errorf("error opening recommendations file: %w", err)
 	}
 	defer file.Close()
 
 	reader := csv.NewReader(file)
 
-	// Ler cabeçalho e mapear índices das colunas
+	// Read header and map column indices
 	header, err := reader.Read()
 	if err != nil {
-		return nil, fmt.Errorf("erro ao ler cabeçalho do CSV: %w", err)
+		return nil, fmt.Errorf("error reading CSV header: %w", err)
 	}
 	colIdx := map[string]int{}
 	for i, col := range header {
@@ -80,39 +111,39 @@ func ConvertCSVToJSON(csvFilePath string) ([]byte, error) {
 	required := []string{"workload_id", "label", "kind"}
 	for _, col := range required {
 		if _, ok := colIdx[col]; !ok {
-			return nil, fmt.Errorf("coluna obrigatória '%s' não encontrada no cabeçalho do CSV", col)
+			return nil, fmt.Errorf("required column '%s' not found in CSV header", col)
 		}
 	}
 
 	var recommendations []ActuatorRecommendation
 
-	// Ler registros
+	// Read records
 	for {
 		record, err := reader.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("erro ao ler registro do CSV: %w", err)
+			return nil, fmt.Errorf("error reading CSV record: %w", err)
 		}
 
-		// Verificar se há colunas suficientes
+		// Check if there are enough columns
 		if len(record) < len(header) {
-			return nil, fmt.Errorf("registro CSV inválido: esperado pelo menos %d colunas, obtido %d", len(header), len(record))
+			return nil, fmt.Errorf("invalid CSV record: expected at least %d columns, got %d", len(header), len(record))
 		}
 
-		// Obter valores pelas posições dinâmicas
+		// Get values by dynamic positions
 		workloadID := record[colIdx["workload_id"]]
 		labelStr := record[colIdx["label"]]
 		kind := record[colIdx["kind"]]
 
-		// Converter label para inteiro
+		// Convert label to integer
 		label, err := strconv.Atoi(labelStr)
 		if err != nil {
-			return nil, fmt.Errorf("erro ao converter label '%s' para inteiro na linha: %w", labelStr, err)
+			return nil, fmt.Errorf("error converting label '%s' to integer on line: %w", labelStr, err)
 		}
 
-		// Adicionar namespace ao workload_id se não estiver presente
+		// Add namespace to workload_id if not present
 		if len(workloadID) > 0 && !containsSlash(workloadID) {
 			workloadID = "default/" + workloadID
 		}
@@ -124,56 +155,56 @@ func ConvertCSVToJSON(csvFilePath string) ([]byte, error) {
 		})
 	}
 
-	// Converter para JSON
+	// Convert to JSON
 	jsonData, err := json.Marshal(recommendations)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao converter para JSON: %w", err)
+		return nil, fmt.Errorf("error converting to JSON: %w", err)
 	}
 
 	return jsonData, nil
 }
 
-// CallActuatorAPI lê o arquivo CSV de recomendações e envia para o endpoint /apply do Actuator API
+// CallActuatorAPI reads the recommendations CSV file and sends it to the /apply endpoint of the Actuator API
 func CallActuatorAPI(recommendationsFilePath string, apiURL string) error {
-	fmt.Printf("Chamando API do Actuator em %s com o arquivo %s...\n", apiURL, recommendationsFilePath)
+	fmt.Printf("Calling Actuator API at %s with file %s...\n", apiURL, recommendationsFilePath)
 
-	// Converter CSV para JSON
+	// Convert CSV to JSON
 	jsonData, err := ConvertCSVToJSON(recommendationsFilePath)
 	if err != nil {
-		return fmt.Errorf("erro ao converter CSV para JSON: %w", err)
+		return fmt.Errorf("error converting CSV to JSON: %w", err)
 	}
 
-	// Criar requisição POST
+	// Create POST request
 	req, err := http.NewRequest("POST", apiURL+"apply", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("erro ao criar requisição HTTP: %w", err)
+		return fmt.Errorf("error creating HTTP request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	// Enviar requisição
+	// Send request
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("erro ao enviar requisição: %w", err)
+		return fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Ler resposta
+	// Read response
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("erro ao ler resposta: %w", err)
+		return fmt.Errorf("error reading response: %w", err)
 	}
 
-	// Verificar status da resposta
+	// Check response status
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("API retornou erro %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("API returned error %d: %s", resp.StatusCode, string(body))
 	}
 
-	fmt.Printf("Actuator API chamada com sucesso. Resposta: %s\n", string(body))
+	fmt.Printf("Actuator API called successfully. Response: %s\n", string(body))
 	return nil
 }
 
-// Função auxiliar para verificar se a string contém uma barra (/)
+// Helper function to check if the string contains a slash (/)
 func containsSlash(s string) bool {
 	for _, c := range s {
 		if c == '/' {
