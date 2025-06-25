@@ -19,14 +19,14 @@ AI_ENGINE_CONTAINER_NAME := ai-engine-simulator
 AI_ENGINE_IMAGE_NAME := ai-engine-api
 AI_ENGINE_DIR := ai-engine
 
-.PHONY: all setup-and-start start setup-kubernetes-infra install-ai-deps \
+.PHONY: all setup-and-start start setup-kubernetes-infra \
         start-broker-container start-actuator-container start-monitor-container start-ai-engine-container stop-all-containers help
 
 # Alvo padrão: configura infraestrutura e executa o simulador
 all: setup-and-start
 
 # Configura infraestrutura completa e executa o simulador
-setup-and-start: setup-kubernetes-infra install-ai-deps start-broker-container start-actuator-container start-monitor-container start-ai-engine-container start
+setup-and-start: setup-kubernetes-infra start-broker-container start-actuator-container start-monitor-container start-ai-engine-container start
 	@echo -e "\\e[32mProcesso de configuração da infraestrutura completa e inicialização do simulador concluído.\\e[0m"
 
 # Sobe o container do Broker se não estiver rodando
@@ -204,29 +204,6 @@ setup-kubernetes-infra:
 	)
 	@echo -e "\\e[35mConfiguração da infraestrutura Kubernetes concluída.\\e[0m"
 
-# Instala dependências do AI-Engine
-install-ai-deps:
-	@echo "Configurando dependências do AI-Engine..."
-	@( \
-		set -e; \
-		_EFFECTIVE_HOME="$$HOME"; \
-		echo "Initial HOME para instalação de dependências: $$_EFFECTIVE_HOME"; \
-		if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then \
-			echo "Ambiente detectado para instalação de dependências: WSL"; \
-			_WIN_USER=$$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\\r'); \
-			if [ -z "$$_WIN_USER" ]; then \
-				echo "Erro: Não foi possível detectar o usuário do Windows. Certifique-se de que o WSL está configurado corretamente."; \
-				exit 1; \
-			fi; \
-			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
-			echo "HOME para esta sessão de instalação de dependências será: $$_EFFECTIVE_HOME"; \
-		else \
-			echo "Ambiente detectado para instalação de dependências: Linux normal. Usando HOME existente: $$_EFFECTIVE_HOME"; \
-		fi; \
-		echo -e "\\e[32mInstalando dependências do AI-Engine (usando HOME=$$_EFFECTIVE_HOME)...\\e[0m"; \
-		HOME="$$_EFFECTIVE_HOME" python3 -m pip install -r ai-engine/requirements.txt; \
-		echo -e "\\e[32mDependências do AI-Engine configuradas com sucesso.\\e[0m"; \
-	)
 
 # Para e remove containers do Actuator e Broker
 stop-all-containers:
@@ -265,6 +242,5 @@ help:
 	@echo "  ---"
 	@echo "  Individual setup steps (geralmente chamados por 'setup-and-start'):"
 	@echo "    setup-kubernetes-infra : Executa scripts/main.sh para configurar a infraestrutura Kubernetes."
-	@echo "    install-ai-deps        : Instala APENAS as dependências Python do AI-Engine."
 	@echo "  ---"
 	@echo "  help                     : Mostra esta mensagem de ajuda."
