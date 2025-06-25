@@ -1,41 +1,47 @@
-{
-  "data": [
-    {
-      "timestamp": 1,
-      "id": "2",
-      "kind": "deployment",
-      "action": "create",
-      "replicas": "2", 
-      "cpu": "4",
-      "memory": "0.08",
-      "label": "public",
-      "job_duration": ""
-    },
-    {
-      "timestamp": 1,
-      "id": "20",
-      "kind": "job",
-      "action": "create",
-      "replicas": "20",
-      "cpu": "4",
-      "memory": "0.08",
-      "label": "public",
-      "job_duration": "3"
-    },
-    {
-      "timestamp": 1,
-      "id": "21",
-      "kind": "job",
-      "action": "create",
-      "replicas": "20",
-      "cpu": "4",
-      "memory": "0.08",
-      "label": "public",
-      "job_duration": "3"
-    }
-  ],
-  "config": {
-    "kubeconfig": "karmada.config",
-    "namespace": "default"
+[
+  {
+    "workload_id": "default/1000",
+    "label": 0,
+    "kind": "deployment"
+  },
+  {
+    "workload_id": "default/10000",
+    "label": 1,
+    "kind": "deployment"
+  },
+  {
+    "workload_id": "default/10001",
+    "label": 1,
+    "kind": "deployment"
+  },
+  {
+    "workload_id": "default/10002",
+    "label": 0,
+    "kind": "deployment"
+  },
+  {
+    "workload_id": "default/1-1",
+    "label": 1,
+    "kind": "job"
+  },
+  {
+    "workload_id": "default/2-2",
+    "label": 0,
+    "kind": "job"
+  },
+  {
+    "workload_id": "default/6-6",
+    "label": 1,
+    "kind": "job"
+  },
+  {
+    "workload_id": "default/7-7",
+    "label": 0,
+    "kind": "job"
+  },
+  {
+    "workload_id": "default/8-8",
+    "label": 0,
+    "kind": "job"
   }
-}
+]
