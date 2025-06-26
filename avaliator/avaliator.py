@@ -17,7 +17,9 @@ def load_data(json_path):
             "cpu_load_public": data["cluster_load_cpu"]["public"],
             "mem_load_private": data["cluster_load_memory"]["private"],
             "mem_load_public": data["cluster_load_memory"]["public"],
-            "total_percent_pending": data["total_percent_pending"]
+            "total_percent_pending": data["total_percent_pending"],
+            "private_percent_pending": data["private_percent_pending"],
+            "public_percent_pending": data["public_percent_pending"]
         })
     
     df = pd.DataFrame(records)
@@ -51,13 +53,14 @@ def plot_memory_load(df):
     plt.show()
 
 def plot_pending_pods(df):
-    """Plot total pending pods percentage over time."""
+    """Plot total pending pods percentage over time, with dashed lines for private/public."""
     plt.figure(figsize=(12, 6))
-    sns.lineplot(x="timestamp", y="total_percent_pending", data=df, label="Total Pending Percentage", marker="o")
+    sns.lineplot(x="time_str", y="total_percent_pending", data=df, label="Total Pending Percentage", marker="o")
+    sns.lineplot(x="time_str", y="private_percent_pending", data=df, label="Pending Private", marker="o", linestyle="--")
+    sns.lineplot(x="time_str", y="public_percent_pending", data=df, label="Pending Public", marker="o", linestyle="--")
     plt.title("Total Pending Pods Percentage over time")
     plt.ylabel("Pending Pods (%)")
     plt.xlabel("Time")
-    plt.xticks(df['timestamp'], df['time_str'], rotation=0)
     plt.legend()
     plt.tight_layout()
     plt.show()
