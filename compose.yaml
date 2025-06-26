@@ -5,6 +5,9 @@ services:
             dockerfile: Dockerfile.api
         ports:
             - "8081:8081"
+        volumes:
+            - config_data:/root/.kube/karmada.config
+
     monitor:
         build:
             context: ./monitor
@@ -23,8 +26,20 @@ services:
             dockerfile: Dockerfile.api
         ports:
             - "8084:8084"
+        volumes:
+            - config_data:/root/.kube
+    mongo:
+        image: mongo:latest
+        ports:
+            - "27017:27017"
+        volumes:
+            - mongo_data:/data/db
 
 networks:
     default:
         name: cloud-ai
         driver: bridge
+
+volumes:
+    mongo_data:
+    config_data:
