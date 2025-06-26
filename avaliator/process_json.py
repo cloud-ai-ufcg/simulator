@@ -30,6 +30,20 @@ def calculate_total_percent_pending(workloads: List[Dict[str, Any]]) -> float:
     return (total_pending / total_pods)
 
 
+def calculate_pending_per_cluster(workloads: List[Dict[str, Any]]) -> tuple:
+    """
+    Calculate the percentage of pending pods across all workloads related to each cluster type (public, private).
+
+    Args:
+        workloads: List of workload dictionaries containing pods_total and pods_pending
+    
+    Returns:
+        tuple: a pair of values containing the percentage of pending pods in the public cluster and the percentage 
+        of pending pods in the private cluster.
+    """
+    pass
+
+
 def extract_cluster_loads(cluster_info: List[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
     """
     Extract cluster load information from cluster_info array.
@@ -67,6 +81,7 @@ def process_timestamp_data(timestamp_data: Dict[str, Any]) -> Dict[str, Any]:
     cluster_info = timestamp_data.get('cluster_info', [])
     
     total_percent_pending = calculate_total_percent_pending(workloads)
+    percent_pending_public, percent_pending_private = calculate_pending_per_cluster(workloads)
     
     cluster_loads = extract_cluster_loads(cluster_info)
     
