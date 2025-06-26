@@ -30,3 +30,6 @@ venv
 # AI Engine
 logs
 /data/output
+
+scripts/karmada
+scripts/autoscaler

@@ -1,11 +1,24 @@
 #!/bin/bash
-set -euo pipefail
-
-# Color (Magenta for this script)
-COLOR="\033[1;35m"
+# -----------------------------------------------------------------------------
+# Environment Bootstrap – verifies and installs required CLI tools for KWOK,
+# Karmada, and Kubernetes-based simulation. Uses APT-based install only.
+# -----------------------------------------------------------------------------
+# ‣ Tools installed: curl, docker, git, kubectl, helm, kind, jq, make,
+#                    python3, pip, go, yq
+# -----------------------------------------------------------------------------
+#   Colour palette
+# -----------------------------------------------------------------------------
+COLOR="\033[1;35m"  # Magenta – this script's identity color
 RESET="\033[0m"
 
+set -euo pipefail
+trap 'echo -e "${COLOR}❌  Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
+
 echo -e "${COLOR}🔧 Checking prerequisites...${RESET}"
+
+# -----------------------------------------------------------------------------
+# Individual tool checks and installs
+# -----------------------------------------------------------------------------
 
 function install_curl() {
   if ! command -v curl &> /dev/null; then
@@ -146,7 +159,20 @@ function install_go() {
   fi
 }
 
-# Run all checks
+function install_yq() {
+  if ! command -v yq &> /dev/null; then
+    echo -e "${COLOR}📦 Installing yq (via APT)...${RESET}"
+    sudo add-apt-repository -y ppa:rmescandon/yq
+    sudo apt update
+    sudo apt install -y yq
+  else
+    echo -e "${COLOR}✅ yq is already installed.${RESET}"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Run all prerequisite checks sequentially
+# -----------------------------------------------------------------------------
 install_curl
 install_docker
 install_git
@@ -158,5 +184,6 @@ install_make
 install_python3
 install_pip
 install_go
+install_yq
 
 echo -e "${COLOR}✅ Environment is ready.${RESET}"
