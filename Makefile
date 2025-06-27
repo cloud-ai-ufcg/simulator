@@ -178,22 +178,16 @@ start:
 	@( \
 		set -e; \
 		_EFFECTIVE_HOME="$$HOME"; \
-		echo "Initial HOME for Go execution: $$_EFFECTIVE_HOME"; \
 		if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then \
-			echo "Detected environment for Go execution: WSL"; \
 			_WIN_USER=$$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\\r'); \
 			if [ -z "$$_WIN_USER" ]; then \
 				echo "Error: Could not detect Windows user. Make sure WSL is configured correctly."; \
 				exit 1; \
 			fi; \
 			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
-			echo "HOME for this Go execution session will be: $$_EFFECTIVE_HOME"; \
-		else \
-			echo "Detected environment for Go execution: Normal Linux. Using existing HOME: $$_EFFECTIVE_HOME"; \
 		fi; \
-		echo -e "\\e[36mStarting Go Simulator (using HOME=$$_EFFECTIVE_HOME)...\\e[0m"; \
 		HOME="$$_EFFECTIVE_HOME" go run main.go; \
-		echo -e "\\e[36mGo Simulator finished.\\e[0m"; \
+		echo "Go Simulator finished."; \
 	)
 
 # Sets up Kubernetes infrastructure

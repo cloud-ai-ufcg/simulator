@@ -32,39 +32,6 @@
       "memory": "0.08",
       "label": "public",
       "job_duration": "3"
-    },
-    {
-      "timestamp": 14,
-      "id": "2",
-      "kind": "deployment",
-      "action": "delete",
-      "replicas": "10",
-      "cpu": "1",
-      "memory": "0.12",
-      "label": "private",
-      "job_duration": "4"
-    },
-    {
-      "timestamp": 14,
-      "id": "20",
-      "kind": "job",
-      "action": "delete",
-      "replicas": "2",
-      "cpu": "1",
-      "memory": "0.08",
-      "label": "private",
-      "job_duration": "4"
-    },
-    {
-      "timestamp": 15,
-      "id": "21",
-      "kind": "job",
-      "action": "delete",
-      "replicas": "20",
-      "cpu": "4",
-      "memory": "0.08",
-      "label": "private",
-      "job_duration": "4"
     }
   ],
   "config": {

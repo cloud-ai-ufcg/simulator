@@ -13,22 +13,22 @@ const (
 
 // Log Prefixes
 const (
-	LogPrefixSimulator = " Simulador"
-	LogPrefixBroker    = " Broker"
-	LogPrefixMonitor   = " Monitor"
-	LogPrefixAIEngine  = " AI-Engine"
-	LogPrefixActuator  = " Actuator"
+	LogPrefixSimulator = "Simulator"
+	LogPrefixBroker = "Broker"
+	LogPrefixMonitor = "Monitor"
+	LogPrefixAIEngine = "AI-Engine"
+	LogPrefixActuator = "Actuator"
 )
 
 // Paths and names
 const (
 	MonitorDirName    = "monitor"
-	MonitorOutputBase = "../data/output/monitor_outputs.json" // Este caminho relativo pode precisar de ajuste dependendo de onde é usado
+	MonitorOutputBase = "../data/output/monitor_outputs.json" // This relative path may need adjustment depending on where it is used
 
 	AIEngineParentDirName = "ai-engine"
 	AIEngineWorkSubDir    = "engine"
-	AIEngineOutputCSVPath = "data/output/recommendations.csv" // Este caminho relativo pode precisar de ajuste
+	AIEngineOutputCSVPath = "data/output/recommendations.csv" // This relative path may need adjustment
 
 	ActuatorDirName      = "actuator"
-	ActuatorInputCSVName = "recommendations.csv" // Este caminho relativo pode precisar de ajuste
+	ActuatorInputCSVName = "recommendations.csv" // This relative path may need adjustment
 )
