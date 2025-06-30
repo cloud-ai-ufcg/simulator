@@ -174,7 +174,6 @@ start-ai-engine-container:
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
 start:
-	@echo "Starting the Go Simulator..."
 	@( \
 		set -e; \
 		_EFFECTIVE_HOME="$$HOME"; \
@@ -187,11 +186,9 @@ start:
 			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
 		fi; \
 		HOME="$$_EFFECTIVE_HOME" go run main.go; \
-		echo "Go Simulator finished."; \
 	)
 
 start-off-engine:
-	@echo "Starting the Go Simulator (AI-Engine OFF)..."
 	@( \
 		set -e; \
 		_EFFECTIVE_HOME="$$HOME"; \
@@ -204,7 +201,6 @@ start-off-engine:
 			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
 		fi; \
 		AI_ENGINE_ROUTE="/stop" HOME="$$_EFFECTIVE_HOME" go run main.go; \
-		echo "Go Simulator finished."; \
 	)
 
 # Sets up Kubernetes infrastructure
