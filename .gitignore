@@ -30,3 +30,4 @@ venv
 # AI Engine
 logs
 /data/output
+.vscode
