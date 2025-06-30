@@ -23,7 +23,11 @@ func main() {
 	fmt.Println("")
 
 	// 2. AI Engine via API
-	aiEngineAPIURL := "http://0.0.0.0:8083/start"
+	aiEngineRoute := os.Getenv("AI_ENGINE_ROUTE")
+	if aiEngineRoute == "" {
+		aiEngineRoute = "/start"
+	}
+	aiEngineAPIURL := "http://0.0.0.0:8083" + aiEngineRoute
 	if err := api.CallAIEngineAPI(aiEngineAPIURL); err != nil {
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
 		os.Exit(1)

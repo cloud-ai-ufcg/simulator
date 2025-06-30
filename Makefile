@@ -190,6 +190,23 @@ start:
 		echo "Go Simulator finished."; \
 	)
 
+start-off-engine:
+	@echo "Starting the Go Simulator (AI-Engine OFF)..."
+	@( \
+		set -e; \
+		_EFFECTIVE_HOME="$$HOME"; \
+		if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then \
+			_WIN_USER=$$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\\r'); \
+			if [ -z "$$_WIN_USER" ]; then \
+				echo "Error: Could not detect Windows user. Make sure WSL is configured correctly."; \
+				exit 1; \
+			fi; \
+			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
+		fi; \
+		AI_ENGINE_ROUTE="/stop" HOME="$$_EFFECTIVE_HOME" go run main.go; \
+		echo "Go Simulator finished."; \
+	)
+
 # Sets up Kubernetes infrastructure
 setup-kubernetes-infra:
 	@echo -e "\\e[35mStarting Kubernetes infrastructure setup (scripts/main.sh)...\\e[0m"
