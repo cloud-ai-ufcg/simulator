@@ -1,0 +1,90 @@
+apiVersion: policy.karmada.io/v1alpha1
+kind: ClusterPropagationPolicy
+metadata:
+  name: deploy-private
+spec:
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: private
+    - apiVersion: batch/v1
+      kind: Job
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: private
+  placement:
+    clusterAffinity:
+      labelSelector:
+        matchLabels:
+          cloud: private
+    replicaScheduling:
+      replicaSchedulingType: Divided
+      replicaDivisionPreference: Weighted
+      weightPreference:
+        staticWeightList:
+          - targetCluster:
+              clusterNames: [member1]
+            weight: 100
+---
+apiVersion: policy.karmada.io/v1alpha1
+kind: ClusterPropagationPolicy
+metadata:
+  name: deploy-public
+spec:
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: public
+    - apiVersion: batch/v1
+      kind: Job
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: public
+  placement:
+    clusterAffinity:
+      labelSelector:
+        matchLabels:
+          cloud: public
+    replicaScheduling:
+      replicaSchedulingType: Divided
+      replicaDivisionPreference: Weighted
+      weightPreference:
+        staticWeightList:
+          - targetCluster:
+              clusterNames: [member2]
+            weight: 100
+---
+apiVersion: policy.karmada.io/v1alpha1
+kind: ClusterPropagationPolicy
+metadata:
+  name: deploy-default
+spec:
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+      namespace: default
+      labelSelector:
+        matchExpressions:
+          - key: cloud
+            operator: DoesNotExist
+    - apiVersion: batch/v1
+      kind: Job
+      namespace: default
+      labelSelector:
+        matchExpressions:
+          - key: cloud
+            operator: DoesNotExist
+  placement:
+    clusterAffinity:
+      labelSelector: {}
+    replicaScheduling:
+      replicaSchedulingType: Divided
+      replicaDivisionPreference: Weighted

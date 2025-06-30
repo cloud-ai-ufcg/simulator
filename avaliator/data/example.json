@@ -1,0 +1,86 @@
+{
+  "1750264988": {
+    "cluster_load_cpu": { "private": 0.66, "public": 1.07 },
+    "cluster_load_memory": { "private": 0.36, "public": 0.66 },
+    "total_percent_pending": 0.33,
+    "private_percent_pending": 0.13,
+    "public_percent_pending": 0.20
+  },
+  "1750265048": {
+    "cluster_load_cpu": { "private": 0.72, "public": 1.02 },
+    "cluster_load_memory": { "private": 0.39, "public": 0.61 },
+    "total_percent_pending": 0.28,
+    "private_percent_pending": 0.10,
+    "public_percent_pending": 0.18
+  },
+  "1750265108": {
+    "cluster_load_cpu": { "private": 0.78, "public": 0.99 },
+    "cluster_load_memory": { "private": 0.41, "public": 0.59 },
+    "total_percent_pending": 0.25,
+    "private_percent_pending": 0.10,
+    "public_percent_pending": 0.15
+  },
+  "1750265168": {
+    "cluster_load_cpu": { "private": 0.83, "public": 0.97 },
+    "cluster_load_memory": { "private": 0.43, "public": 0.56 },
+    "total_percent_pending": 0.22,
+    "private_percent_pending": 0.09,
+    "public_percent_pending": 0.13
+  },
+  "1750265228": {
+    "cluster_load_cpu": { "private": 0.79, "public": 1.00 },
+    "cluster_load_memory": { "private": 0.42, "public": 0.58 },
+    "total_percent_pending": 0.26,
+    "private_percent_pending": 0.09,
+    "public_percent_pending": 0.17
+  },
+  "1750265288": {
+    "cluster_load_cpu": { "private": 0.73, "public": 1.04 },
+    "cluster_load_memory": { "private": 0.38, "public": 0.62 },
+    "total_percent_pending": 0.31,
+    "private_percent_pending": 0.10,
+    "public_percent_pending": 0.21
+  },
+  "1750265348": {
+    "cluster_load_cpu": { "private": 0.68, "public": 1.10 },
+    "cluster_load_memory": { "private": 0.36, "public": 0.67 },
+    "total_percent_pending": 0.38,
+    "private_percent_pending": 0.11,
+    "public_percent_pending": 0.27
+  },
+  "1750265408": {
+    "cluster_load_cpu": { "private": 0.65, "public": 1.13 },
+    "cluster_load_memory": { "private": 0.34, "public": 0.70 },
+    "total_percent_pending": 0.41,
+    "private_percent_pending": 0.11,
+    "public_percent_pending": 0.30
+  },
+  "1750265468": {
+    "cluster_load_cpu": { "private": 0.60, "public": 1.18 },
+    "cluster_load_memory": { "private": 0.32, "public": 0.73 },
+    "total_percent_pending": 0.45,
+    "private_percent_pending": 0.12,
+    "public_percent_pending": 0.33
+  },
+  "1750265528": {
+    "cluster_load_cpu": { "private": 0.59, "public": 1.15 },
+    "cluster_load_memory": { "private": 0.30, "public": 0.71 },
+    "total_percent_pending": 0.42,
+    "private_percent_pending": 0.11,
+    "public_percent_pending": 0.31
+  },
+  "1750265588": {
+    "cluster_load_cpu": { "private": 0.62, "public": 1.10 },
+    "cluster_load_memory": { "private": 0.33, "public": 0.68 },
+    "total_percent_pending": 0.37,
+    "private_percent_pending": 0.11,
+    "public_percent_pending": 0.26
+  },
+  "1750265648": {
+    "cluster_load_cpu": { "private": 0.67, "public": 1.06 },
+    "cluster_load_memory": { "private": 0.36, "public": 0.64 },
+    "total_percent_pending": 0.32,
+    "private_percent_pending": 0.10,
+    "public_percent_pending": 0.22
+  }
+}

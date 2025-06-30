@@ -1,93 +1,76 @@
 #!/bin/bash
-set -euo pipefail
-
-# Color (Green for this script)
-COLOR="\033[1;32m"
+# -----------------------------------------------------------------------------
+# Manifest Generator – produces KWOK templates, Karmada propagation policies,
+# and Autoscaler configMaps based on environment parameters from main.sh.
+# -----------------------------------------------------------------------------
+# ‣ Behaviour
+#   • Generates one KWOK node template per cluster (member1, member2).
+#   • Produces Karmada ClusterPropagationPolicies for public/private workloads.
+#   • Outputs KWOK provider configuration used by the autoscaler.
+# -----------------------------------------------------------------------------
+#   Colour palette
+# -----------------------------------------------------------------------------
+COLOR="\033[1;32m"  # Green – this script's identity color
 RESET="\033[0m"
 
-# Check if autoscaler repo already exists
-if [ ! -d "autoscaler" ]; then
-  echo -e "${COLOR}[INFO] 'autoscaler/' directory not found. Cloning repository...${RESET}"
-  git clone --depth 1 https://github.com/kubernetes/autoscaler.git
-else
-  echo -e "${COLOR}[INFO] 'autoscaler/' directory already exists. Skipping clone.${RESET}"
-fi
+set -euo pipefail
+trap 'echo -e "${COLOR}❌  Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
-# Generate kwok-provider-config.yaml
-cat > kwok-provider-config.yaml <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kwok-provider-config
-  namespace: default
-  labels:
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    meta.helm.sh/release-name: autoscaler-kwok
-    meta.helm.sh/release-namespace: default
-data:
-  config.yaml: |
-    apiVersion: config.kwok.x-k8s.io/v1alpha1
-    kind: KwokConfiguration
-    readNodesFrom: configmap
-    nodeGroups:
-      - name: fake-nodegroup
-        fromNodeLabelKey: kwok.x-k8s.io/node
-        minSize: 0
-        maxSize: 100
-EOF
+# -----------------------------------------------------------------------------
+# 1. Generate KWOK node templates
+# -----------------------------------------------------------------------------
+echo -e "${COLOR}[1/4] Generating KWOK provider templates...${RESET}"
 
-# Generate kwok-provider-templates.yaml
-cat > kwok-provider-templates.yaml <<EOF
+generate_kwok_template() {
+  local CLUSTER=$1
+  local CPU=$2
+  local MEMORY=$3
+  local FILE="kwok-provider-templates-${CLUSTER}.yaml"
+  local CLUSTER_TYPE=""
+
+  if [[ "$CLUSTER" == "member1" ]]; then
+    CLUSTER_TYPE="private"
+  elif [[ "$CLUSTER" == "member2" ]]; then
+    CLUSTER_TYPE="public"
+  fi
+
+  # Write YAML template to file using here-document
+  cat > "$FILE" <<EOF_KWOK_TEMPLATE
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kwok-provider-templates
   namespace: default
-  labels:
-    app.kubernetes.io/managed-by: Helm
-  annotations:
-    meta.helm.sh/release-name: autoscaler-kwok
-    meta.helm.sh/release-namespace: default
 data:
-  templates: |
-    apiVersion: v1
-    kind: Node
-    metadata:
-      name: kind-worker-template
+  nodes: |-
+    - name: ${CLUSTER}-template
+      status: "Ready"
+      resources:
+        cpu: "${CPU}"
+        memory: "${MEMORY}"
       labels:
-        type: kwok
+        cloud: ${CLUSTER_TYPE}
         kwok.x-k8s.io/node: fake
-        kwok-nodegroup: worker-group
-    spec:
       taints:
         - effect: NoSchedule
           key: kwok-provider
-          value: true
-    status:
-      capacity:
-        cpu: "12"
-        memory: "8Gi"
-        pods: "110"
-      allocatable:
-        cpu: "12"
-        memory: "8Gi"
-        pods: "110"
-      conditions:
-        - type: Ready
-          status: "True"
-          reason: "KubeletReady"
-          message: "fake node ready"
-  config: |
-    apiVersion: v1alpha1
-    readNodesFrom: configmap
-    nodegroups:
-      fromNodeLabelKey: "kwok-nodegroup"
-    configmap:
-      name: kwok-provider-templates
-EOF
+          value: "true"
+EOF_KWOK_TEMPLATE
 
-# Generate clusterpropagationpolicy.yaml
+  echo -e "${COLOR}[✓] $FILE generated for ${CLUSTER} with template @ ${CPU} CPU / ${MEMORY}${RESET}"
+}
+
+# Generate template for member1 (private cloud)
+generate_kwok_template "member1" "$MEMBER1_CPU" "$MEMBER1_MEM"
+
+# Generate template for member2 (public cloud)
+generate_kwok_template "member2" "$MEMBER2_CPU" "$MEMBER2_MEM"
+
+# -----------------------------------------------------------------------------
+# 2. Generate Karmada ClusterPropagationPolicies
+# -----------------------------------------------------------------------------
+echo -e "${COLOR}[2/4] Generating ClusterPropagationPolicy...${RESET}"
+
 cat > clusterpropagationpolicy.yaml <<EOF
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
@@ -175,14 +158,51 @@ spec:
             operator: DoesNotExist
   placement:
     clusterAffinity:
-      labelSelector: {}  # any cluster
+      labelSelector: {}
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
 EOF
 
-echo -e "${COLOR}[OK] clusterpropagationpolicy.yaml generated successfully.${RESET}"
+echo -e "${COLOR}[✓] clusterpropagationpolicy.yaml generated.${RESET}"
 
+# -----------------------------------------------------------------------------
+# 3. Generate KWOK autoscaler configuration
+# -----------------------------------------------------------------------------
+echo -e "${COLOR}[3/4] Generating kwok-provider-config.yaml...${RESET}"
+
+cat > kwok-provider-config.yaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kwok-provider-config
+  namespace: default
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: autoscaler-kwok
+    meta.helm.sh/release-namespace: default
+data:
+  config.yaml: |
+    apiVersion: config.kwok.x-k8s.io/v1alpha1
+    kind: KwokConfiguration
+    readNodesFrom: configmap
+    nodeGroups:
+      - name: fake-nodegroup
+        fromNodeLabelKey: kwok.x-k8s.io/node
+        minSize: 0
+        maxSize: 100
+EOF
+
+echo -e "${COLOR}[✓] kwok-provider-config.yaml generated.${RESET}"
+
+# -----------------------------------------------------------------------------
+# 4. Summary of output files
+# -----------------------------------------------------------------------------
 echo
-echo -e "${COLOR}[OK] Files generated successfully:${RESET}"
-ls -1 kwok-provider-config.yaml kwok-provider-templates.yaml clusterpropagationpolicy.yaml
+echo -e "${COLOR}[4/4] Generated files:${RESET}"
+ls -1 \
+  kwok-provider-templates-member1.yaml \
+  kwok-provider-templates-member2.yaml \
+  clusterpropagationpolicy.yaml \
+  kwok-provider-config.yaml
