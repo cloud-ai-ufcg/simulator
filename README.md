@@ -1,43 +1,90 @@
-# Simulator
+# Simulator Project
 
-This project runs a Go-based simulator which interacts with a Kubernetes cluster via a `broker` submodule.
+This project provides a simulator environment using Docker containers for an Actuator, a Broker, a Monitor, and an AI-Engine, along with helper scripts for Kubernetes infrastructure.
 
-## Prerequisites
+## Requirements
 
-1.  **Go:** Version 1.21+ installed.
-2.  **Kubernetes Cluster:** A running Kubernetes cluster (e.g., Minikube, Docker Desktop Kubernetes).
-3.  **`kubectl`:** Installed and configured for your cluster.
-4.  **Git:** Installed.
-5.  **(For `.sh` scripts on Windows):** Shell environment like Git Bash or WSL.
+- Docker
+- Go
+- (Optional) Kubernetes and kubectl
+- (Optional) WSL for Windows users
 
-## Setup
+## Main Makefile Targets
 
-1.  **Initialize Submodules:**
-    ```bash
-    git submodule update --init --recursive
-    ```
-2.  **Install Go Dependencies:**
-    ```bash
-    go mod tidy
-    ```
+- **all / setup-and-start**  
+  Sets up the Kubernetes infrastructure, starts the Broker, Actuator, Monitor, and AI-Engine containers, and then runs the Go simulator. This is the main target to get everything running from scratch.
+  ```sh
+  make
+  # or
+  make setup-and-start
+  ```
 
-## Running the Simulator
+- **start**  
+  Runs only the Go simulator. This assumes that the Kubernetes infrastructure and all required containers are already running.
+  ```sh
+  make start
+  ```
 
-### Using PowerShell (Windows)
+- **run-all-containers**  
+  Starts all required containers (Broker, Actuator, Monitor, AI-Engine) without running the Go simulator.
+  ```sh
+  make run-all-containers
+  ```
 
-1.  **Navigate to project directory.**
-2.  **Start:** `.\start_simulator.ps1`
-3.  **Stop & Clean K8s Resources:** `.\stop_simulator.ps1`
-    *(Note: If script execution is blocked, run `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` once in an elevated PowerShell.)*
+- **stop-all-containers**  
+  Stops and removes all simulator containers.
+  ```sh
+  make stop-all-containers
+  ```
 
-### Using Shell (Git Bash, WSL, Linux, macOS)
+- **setup-kubernetes-infra**  
+  Runs the script to set up the Kubernetes infrastructure.
+  ```sh
+  make setup-kubernetes-infra
+  ```
 
-1.  **Navigate to project directory.**
-2.  **Make scripts executable (one-time):**
-    ```bash
-    chmod +x start_simulator.sh
-    chmod +x stop_simulator.sh
-    ```
-3.  **Start:** `./start_simulator.sh`
-4.  **Stop & Clean K8s Resources:** `./stop_simulator.sh`
+- **Individual Container Start Targets**
+  - `make start-broker-container`
+  - `make start-actuator-container`
+  - `make start-monitor-container`
+  - `make start-ai-engine-container`
 
+- **help**  
+  Shows a list of available targets and their descriptions.
+  ```sh
+  make help
+  ```
+
+## Container Details
+
+- **Actuator**
+  - Image: `actuator-api`
+  - Container name: `actuator-simulator`
+  - Dockerfile: `actuator/Dockerfile.api`
+  - Listens on port: 8085
+
+- **Broker**
+  - Image: `broker:latest`
+  - Container name: `broker-simulator`
+  - Dockerfile: `broker/Dockerfile.api`
+  - Listens on port: 8080
+
+- **Monitor**
+  - Image: `monitor:latest`
+  - Container name: `monitor-simulator`
+  - Dockerfile: `monitor/Dockerfile`
+  - Network: `host`
+
+- **AI-Engine**
+  - Image: `ai-engine-api`
+  - Container name: `ai-engine-simulator`
+  - Dockerfile: `ai-engine/Dockerfile.api`
+  - Listens on port: 8083
+
+## Notes
+
+- The Makefile automatically builds images if they do not exist.
+- Kubeconfig and other necessary files are mounted into the containers as needed.
+- For WSL users, the Makefile attempts to detect and use the correct Windows home directory for Go commands.
+
+---
