@@ -12,8 +12,7 @@ services:
         build:
             context: ./monitor
             dockerfile: Dockerfile
-        ports:
-            - "8082:8082"
+        network_mode: host
     ai-engine:
         build:
             context: ./ai-engine
