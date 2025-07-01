@@ -240,6 +240,19 @@ run-all-containers:
 	@make start-ai-engine-container
 	@echo "All containers started successfully."
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Observações Importantes
+# - É necessário exportar a variável KUBECONFIG com os arquivos corretos
+#   antes de rodar comandos que usam o `kubectl`, como o Broker.
+#   Exemplo:
+#
+#     export KUBECONFIG=~/.kube/karmada.config
+#     # ou (para visualizar múltiplos clusters)
+#     export KUBECONFIG=~/.kube/karmada.config:~/.kube/members.config
+#
+# - Sem isso, o Broker não conseguirá criar deployments e jobs corretamente.
+# ──────────────────────────────────────────────────────────────────────────────
+
 # Help
 help:
 	@echo "Available targets:"
