@@ -32,7 +32,7 @@ def calculate_total_percent_pending(workloads: List[Dict[str, Any]]) -> float:
 
 def calculate_pending_per_cluster(workloads: List[Dict[str, Any]]) -> tuple:
     """
-    Calculate the percentage of pending pods across all workloads related to each cluster type (public, private).
+    Calculate the number of pending pods across all workloads related to each cluster type (public, private).
 
     Args:
         workloads: List of workload dictionaries containing pods_total and pods_pending
