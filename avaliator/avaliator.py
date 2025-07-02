@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 import json
+import matplotlib.dates as mdates
 
 def load_data(json_path):
     """Load and parse JSON data into a DataFrame."""
@@ -36,7 +37,10 @@ def plot_cpu_load(df):
     plt.title("CPU Load by Cluster over time")
     plt.ylabel("CPU Load")
     plt.xlabel("Time")
-    plt.xticks(df['timestamp'], df['time_str'], rotation=0)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
     plt.show()
@@ -49,7 +53,10 @@ def plot_memory_load(df):
     plt.title("Memory Load by Cluster over time")
     plt.ylabel("Memory Load")
     plt.xlabel("Time")
-    plt.xticks(df['timestamp'], df['time_str'], rotation=0)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
     plt.show()
@@ -57,8 +64,7 @@ def plot_memory_load(df):
 def plot_pending_pods(df):
     """Plot stacked area for pending pods (private/public) over time, with hatching."""
     plt.figure(figsize=(12, 6))
-
-    x = df['time_str']
+    x = df['timestamp']
     y_private = df['number_pending_private'].fillna(0)
     y_public = df['number_pending_public'].fillna(0)
 
@@ -84,6 +90,10 @@ def plot_pending_pods(df):
     plt.title("Total Pending Pods over time (Stacked Private/Public)")
     plt.ylabel("Pending Pods")
     plt.xlabel("Time")
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
     plt.show()
@@ -95,7 +105,10 @@ def plot_total_percent_pending(df):
     plt.title("Total Percent Pending over time")
     plt.ylabel("Total Percent Pending (%)")
     plt.xlabel("Time")
-    plt.xticks(df['timestamp'], df['time_str'], rotation=0)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
     plt.show()
