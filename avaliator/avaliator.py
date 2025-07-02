@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -17,9 +18,9 @@ def load_data(json_path):
             "cpu_load_public": data["cluster_load_cpu"]["public"],
             "mem_load_private": data["cluster_load_memory"]["private"],
             "mem_load_public": data["cluster_load_memory"]["public"],
-            "total_percent_pending": data["total_percent_pending"],
-            "private_percent_pending": data["private_percent_pending"],
-            "public_percent_pending": data["public_percent_pending"]
+            "number_of_pods_pending": data["number_of_pods_pending"],
+            "number_pending_private": data["number_pending_private"],
+            "number_pending_public": data["number_pending_public"]
         })
     
     df = pd.DataFrame(records)
@@ -53,13 +54,34 @@ def plot_memory_load(df):
     plt.show()
 
 def plot_pending_pods(df):
-    """Plot total pending pods percentage over time, with dashed lines for private/public."""
+    """Plot stacked area for pending pods (private/public) over time, with hatching."""
     plt.figure(figsize=(12, 6))
-    sns.lineplot(x="time_str", y="total_percent_pending", data=df, label="Total Pending Percentage", marker="o")
-    sns.lineplot(x="time_str", y="private_percent_pending", data=df, label="Pending Private", marker="o", linestyle="--")
-    sns.lineplot(x="time_str", y="public_percent_pending", data=df, label="Pending Public", marker="o", linestyle="--")
-    plt.title("Total Pending Pods Percentage over time")
-    plt.ylabel("Pending Pods (%)")
+
+    x = df['time_str']
+    y_private = df['number_pending_private'].fillna(0)
+    y_public = df['number_pending_public'].fillna(0)
+
+    plt.fill_between(
+        x, 0, y_private,
+        label="Pending Private",
+        color='tab:blue',
+        alpha=0.4,
+        hatch='//',
+        edgecolor='tab:blue'
+    )
+
+    plt.fill_between(
+        x, y_private, y_private + y_public,
+        label="Pending Public",
+        color='tab:orange',
+        alpha=0.4,
+        hatch='\\\\',
+        edgecolor='tab:orange'
+    )
+
+    plt.plot(x, y_private + y_public, label="Total Pending", color='black', marker='o')
+    plt.title("Total Pending Pods over time (Stacked Private/Public)")
+    plt.ylabel("Pending Pods")
     plt.xlabel("Time")
     plt.legend()
     plt.tight_layout()
@@ -68,14 +90,28 @@ def plot_pending_pods(df):
 def main():
     """Main function to run the analysis."""
     sns.set_theme(style="whitegrid")
+
+    if len(sys.argv) != 2:
+        print("Usage: python avaliator.py <input_json_file>")
+        sys.exit(1)
     
-    json_path = "./data/example.json"
+    json_path = sys.argv[1]
     
-    df = load_data(json_path)
-    
-    plot_cpu_load(df)
-    plot_memory_load(df)
-    plot_pending_pods(df)
+    try:
+        df = load_data(json_path)
+        plot_cpu_load(df)
+        plot_memory_load(df)
+        plot_pending_pods(df)
+    except FileNotFoundError:
+        print(f"Error: File '{json_path}' not found.")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON format in '{json_path}': {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
