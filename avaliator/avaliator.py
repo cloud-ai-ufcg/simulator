@@ -20,7 +20,8 @@ def load_data(json_path):
             "mem_load_public": data["cluster_load_memory"]["public"],
             "number_of_pods_pending": data["number_of_pods_pending"],
             "number_pending_private": data["number_pending_private"],
-            "number_pending_public": data["number_pending_public"]
+            "number_pending_public": data["number_pending_public"],
+            "total_percent_pending": data["total_percent_pending"]
         })
     
     df = pd.DataFrame(records)
@@ -87,6 +88,18 @@ def plot_pending_pods(df):
     plt.tight_layout()
     plt.show()
 
+def plot_total_percent_pending(df):
+    """Plot total percent pending over time."""
+    plt.figure(figsize=(12, 6))
+    sns.lineplot(x="timestamp", y="total_percent_pending", data=df, label="Total Percent Pending", marker="o")
+    plt.title("Total Percent Pending over time")
+    plt.ylabel("Total Percent Pending (%)")
+    plt.xlabel("Time")
+    plt.xticks(df['timestamp'], df['time_str'], rotation=0)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 def main():
     """Main function to run the analysis."""
     sns.set_theme(style="whitegrid")
@@ -102,6 +115,7 @@ def main():
         plot_cpu_load(df)
         plot_memory_load(df)
         plot_pending_pods(df)
+        plot_total_percent_pending(df)
     except FileNotFoundError:
         print(f"Error: File '{json_path}' not found.")
         sys.exit(1)
