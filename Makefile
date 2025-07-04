@@ -240,6 +240,11 @@ run-all-containers:
 	@make start-ai-engine-container
 	@echo "All containers started successfully."
 
+init-submodules:
+	@echo "Initializing submodules..."
+	@git submodule update --init --recursive
+	@echo "Submodules initialized successfully."
+
 # Help
 help:
 	@echo "Available targets:"
