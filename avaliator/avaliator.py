@@ -5,6 +5,8 @@ import seaborn as sns
 from datetime import datetime
 import json
 import matplotlib.dates as mdates
+import os
+os.environ['LIBGL_DEBUG'] = 'quiet'
 
 def load_data(json_path):
     """Load and parse JSON data into a DataFrame."""
