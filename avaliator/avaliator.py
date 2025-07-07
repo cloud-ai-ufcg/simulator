@@ -31,7 +31,7 @@ def load_data(json_path):
     df['time_str'] = df['timestamp'].dt.strftime('%H:%M')
     return df
 
-def plot_cpu_load(df):
+def plot_cpu_load(df, output_dir):
     """Plot CPU load by cluster over time."""
     plt.figure(figsize=(12, 6))
     sns.lineplot(x="timestamp", y="cpu_load_private", data=df, label="CPU Load Private", marker="o")
@@ -45,9 +45,14 @@ def plot_cpu_load(df):
     plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
+    
+    # Save the plot
+    output_path = os.path.join(output_dir, "cpu_load.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"CPU load plot saved to: {output_path}")
     plt.show()
 
-def plot_memory_load(df):
+def plot_memory_load(df, output_dir):
     """Plot memory load by cluster over time."""
     plt.figure(figsize=(12, 6))
     sns.lineplot(x="timestamp", y="mem_load_private", data=df, label="Mem Load Private", marker="o")
@@ -61,9 +66,14 @@ def plot_memory_load(df):
     plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
+    
+    # Save the plot
+    output_path = os.path.join(output_dir, "memory_load.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"Memory load plot saved to: {output_path}")
     plt.show()
 
-def plot_pending_pods(df):
+def plot_pending_pods(df, output_dir):
     """Plot stacked area for pending pods (private/public) over time, with hatching."""
     plt.figure(figsize=(12, 6))
     x = df['timestamp']
@@ -98,9 +108,14 @@ def plot_pending_pods(df):
     plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
+    
+    # Save the plot
+    output_path = os.path.join(output_dir, "pending_pods.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"Pending pods plot saved to: {output_path}")
     plt.show()
 
-def plot_total_percent_pending(df):
+def plot_total_percent_pending(df, output_dir):
     """Plot total percent pending over time."""
     plt.figure(figsize=(12, 6))
     sns.lineplot(x="timestamp", y="total_percent_pending", data=df, label="Total Percent Pending", marker="o")
@@ -113,6 +128,11 @@ def plot_total_percent_pending(df):
     plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
+    
+    # Save the plot
+    output_path = os.path.join(output_dir, "total_percent_pending.png")
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"Total percent pending plot saved to: {output_path}")
     plt.show()
 
 def main():
@@ -125,12 +145,19 @@ def main():
     
     json_path = sys.argv[1]
     
+    # Create output directory
+    output_dir = "plots_output"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Created output directory: {output_dir}")
+    
     try:
         df = load_data(json_path)
-        plot_cpu_load(df)
-        plot_memory_load(df)
-        plot_pending_pods(df)
-        plot_total_percent_pending(df)
+        plot_cpu_load(df, output_dir)
+        plot_memory_load(df, output_dir)
+        plot_pending_pods(df, output_dir)
+        plot_total_percent_pending(df, output_dir)
+        print(f"\nAll plots have been saved to the '{output_dir}' directory.")
     except FileNotFoundError:
         print(f"Error: File '{json_path}' not found.")
         sys.exit(1)
