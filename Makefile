@@ -241,19 +241,19 @@ run-all-containers:
 	@echo "All containers started successfully."
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Observações Importantes
-# - É necessário exportar a variável KUBECONFIG com os arquivos corretos
-#   antes de rodar comandos que usam o `kubectl`, como o Broker.
-#   Exemplo:
+# Important Notes
+# - You must export the KUBECONFIG variable with the correct files
+#   before running commands that use `kubectl`, such as the Broker.
+#   Example:
 #
 #     export KUBECONFIG=~/.kube/karmada.config
-#     # ou (para visualizar múltiplos clusters)
+#     # or (to view multiple clusters)
 #     export KUBECONFIG=~/.kube/karmada.config:~/.kube/members.config
 #
-# - Sem isso, o Broker não conseguirá criar deployments e jobs corretamente.
+# - Without this, the Broker will not be able to create deployments and jobs correctly.
 # ──────────────────────────────────────────────────────────────────────────────
-
 # Help
+
 help:
 	@echo "Available targets:"
 	@echo "  all                      : Alias for 'setup-and-start'."
