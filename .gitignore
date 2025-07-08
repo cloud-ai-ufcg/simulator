@@ -33,3 +33,4 @@ logs
 
 scripts/karmada
 scripts/autoscaler
+scripts/kwok.kubeconfig

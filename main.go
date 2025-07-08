@@ -45,7 +45,7 @@ func main() {
 	apiURL := "http://localhost:8080/broker/"
 	inputFilePath := "data/input_json.json" // Relative to the project root
 
-	// 2. AI Engine via API (executed em paralelo)
+	// 2. AI Engine via API
 	aiEngineRoute := os.Getenv("AI_ENGINE_ROUTE")
 	if aiEngineRoute == "" {
 		aiEngineRoute = "/start"
