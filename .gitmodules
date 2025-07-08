@@ -1,12 +1,16 @@
 [submodule "broker"]
 	path = broker
 	url = https://github.com/cloud-ai-ufcg/broker
+	branch = main
 [submodule "ai-engine"]
 	path = ai-engine
 	url = https://github.com/cloud-ai-ufcg/ai-engine
+	branch = main
 [submodule "monitor"]
 	path = monitor
 	url = https://github.com/cloud-ai-ufcg/monitor
+	branch = main
 [submodule "actuator"]
 	path = actuator
 	url = https://github.com/cloud-ai-ufcg/actuator
+	branch = main

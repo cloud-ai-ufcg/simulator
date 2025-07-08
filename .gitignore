@@ -26,11 +26,15 @@ go.work.sum
 .venv
 .DS_Store
 venv
+.venv/
+venv/
 
 # AI Engine
 logs
 /data/output
+.vscode
 
 scripts/karmada
 scripts/autoscaler
+
 scripts/kwok.kubeconfig

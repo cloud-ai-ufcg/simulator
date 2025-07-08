@@ -1,6 +1,16 @@
 # Simulator Project
 
 This project provides a simulator environment using Docker containers for an Actuator, a Broker, a Monitor, and an AI-Engine, along with helper scripts for Kubernetes infrastructure.
+It also works with submodules to manage dependencies, such as the Broker, Actuator, Monitor, and AI-Engine repositories.
+
+After cloning the repository, you need to initialize the submodules using the following command:
+```sh
+make init-submodules
+```
+or
+```sh
+git submodule update --init --recursive
+```
 
 ## Requirements
 
