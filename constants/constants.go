@@ -14,10 +14,11 @@ const (
 // Log Prefixes
 const (
 	LogPrefixSimulator = "Simulator"
-	LogPrefixBroker = "Broker"
-	LogPrefixMonitor = "Monitor"
-	LogPrefixAIEngine = "AI-Engine"
-	LogPrefixActuator = "Actuator"
+	LogPrefixBroker    = "Broker"
+	LogPrefixMonitor   = "Monitor"
+	LogPrefixAIEngine  = "AI-Engine"
+	LogPrefixActuator  = "Actuator"
+	LogPrefixAvaliator = "Avaliator"
 )
 
 // Paths and names
