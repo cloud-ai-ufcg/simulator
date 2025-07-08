@@ -67,6 +67,8 @@ if [[ "${MEMBER2_AUTOSCALER:-true}" == "true" ]]; then
 
   cd autoscaler
 
+  python3 ../autoscaler_transform2.py 
+
   helm upgrade --install "$RELEASE_NAME" charts/cluster-autoscaler \
     --namespace "$NAMESPACE" \
     --wait \
