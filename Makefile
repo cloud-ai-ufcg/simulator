@@ -26,7 +26,7 @@ AI_ENGINE_DIR := ai-engine
 all: setup-and-start
 
 # Sets up the complete infrastructure and runs the simulator
-setup-and-start: setup-kubernetes-infra start-broker-container start-actuator-container start-monitor-container start-ai-engine-container start
+setup-and-start: setup-kubernetes-infra stop-all-containers run-all-containers start
 	@echo -e "\\e[32mFull infrastructure setup and simulator startup process completed.\\e[0m"
 
 # Starts the Broker container if it's not running
@@ -212,25 +212,41 @@ setup-kubernetes-infra:
 	@echo -e "\\e[35mKubernetes infrastructure setup completed.\\e[0m"
 
 
-# Stops and removes Actuator and Broker containers
+# Stops and removes all simulator containers and their images
 stop-all-containers:
 	@echo "Attempting to stop and remove container $(ACTUATOR_CONTAINER_NAME)..."
 	@sudo docker stop $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@sudo docker rm $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(ACTUATOR_CONTAINER_NAME) stopped and removed (if it existed)."
+	@echo "Attempting to remove image $(ACTUATOR_IMAGE_NAME)..."
+	@sudo docker rmi -f $(ACTUATOR_IMAGE_NAME) >/dev/null 2>&1 || true
+	@echo "Image $(ACTUATOR_IMAGE_NAME) removed (if it existed)."
+
 	@echo "Attempting to stop and remove container $(BROKER_CONTAINER_NAME)..."
 	@sudo docker stop $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@sudo docker rm $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(BROKER_CONTAINER_NAME) stopped and removed (if it existed)."
+	@echo "Attempting to remove image $(BROKER_IMAGE_NAME)..."
+	@sudo docker rmi -f $(BROKER_IMAGE_NAME) >/dev/null 2>&1 || true
+	@echo "Image $(BROKER_IMAGE_NAME) removed (if it existed)."
+
 	@echo "Attempting to stop and remove container $(MONITOR_CONTAINER_NAME)..."
 	@sudo docker stop $(MONITOR_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@sudo docker rm $(MONITOR_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(MONITOR_CONTAINER_NAME) stopped and removed (if it existed)."
+	@echo "Attempting to remove image $(MONITOR_IMAGE_NAME)..."
+	@sudo docker rmi -f $(MONITOR_IMAGE_NAME) >/dev/null 2>&1 || true
+	@echo "Image $(MONITOR_IMAGE_NAME) removed (if it existed)."
+
 	@echo "Attempting to stop and remove container $(AI_ENGINE_CONTAINER_NAME)..."
 	@sudo docker stop $(AI_ENGINE_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@sudo docker rm $(AI_ENGINE_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(AI_ENGINE_CONTAINER_NAME) stopped and removed (if it existed)."
-	@echo "Container stop process completed."
+	@echo "Attempting to remove image $(AI_ENGINE_IMAGE_NAME)..."
+	@sudo docker rmi -f $(AI_ENGINE_IMAGE_NAME) >/dev/null 2>&1 || true
+	@echo "Image $(AI_ENGINE_IMAGE_NAME) removed (if it existed)."
+
+	@echo "Cleanup process completed."
 
 run-all-containers:
 	@echo "Starting all necessary containers..."
