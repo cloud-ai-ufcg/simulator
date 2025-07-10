@@ -61,13 +61,11 @@ if [[ "${MEMBER2_AUTOSCALER:-true}" == "true" ]]; then
 
   if [ ! -d "autoscaler" ]; then
     echo -e "${COLOR}[ERROR] 'autoscaler/' directory not found. Cloning it...${RESET}"
-    git clone https://github.com/kubernetes/autoscaler.git
+    git clone https://github.com/cloud-ai-ufcg/autoscaler.git
     # exit 1
   fi
 
   cd autoscaler
-
-  python3 ../autoscaler_transform2.py 
 
   helm upgrade --install "$RELEASE_NAME" charts/cluster-autoscaler \
     --namespace "$NAMESPACE" \
