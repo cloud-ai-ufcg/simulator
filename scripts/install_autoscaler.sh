@@ -84,7 +84,9 @@ if [[ "${MEMBER2_AUTOSCALER:-true}" == "true" ]]; then
     --set extraVolumeMounts[0].mountPath="/etc/kubeconfig" \
     --set extraVolumeMounts[0].readOnly=true \
     --set extraVolumes[0].name=kwok-kubeconfig \
-    --set extraVolumes[0].configMap.name=kwok-kubeconfig
+    --set extraVolumes[0].configMap.name=kwok-kubeconfig \
+    --set autoscalerResources.member.cpu=$MEMBER2_CPU \
+    --set autoscalerResources.member.memory=$MEMBER2_MEM
 
   cd ..
 
