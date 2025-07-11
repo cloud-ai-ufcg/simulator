@@ -61,8 +61,7 @@ if [[ "${MEMBER2_AUTOSCALER:-true}" == "true" ]]; then
 
   if [ ! -d "autoscaler" ]; then
     echo -e "${COLOR}[ERROR] 'autoscaler/' directory not found. Cloning it...${RESET}"
-    git clone https://github.com/kubernetes/autoscaler.git
-    # exit 1
+    git clone https://github.com/cloud-ai-ufcg/autoscaler.git
   fi
 
   cd autoscaler
