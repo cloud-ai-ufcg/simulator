@@ -59,6 +59,9 @@ for CONTEXT in member1 member2; do
   echo -e "${COLOR}🧹 Removing previous Prometheus release (if any)...${RESET}"
   helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" >/dev/null 2>&1 || true
 
+  echo -e "${COLOR}🔧 Creating grafana dashboard ConfigMap...${RESET}"
+  kubectl apply -f pending-pods-dashboard.yaml -n "$NAMESPACE"
+
   echo -e "${COLOR}🚀 Installing kube-prometheus-stack via Helm...${RESET}"
   helm upgrade --install "$RELEASE_NAME" prometheus-community/kube-prometheus-stack \
   -f prometheus_grafana.yaml \
