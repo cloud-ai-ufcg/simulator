@@ -180,11 +180,25 @@ start-mongo-db:
 
 # Clean mongo database
 clean-mongo-db:
-	@echo "Stopping and removing mongo container..."
-	@sudo docker-compose -f compose.yaml down
-	@echo "Removing mongo data volume..."
-	@sudo docker volume rm simulator_mongo_data
-	@echo "Mongo database cleaned."
+	@echo "Cleaning all documents from all collections in mongo container..."
+	@container_id=$$(sudo docker ps -q -f name=mongo); \
+	if [ -z "$$container_id" ]; then \
+		echo "Mongo container is not running. Nothing to clean."; \
+		exit 0; \
+	fi; \
+	js='dbs=db.getMongo().getDBNames().filter(function(x){return ["admin","local","config"].indexOf(x)<0});dbs.forEach(function(dbName){db=db.getSiblingDB(dbName);db.getCollectionNames().forEach(function(coll){db[coll].deleteMany({});});});'; \
+	if sudo docker exec $$container_id which mongosh > /dev/null 2>&1; then \
+		sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
+		echo "All documents removed from all user collections via mongosh in container."; \
+	else \
+		if which mongosh > /dev/null 2>&1; then \
+			mongosh --host localhost --port 27017 --quiet --eval "$$js"; \
+			echo "All documents removed from all user collections via mongosh on host."; \
+		else \
+			echo "ERROR: Neither mongosh in container nor on host found. Cannot clean mongo db."; \
+			exit 1; \
+		fi; \
+	fi
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
 start:
