@@ -1,0 +1,16 @@
+{
+  "1753110732": {
+    "cluster_load_cpu": {
+      "private": 2.981,
+      "public": 0.549
+    },
+    "cluster_load_memory": {
+      "private": 0.026,
+      "public": 0.004
+    },
+    "number_of_pods_pending": 17,
+    "number_pending_public": 2,
+    "number_pending_private": 15,
+    "total_percent_pending": 0.17
+  }
+}

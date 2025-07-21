@@ -187,18 +187,8 @@ clean-mongo-db:
 		exit 0; \
 	fi; \
 	js='dbs=db.getMongo().getDBNames().filter(function(x){return ["admin","local","config"].indexOf(x)<0});dbs.forEach(function(dbName){db=db.getSiblingDB(dbName);db.getCollectionNames().forEach(function(coll){db[coll].deleteMany({});});});'; \
-	if sudo docker exec $$container_id which mongosh > /dev/null 2>&1; then \
-		sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
-		echo "All documents removed from all user collections via mongosh in container."; \
-	else \
-		if which mongosh > /dev/null 2>&1; then \
-			mongosh --host localhost --port 27017 --quiet --eval "$$js"; \
-			echo "All documents removed from all user collections via mongosh on host."; \
-		else \
-			echo "ERROR: Neither mongosh in container nor on host found. Cannot clean mongo db."; \
-			exit 1; \
-		fi; \
-	fi
+	sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
+	echo "All documents removed from all user collections via mongosh in container."
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
 start:
