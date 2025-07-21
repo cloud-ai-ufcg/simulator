@@ -19,7 +19,7 @@ trap 'echo -e "${COLOR}❌  Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND
 # -----------------------------------------------------------------------------
 # 1. Generate KWOK node templates
 # -----------------------------------------------------------------------------
-echo -e "${COLOR}[1/4] Generating KWOK provider templates...${RESET}"
+echo -e "${COLOR}[1/5] Generating KWOK provider templates...${RESET}"
 
 generate_kwok_template() {
   local CLUSTER=$1
@@ -69,7 +69,7 @@ generate_kwok_template "member2" "$MEMBER2_CPU" "$MEMBER2_MEM"
 # -----------------------------------------------------------------------------
 # 2. Generate Karmada ClusterPropagationPolicies
 # -----------------------------------------------------------------------------
-echo -e "${COLOR}[2/4] Generating ClusterPropagationPolicy...${RESET}"
+echo -e "${COLOR}[2/5] Generating ClusterPropagationPolicy...${RESET}"
 
 cat > clusterpropagationpolicy.yaml <<EOF
 apiVersion: policy.karmada.io/v1alpha1
@@ -169,7 +169,7 @@ echo -e "${COLOR}[✓] clusterpropagationpolicy.yaml generated.${RESET}"
 # -----------------------------------------------------------------------------
 # 3. Generate KWOK autoscaler configuration
 # -----------------------------------------------------------------------------
-echo -e "${COLOR}[3/4] Generating kwok-provider-config.yaml...${RESET}"
+echo -e "${COLOR}[3/5] Generating kwok-provider-config.yaml...${RESET}"
 
 cat > kwok-provider-config.yaml <<EOF
 apiVersion: v1
@@ -197,12 +197,306 @@ EOF
 echo -e "${COLOR}[✓] kwok-provider-config.yaml generated.${RESET}"
 
 # -----------------------------------------------------------------------------
-# 4. Summary of output files
+# 4. Generate Stage configuration for KWOK
+# -----------------------------------------------------------------------------
+echo -e "${COLOR}[4/5] Generating fast-stages.yaml...${RESET}"
+
+cat > fast-stages.yaml <<'EOF'
+apiVersion: kwok.x-k8s.io/v1alpha1
+kind: Stage
+metadata:
+  name: pod-ready
+spec:
+  resourceRef:
+    apiGroup: v1
+    kind: Pod
+  selector:
+    matchExpressions:
+    - key: '.metadata.deletionTimestamp'
+      operator: 'DoesNotExist'
+    - key: '.status.podIP'
+      operator: 'DoesNotExist'
+  delay:
+    durationMilliseconds: 1000
+    durationFrom:
+      expressionFrom: '.metadata.annotations["pod-ready.stage.kwok.x-k8s.io/delay"]'
+    # jitterDurationMilliseconds: 10000
+    jitterDurationFrom:
+      expressionFrom: '.metadata.annotations["pod-ready.stage.kwok.x-k8s.io/jitter-delay"]'
+  next:
+    statusTemplate: |
+      {{ $now := Now }}
+
+      conditions:
+      - lastTransitionTime: {{ $now | Quote }}
+        status: "True"
+        type: Initialized
+      - lastTransitionTime: {{ $now | Quote }}
+        status: "True"
+        type: Ready
+      - lastTransitionTime: {{ $now | Quote }}
+        status: "True"
+        type: ContainersReady
+      {{ range .spec.readinessGates }}
+      - lastTransitionTime: {{ $now | Quote }}
+        status: "True"
+        type: {{ .conditionType | Quote }}
+      {{ end }}
+
+      containerStatuses:
+      {{ range .spec.containers }}
+      - image: {{ .image | Quote }}
+        name: {{ .name | Quote }}
+        ready: true
+        restartCount: 0
+        state:
+          running:
+            startedAt: {{ $now | Quote }}
+      {{ end }}
+
+      initContainerStatuses:
+      {{ range .spec.initContainers }}
+      - image: {{ .image | Quote }}
+        name: {{ .name | Quote }}
+        ready: true
+        restartCount: 0
+        {{ if eq .restartPolicy "Always" }}
+        started: true
+        state:
+          running:
+            startedAt: {{ $now | Quote }}
+        {{ else }}
+        state:
+          terminated:
+            exitCode: 0
+            finishedAt: {{ $now | Quote }}
+            reason: Completed
+            startedAt: {{ $now | Quote }}
+        {{ end }}
+      {{ end }}
+
+      hostIP: {{ NodeIPWith .spec.nodeName | Quote }}
+      podIP: {{ PodIPWith .spec.nodeName ( or .spec.hostNetwork false ) ( or .metadata.uid "" ) ( or .metadata.name "" ) ( or .metadata.namespace "" ) | Quote }}
+      phase: Running
+      startTime: {{ $now | Quote }}
+---
+apiVersion: kwok.x-k8s.io/v1alpha1
+kind: Stage
+metadata:
+  name: pod-complete
+spec:
+  resourceRef:
+    apiGroup: v1
+    kind: Pod
+  selector:
+    matchExpressions:
+    - key: '.metadata.deletionTimestamp'
+      operator: 'DoesNotExist'
+    - key: '.status.phase'
+      operator: 'In'
+      values:
+      - 'Running'
+    - key: '.metadata.ownerReferences.[].kind'
+      operator: 'In'
+      values:
+      - 'Job'
+  delay:
+    durationMilliseconds: 1000
+    durationFrom:
+      expressionFrom: '.metadata.annotations["pod-complete.stage.kwok.x-k8s.io/delay"]'
+    # jitterDurationMilliseconds: 10000
+    jitterDurationFrom:
+      expressionFrom: '.metadata.annotations["pod-complete.stage.kwok.x-k8s.io/jitter-delay"]'
+  next:
+    statusTemplate: |
+      {{ $now := Now }}
+      {{ $root := . }}
+      containerStatuses:
+      {{ range $index, $item := .spec.containers }}
+      {{ $origin := index $root.status.containerStatuses $index }}
+      - image: {{ $item.image | Quote }}
+        name: {{ $item.name | Quote }}
+        ready: false
+        restartCount: 0
+        started: false
+        state:
+          terminated:
+            exitCode: 0
+            finishedAt: {{ $now | Quote }}
+            reason: Completed
+            startedAt: {{ $now | Quote }}
+      {{ end }}
+      phase: Succeeded
+---
+apiVersion: kwok.x-k8s.io/v1alpha1
+kind: Stage
+metadata:
+  name: pod-delete
+spec:
+  resourceRef:
+    apiGroup: v1
+    kind: Pod
+  selector:
+    matchExpressions:
+    - key: '.metadata.deletionTimestamp'
+      operator: 'Exists'
+  delay:
+    durationMilliseconds: 1000
+    durationFrom:
+      expressionFrom: '.metadata.annotations["pod-delete.stage.kwok.x-k8s.io/delay"]'
+    jitterDurationFrom:
+      expressionFrom: '.metadata.deletionTimestamp'
+  next:
+    finalizers:
+      empty: true
+    delete: true
+---
+apiVersion: kwok.x-k8s.io/v1alpha1
+kind: Stage
+metadata:
+  name: node-initialize
+spec:
+  resourceRef:
+    apiGroup: v1
+    kind: Node
+  selector:
+    matchExpressions:
+    - key: '.status.conditions.[] | select( .type == "Ready" ) | .status'
+      operator: 'NotIn'
+      values:
+      - 'True'
+  next:
+    statusTemplate: |
+      {{ $now := Now }}
+      {{ $lastTransitionTime := or .metadata.creationTimestamp $now }}
+      conditions:
+      {{ range NodeConditions }}
+      - lastHeartbeatTime: {{ $now | Quote }}
+        lastTransitionTime: {{ $lastTransitionTime | Quote }}
+        message: {{ .message | Quote }}
+        reason: {{ .reason | Quote }}
+        status: {{ .status | Quote }}
+        type: {{ .type  | Quote}}
+      {{ end }}
+
+      addresses:
+      {{ with .status.addresses }}
+      {{ YAML . 1 }}
+      {{ else }}
+      {{ with NodeIP }}
+      - address: {{ . | Quote }}
+        type: InternalIP
+      {{ end }}
+      {{ with NodeName }}
+      - address: {{ . | Quote }}
+        type: Hostname
+      {{ end }}
+      {{ end }}
+
+      {{ with NodePort }}
+      daemonEndpoints:
+        kubeletEndpoint:
+          Port: {{ . }}
+      {{ end }}
+
+      allocatable:
+      {{ with .status.allocatable }}
+      {{ YAML . 1 }}
+      {{ else }}
+        cpu: 1k
+        memory: 1Ti
+        pods: 1M
+      {{ end }}
+      capacity:
+      {{ with .status.capacity }}
+      {{ YAML . 1 }}
+      {{ else }}
+        cpu: 1k
+        memory: 1Ti
+        pods: 1M
+      {{ end }}
+
+      {{ $nodeInfo := .status.nodeInfo }}
+      {{ $kwokVersion := printf "kwok-%s" Version }}
+      nodeInfo:
+        architecture: {{ or $nodeInfo.architecture "amd64" }}
+        bootID: {{ or $nodeInfo.bootID `""` }}
+        containerRuntimeVersion: {{ or $nodeInfo.containerRuntimeVersion $kwokVersion }}
+        kernelVersion: {{ or $nodeInfo.kernelVersion $kwokVersion }}
+        kubeProxyVersion: {{ or $nodeInfo.kubeProxyVersion $kwokVersion }}
+        kubeletVersion: {{ or $nodeInfo.kubeletVersion $kwokVersion }}
+        machineID: {{ or $nodeInfo.machineID `""` }}
+        operatingSystem: {{ or $nodeInfo.operatingSystem "linux" }}
+        osImage: {{ or $nodeInfo.osImage `""` }}
+        systemUUID: {{ or $nodeInfo.systemUUID `""` }}
+      phase: Running
+---
+apiVersion: kwok.x-k8s.io/v1alpha1
+kind: Stage
+metadata:
+  name: node-heartbeat-with-lease
+spec:
+  resourceRef:
+    apiGroup: v1
+    kind: Node
+  selector:
+    matchExpressions:
+    - key: '.status.phase'
+      operator: 'In'
+      values:
+      - 'Running'
+    - key: '.status.conditions.[] | select( .type == "Ready" ) | .status'
+      operator: 'In'
+      values:
+      - 'True'
+  delay:
+    durationMilliseconds: 600000
+    jitterDurationMilliseconds: 610000
+  next:
+    statusTemplate: |
+      {{ $now := Now }}
+      {{ $lastTransitionTime := or .metadata.creationTimestamp $now }}
+      conditions:
+      {{ range NodeConditions }}
+      - lastHeartbeatTime: {{ $now | Quote }}
+        lastTransitionTime: {{ $lastTransitionTime | Quote }}
+        message: {{ .message | Quote }}
+        reason: {{ .reason | Quote }}
+        status: {{ .status | Quote }}
+        type: {{ .type | Quote }}
+      {{ end }}
+
+      addresses:
+      {{ with .status.addresses }}
+      {{ YAML . 1 }}
+      {{ else }}
+      {{ with NodeIP }}
+      - address: {{ . | Quote }}
+        type: InternalIP
+      {{ end }}
+      {{ with NodeName }}
+      - address: {{ . | Quote }}
+        type: Hostname
+      {{ end }}
+      {{ end }}
+
+      {{ with NodePort }}
+      daemonEndpoints:
+        kubeletEndpoint:
+          Port: {{ . }}
+      {{ end }}
+EOF
+
+echo -e "${COLOR}[✓] fast-stages.yaml generated.${RESET}"
+
+# -----------------------------------------------------------------------------
+# 5. Summary of output files
 # -----------------------------------------------------------------------------
 echo
-echo -e "${COLOR}[4/4] Generated files:${RESET}"
+echo -e "${COLOR}[5/5] Generated files:${RESET}"
 ls -1 \
   kwok-provider-templates-member1.yaml \
   kwok-provider-templates-member2.yaml \
   clusterpropagationpolicy.yaml \
-  kwok-provider-config.yaml
+  kwok-provider-config.yaml \
+  fast-stages.yaml
