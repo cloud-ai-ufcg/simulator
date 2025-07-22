@@ -33,7 +33,7 @@ kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATES
 kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/stage-fast.yaml" --context member1
 
 KWOK_NAMESPACE_M1=$(kubectl get deployment --context member1 --all-namespaces | grep kwok-controller | awk '{print $1}')
-kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE_M1" --context member1 --timeout=120s
+kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE_M1" --context member1 --timeout=300s
 
 # -----------------------------------------------------------------------------
 # 2. Install KWOK on member2
@@ -45,6 +45,6 @@ kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATES
 kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/stage-fast.yaml"
 
 KWOK_NAMESPACE_M2=$(kubectl get deployment --all-namespaces | grep kwok-controller | awk '{print $1}')
-kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE_M2" --timeout=120s
+kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE_M2" --timeout=300s
 
 echo -e "${COLOR}✅ KWOK successfully installed on both clusters.${RESET}"

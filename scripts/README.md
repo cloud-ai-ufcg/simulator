@@ -46,7 +46,7 @@ This script will:
 - Parse `initialization.yaml` to load cluster configuration.
 - Install prerequisites.
 - Launch Karmada and register KIND clusters (`member1`, `member2`).
-- Install Prometheus in both clusters.
+- Install Prometheus + Grafana in both clusters.
 - Install KWOK in both clusters.
 - Optionally install Cluster Autoscaler in `member2`.
 - Apply KWOK provider config and templates.
@@ -84,14 +84,27 @@ Defines resource parameters for each member cluster (number of nodes, CPU, memor
 
 ## 📊 Observability
 
-To access Prometheus:
+To access **Prometheus** or **Grafana** UIs:
+
+- **Prometheus (member1):** [http://localhost:9090](http://localhost:9090)
+- **Prometheus (member2):** [http://localhost:9091](http://localhost:9091)
+- **Grafana (member1):** [http://localhost:3000](http://localhost:3000)
+- **Grafana (member2):** [http://localhost:3001](http://localhost:3001)
+
+Use the following commands to port-forward manually if needed (the script already starts these in background):
 
 ```bash
 kubectl config use-context member1   # or member2
-kubectl port-forward -n monitoring svc/prometheus-server 9090:80
+kubectl port-forward -n monitoring svc/prometheus-prometheus 9090:9090   # member1 Prometheus
+kubectl port-forward -n monitoring svc/prometheus-prometheus 9091:9090   # member2 Prometheus
+kubectl port-forward -n monitoring svc/grafana 3000:80                   # member1 Grafana
+kubectl port-forward -n monitoring svc/grafana 3001:80                   # member2 Grafana
 ```
 
-Then visit: [http://localhost:9090](http://localhost:9090)
+**Grafana default credentials:**
+
+- Username: `adminuser`
+- Password: `p@ssword!`
 
 ---
 

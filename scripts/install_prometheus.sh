@@ -1,10 +1,11 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
-# Prometheus Installer – deploys Prometheus via Helm in both member clusters.
-# Also sets up port-forwards for local access to Prometheus UIs.
+# Prometheus + Grafana Installer – deploys Prometheus + Grafana via Helm in
+# both member clusters. Also sets up port-forwards for local access to
+# Prometheus + Grafana UIs.
 # -----------------------------------------------------------------------------
 # ‣ Behaviour
-#   • Installs Prometheus in `member1` and `member2` clusters.
+#   • Installs Prometheus and Grafana in `member1` and `member2` clusters.
 #   • Waits for pods to be fully running and ready.
 #   • Starts background port-forwards for each cluster.
 # -----------------------------------------------------------------------------
@@ -16,117 +17,92 @@ RESET="\033[0m"
 set -euo pipefail
 trap 'echo -e "\033[1;31m❌ Error in $BASH_SOURCE:$LINENO – $BASH_COMMAND\033[0m"' ERR
 
-# -----------------------------------------------------------------------------
-# Configuration
-# -----------------------------------------------------------------------------
 RELEASE_NAME="prometheus"
 NAMESPACE="monitoring"
 SLEEP_TIME=${SLEEP_TIME:-5}
 
-PORT_FORWARD_NAMESPACE="$NAMESPACE"
-PORT_FORWARD_SERVICE="prometheus-server"
-PORT_FORWARD_TARGET_PORT=80
-declare -A PF_PORTS=([member1]=9090 [member2]=9091)
+GRAFANA_USER="adminuser"
+GRAFANA_PASSWORD="p@ssword!"
 
 export KUBECONFIG=~/.kube/members.config
 
 # -----------------------------------------------------------------------------
-# 1. Install / upgrade Prometheus in both clusters
+# Create temporary credential files
+# -----------------------------------------------------------------------------
+create_grafana_credentials_files() {
+  echo -n "$GRAFANA_USER" > ./admin-user
+  echo -n "$GRAFANA_PASSWORD" > ./admin-password
+}
+
+# -----------------------------------------------------------------------------
+# Install Prometheus + Grafana in both clusters
 # -----------------------------------------------------------------------------
 for CONTEXT in member1 member2; do
-  echo -e "${COLOR}⛵ [$CONTEXT] Installing Prometheus...${RESET}"
+  echo -e "${COLOR}⛵ [$CONTEXT] Installing Prometheus + Grafana...${RESET}"
   kubectl config use-context "$CONTEXT"
 
-  echo -e "${COLOR}🔧 Creating namespace '$NAMESPACE' (if needed)...${RESET}"
+  echo -e "${COLOR}🔧 Creating namespace '$NAMESPACE' if not exists...${RESET}"
   kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+  echo -e "${COLOR}🔑 Creating Grafana admin credentials secret...${RESET}"
+  create_grafana_credentials_files
+  kubectl -n "$NAMESPACE" delete secret grafana-admin-credentials --ignore-not-found
+  kubectl create secret generic grafana-admin-credentials \
+    --from-file=./admin-user \
+    --from-file=./admin-password \
+    -n "$NAMESPACE"
 
   echo -e "${COLOR}📦 Configuring Helm repository...${RESET}"
   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
-  helm repo update >/dev/null 2>&1 || {
-    echo -e "${COLOR}⚠️ helm repo update failed – retrying in 5 s${RESET}"
-    sleep 5
-    helm repo update >/dev/null 2>&1
-  }
+  helm repo update >/dev/null
 
-  echo -e "${COLOR}🧹 Removing old Prometheus release (if any)...${RESET}"
+  echo -e "${COLOR}🧹 Removing previous Prometheus release (if any)...${RESET}"
   helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" >/dev/null 2>&1 || true
 
-  echo -e "${COLOR}🚀 Installing Prometheus via Helm...${RESET}"
-  helm upgrade --install "$RELEASE_NAME" prometheus-community/prometheus \
-      --namespace "$NAMESPACE" --wait \
-      --set alertmanager.enabled=false \
-      --set pushgateway.enabled=false \
-      --set server.persistentVolume.enabled=false \
-      --set server.service.type=ClusterIP
+  echo -e "${COLOR}🔧 Creating grafana dashboard ConfigMap...${RESET}"
+  kubectl apply -f pending-pods-dashboard.yaml -n "$NAMESPACE"
 
-  echo -e "${COLOR}⏳ Waiting for Prometheus to run in cluster '$CONTEXT'...${RESET}"
-  set +e
+  echo -e "${COLOR}🚀 Installing kube-prometheus-stack via Helm...${RESET}"
+  helm upgrade --install "$RELEASE_NAME" prometheus-community/kube-prometheus-stack \
+  -f prometheus_grafana.yaml \
+  --namespace "$NAMESPACE" \
+  --wait \
+  --timeout 30m \
+  --set grafana.admin.existingSecret=grafana-admin-credentials \
+  --set grafana.admin.userKey=admin-user \
+  --set grafana.admin.passwordKey=admin-password \
+  --set grafana.service.type=ClusterIP \
+  --set prometheus.service.type=ClusterIP
+
+  echo -e "${COLOR}⏳ Waiting for Prometheus pod to become ready...${RESET}"
   for i in {1..40}; do
-    POD=$(kubectl get pods -n "$NAMESPACE" \
-          -l app.kubernetes.io/name=prometheus,app.kubernetes.io/component=server \
-          -o jsonpath="{.items[0].metadata.name}" 2>/dev/null)
-    if [[ -n "$POD" ]]; then
-      PHASE=$(kubectl get pod -n "$NAMESPACE" "$POD" -o jsonpath="{.status.phase}" 2>/dev/null)
-      READY=$(kubectl get pod -n "$NAMESPACE" "$POD" -o jsonpath="{.status.containerStatuses[0].ready}" 2>/dev/null)
-      [[ "$PHASE" == "Running" && "$READY" == "true" ]] && {
-        echo -e "${COLOR}✅ [$CONTEXT] Prometheus is running in pod '$POD'.${RESET}"
-        break
-      }
-      echo -e "${COLOR}⌛ [$CONTEXT] Pod: $POD – Status: $PHASE, Ready: $READY${RESET}"
-    else
-      echo -e "${COLOR}⌛ [$CONTEXT] No Prometheus pod found yet...${RESET}"
-    fi
+    POD=$(kubectl get pods -n "$NAMESPACE" -l app.kubernetes.io/name=prometheus -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || true)
+    READY=$(kubectl get pod -n "$NAMESPACE" "$POD" -o jsonpath="{.status.containerStatuses[0].ready}" 2>/dev/null || true)
+    [[ "$READY" == "true" ]] && break
+    echo -e "${COLOR}⌛ [$CONTEXT] Waiting for pod '$POD' to be ready...${RESET}"
     sleep "$SLEEP_TIME"
   done
-  set -e
 done
 
-echo -e "${COLOR}🎉 Prometheus successfully installed in member1 and member2.${RESET}"
-
 # -----------------------------------------------------------------------------
-# 2. Global readiness check (reference: member1)
-# -----------------------------------------------------------------------------
-echo -e "${COLOR}[⏳] Checking Prometheus readiness (global)...${RESET}"
-set +e
-for i in {1..30}; do
-  STATUS=$(kubectl --context member1 -n "$NAMESPACE" \
-           get pod -l app.kubernetes.io/name=prometheus,app.kubernetes.io/component=server \
-           -o jsonpath="{.items[0].status.phase}" 2>/dev/null)
-  READY=$(kubectl --context member1 -n "$NAMESPACE" \
-           get pod -l app.kubernetes.io/name=prometheus,app.kubernetes.io/component=server \
-           -o jsonpath="{.items[0].status.containerStatuses[0].ready}" 2>/dev/null)
-  [[ "$STATUS" == "Running" && "$READY" == "true" ]] && {
-    echo -e "${COLOR}[✅] Prometheus is running correctly (verified on member1).${RESET}"
-    break
-  }
-  echo -e "${COLOR}[...] Attempt $i: waiting for Prometheus to be ready (5 s)...${RESET}"
-  sleep 5
-done
-set -e
-
-# -----------------------------------------------------------------------------
-# 3. Start background port-forwards for Prometheus dashboards
+# Start port-forwarding for Prometheus and Grafana UIs
 # -----------------------------------------------------------------------------
 start_port_forward() {
-  local ctx=$1 port=$2 svc="$PORT_FORWARD_SERVICE" ns="$PORT_FORWARD_NAMESPACE"
-  kubectl --context "$ctx" -n "$ns" get svc "$svc" &>/dev/null || {
-    echo -e "${COLOR}⚠️ [$ctx] Service not found – skipping port-forward.${RESET}"
-    return
-  }
-
+  local ctx=$1 ns=$2 svc=$3 local_port=$4 target_port=$5
   (
-    set +e
     while true; do
-      kubectl --context "$ctx" -n "$ns" port-forward "svc/$svc" "$port:$PORT_FORWARD_TARGET_PORT" --address 127.0.0.1 >/dev/null 2>&1
+      kubectl --context "$ctx" -n "$ns" port-forward "svc/$svc" "$local_port:$target_port" --address 127.0.0.1 >/dev/null 2>&1
       sleep 2
     done
   ) &
 }
 
-echo -e "${COLOR}🔁 Starting Prometheus port-forwards...${RESET}"
-for ctx in "${!PF_PORTS[@]}"; do
-  echo -e "${COLOR}🌐 $ctx → http://localhost:${PF_PORTS[$ctx]}${RESET}"
-  start_port_forward "$ctx" "${PF_PORTS[$ctx]}"
-done
+echo -e "${COLOR}🌐 Starting background port-forwards...${RESET}"
+start_port_forward member1 "$NAMESPACE" prometheus-prometheus 9090 9090
+start_port_forward member2 "$NAMESPACE" prometheus-prometheus 9091 9090
+start_port_forward member1 "$NAMESPACE" grafana 3000 80
+start_port_forward member2 "$NAMESPACE" grafana 3001 80
 
-echo -e "${COLOR}✅ Port-forwards in background.${RESET}"
+echo -e "${COLOR}✅ Prometheus + Grafana successfully installed in both clusters.${RESET}"
+echo -e "${COLOR}➡️ Prometheus UI: http://localhost:9090 (member1), http://localhost:9091 (member2)${RESET}"
+echo -e "${COLOR}➡️ Grafana UI: http://localhost:3000 (member1), http://localhost:3001 (member2)${RESET}"
