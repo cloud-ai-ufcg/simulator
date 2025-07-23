@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"simulator/api"
 	"simulator/constants"
 )
@@ -121,24 +122,25 @@ func main() {
 
 	callAvaliatorAndProcess()
 
-	logsDir := "data/output/logs"
+	// Salvar logs dos containers na pasta data/output/logs
+	logsDir := filepath.Join("data", "output", "logs")
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Erro ao criar diretório de logs: %v\n", err)
 	}
 	containerLogs := map[string]string{
-		"actuator-simulator":  logsDir + "/actuator.log",
-		"broker-simulator":    logsDir + "/broker.log",
-		"monitor-simulator":   logsDir + "/monitor.log",
-		"ai-engine-simulator": logsDir + "/ai-engine.log",
+		"actuator-simulator":  filepath.Join(logsDir, "actuator.log"),
+		"broker-simulator":    filepath.Join(logsDir, "broker.log"),
+		"monitor-simulator":   filepath.Join(logsDir, "monitor.log"),
+		"ai-engine-simulator": filepath.Join(logsDir, "ai-engine.log"),
 	}
 	for container, logFile := range containerLogs {
-		cmd := exec.Command("sudo", "docker", "logs", container)
+		cmd := exec.Command("docker", "logs", container)
 		logData, err := cmd.CombinedOutput()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Erro ao coletar logs do container %s: %v\n", container, err)
 			continue
 		}
-		err = ioutil.WriteFile(logFile, logData, 0644)
+		err = os.WriteFile(logFile, logData, 0644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Erro ao salvar logs do container %s em %s: %v\n", container, logFile, err)
 		}
