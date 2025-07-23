@@ -38,3 +38,4 @@ scripts/karmada
 scripts/autoscaler
 
 scripts/kwok.kubeconfig
+scripts/kwok-provider-templates-member1.yaml
