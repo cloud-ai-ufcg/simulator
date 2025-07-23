@@ -121,6 +121,29 @@ func main() {
 
 	callAvaliatorAndProcess()
 
+	logsDir := "data/output/logs"
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Erro ao criar diretório de logs: %v\n", err)
+	}
+	containerLogs := map[string]string{
+		"actuator-simulator":  logsDir + "/actuator.log",
+		"broker-simulator":    logsDir + "/broker.log",
+		"monitor-simulator":   logsDir + "/monitor.log",
+		"ai-engine-simulator": logsDir + "/ai-engine.log",
+	}
+	for container, logFile := range containerLogs {
+		cmd := exec.Command("sudo", "docker", "logs", container)
+		logData, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Erro ao coletar logs do container %s: %v\n", container, err)
+			continue
+		}
+		err = ioutil.WriteFile(logFile, logData, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Erro ao salvar logs do container %s em %s: %v\n", container, logFile, err)
+		}
+	}
+
 	fmt.Printf("\n%s%s%s: %sAll operations completed successfully.%s\n",
 		constants.ColorCyan, constants.LogPrefixSimulator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
 	fmt.Printf("%s%s%s: %sSequential execution cycle finished.%s\n",

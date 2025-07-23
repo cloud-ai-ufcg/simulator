@@ -145,8 +145,8 @@ def main():
     
     json_path = sys.argv[1]
     
-    # Create output directory
-    output_dir = "plots_output"
+    # Create output directory for plots
+    output_dir = os.path.join("data", "output", "plots")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         print(f"Created output directory: {output_dir}")
