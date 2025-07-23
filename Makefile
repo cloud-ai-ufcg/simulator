@@ -172,6 +172,24 @@ start-ai-engine-container:
 		echo "Container check for $(AI_ENGINE_CONTAINER_NAME) completed."; \
 	fi
 
+# Starts the Mongo DB container
+start-mongo-db:
+	@echo "Starting container mongo..."
+	@sudo docker-compose -f compose.yaml up -d mongo
+	@echo "Mongo container started."
+
+# Clean mongo database
+clean-mongo-db:
+	@echo "Cleaning all documents from all collections in mongo container..."
+	@container_id=$$(sudo docker ps -q -f name=mongo); \
+	if [ -z "$$container_id" ]; then \
+		echo "Mongo container is not running. Nothing to clean."; \
+		exit 0; \
+	fi; \
+	js='dbs=db.getMongo().getDBNames().filter(function(x){return ["admin","local","config"].indexOf(x)<0});dbs.forEach(function(dbName){db=db.getSiblingDB(dbName);db.getCollectionNames().forEach(function(coll){db[coll].deleteMany({});});});'; \
+	sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
+	echo "All documents removed from all user collections via mongosh in container."
+
 # Starts only the Go simulator (assumes infrastructure is already set up)
 start:
 	@( \
@@ -246,14 +264,18 @@ stop-all-containers:
 	@sudo docker rmi -f $(AI_ENGINE_IMAGE_NAME) >/dev/null 2>&1 || true
 	@echo "Image $(AI_ENGINE_IMAGE_NAME) removed (if it existed)."
 
+	@echo "Stopping and removing mongo container..."
+	@sudo docker-compose -f compose.yaml down >/dev/null 2>&1 || true
+
 	@echo "Cleanup process completed."
 
 run-all-containers:
 	@echo "Starting all necessary containers..."
-	@make start-broker-container
-	@make start-actuator-container
+	@make start-mongo-db
 	@make start-monitor-container
 	@make start-ai-engine-container
+	@make start-broker-container
+	@make start-actuator-container
 	@echo "All containers started successfully."
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -283,6 +305,10 @@ help:
 	@echo "    start-actuator-container : Starts the Actuator container."
 	@echo "    start-monitor-container  : Starts the Monitor container."
 	@echo "    start-ai-engine-container: Starts the AI-Engine container."
+	@echo "    start-mongo-db           : Starts the Mongo DB container."
+	@echo "  ---"
+	@echo "  Database:"
+	@echo "    clean-mongo-db         : Stops the mongo container and removes its data volume."
 	@echo "  ---"
 	@echo "  Infrastructure:"
 	@echo "    setup-kubernetes-infra : Runs scripts/main.sh to set up Kubernetes infrastructure."
