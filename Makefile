@@ -234,7 +234,7 @@ setup-kubernetes-infra:
 stop-all-containers:
 	@echo "Attempting to stop and remove container $(ACTUATOR_CONTAINER_NAME)..."
 	@sudo docker stop $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true
-	@sudo docker rm $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@sudo docker rm -v $(ACTUATOR_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(ACTUATOR_CONTAINER_NAME) stopped and removed (if it existed)."
 	@echo "Attempting to remove image $(ACTUATOR_IMAGE_NAME)..."
 	@sudo docker rmi -f $(ACTUATOR_IMAGE_NAME) >/dev/null 2>&1 || true
@@ -242,7 +242,7 @@ stop-all-containers:
 
 	@echo "Attempting to stop and remove container $(BROKER_CONTAINER_NAME)..."
 	@sudo docker stop $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true
-	@sudo docker rm $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@sudo docker rm -v $(BROKER_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(BROKER_CONTAINER_NAME) stopped and removed (if it existed)."
 	@echo "Attempting to remove image $(BROKER_IMAGE_NAME)..."
 	@sudo docker rmi -f $(BROKER_IMAGE_NAME) >/dev/null 2>&1 || true
@@ -250,7 +250,7 @@ stop-all-containers:
 
 	@echo "Attempting to stop and remove container $(MONITOR_CONTAINER_NAME)..."
 	@sudo docker stop $(MONITOR_CONTAINER_NAME) >/dev/null 2>&1 || true
-	@sudo docker rm $(MONITOR_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@sudo docker rm -v $(MONITOR_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(MONITOR_CONTAINER_NAME) stopped and removed (if it existed)."
 	@echo "Attempting to remove image $(MONITOR_IMAGE_NAME)..."
 	@sudo docker rmi -f $(MONITOR_IMAGE_NAME) >/dev/null 2>&1 || true
@@ -258,7 +258,7 @@ stop-all-containers:
 
 	@echo "Attempting to stop and remove container $(AI_ENGINE_CONTAINER_NAME)..."
 	@sudo docker stop $(AI_ENGINE_CONTAINER_NAME) >/dev/null 2>&1 || true
-	@sudo docker rm $(AI_ENGINE_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@sudo docker rm -v $(AI_ENGINE_CONTAINER_NAME) >/dev/null 2>&1 || true
 	@echo "Container $(AI_ENGINE_CONTAINER_NAME) stopped and removed (if it existed)."
 	@echo "Attempting to remove image $(AI_ENGINE_IMAGE_NAME)..."
 	@sudo docker rmi -f $(AI_ENGINE_IMAGE_NAME) >/dev/null 2>&1 || true
