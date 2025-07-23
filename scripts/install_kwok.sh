@@ -31,6 +31,7 @@ kubectl config use-context member1
 
 kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/kwok.yaml" --context member1
 kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/stage-fast.yaml" --context member1
+kubectl apply -f fast-stages.yaml
 
 KWOK_NAMESPACE_M1=$(kubectl get deployment --context member1 --all-namespaces | grep kwok-controller | awk '{print $1}')
 kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE_M1" --context member1 --timeout=300s
@@ -43,6 +44,7 @@ kubectl config use-context member2
 
 kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/kwok.yaml"
 kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/stage-fast.yaml"
+kubectl apply -f fast-stages.yaml
 
 KWOK_NAMESPACE_M2=$(kubectl get deployment --all-namespaces | grep kwok-controller | awk '{print $1}')
 kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE_M2" --timeout=300s
