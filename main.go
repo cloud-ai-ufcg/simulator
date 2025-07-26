@@ -63,6 +63,13 @@ func callAvaliatorAndProcess() {
 	}
 	fmt.Printf("%s%s%s: %sFinished generating visualizations.%s\n",
 		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
+	
+	if err := os.Remove(metricsFilePath); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sErro ao apagar %s: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, metricsFilePath, err, constants.ColorReset)
+	}
+	if err := os.Remove(processedFilePath); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sErro ao apagar %s: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, processedFilePath, err, constants.ColorReset)
+	}
 }
 
 func main() {
