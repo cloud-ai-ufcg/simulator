@@ -20,7 +20,7 @@ AI_ENGINE_IMAGE_NAME := ai-engine-api
 AI_ENGINE_DIR := ai-engine
 
 .PHONY: all setup-and-start start setup-kubernetes-infra \
-        start-broker-container start-actuator-container start-monitor-container start-ai-engine-container stop-all-containers help
+		start-broker-container start-actuator-container start-monitor-container start-ai-engine-container stop-all-containers help
 
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
@@ -265,7 +265,7 @@ stop-all-containers:
 	@echo "Image $(AI_ENGINE_IMAGE_NAME) removed (if it existed)."
 
 	@echo "Stopping and removing mongo container..."
-	@sudo docker-compose -f compose.yaml down >/dev/null 2>&1 || true
+	@sudo docker-compose -f compose.yaml down -v >/dev/null 2>&1 || true
 
 	@echo "Cleanup process completed."
 
