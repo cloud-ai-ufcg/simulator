@@ -63,7 +63,7 @@ func callAvaliatorAndProcess() {
 	}
 	fmt.Printf("%s%s%s: %sFinished generating visualizations.%s\n",
 		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
-	
+
 	if err := os.Remove(metricsFilePath); err != nil {
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sErro ao apagar %s: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, metricsFilePath, err, constants.ColorReset)
 	}
@@ -126,6 +126,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling Broker API: %v%s\n", constants.ColorCyan, constants.LogPrefixBroker, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
 		os.Exit(1)
 	}
+
+	if err := api.CallAIEngineAPI("http://0.0.0.0:8083/stop"); err != nil {
+		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine STOP API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+	} 
 
 	callAvaliatorAndProcess()
 
