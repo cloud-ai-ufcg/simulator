@@ -44,7 +44,7 @@ func callAvaliatorAndProcess() {
 		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, metricsFilePath, constants.ColorReset)
 
 	processedFilePath := "avaliator/data/processed_metrics.json"
-	cmdProcess := exec.Command("python3", "avaliator/process_json.py", metricsFilePath, processedFilePath)
+	cmdProcess := exec.Command("venv/bin/python", "avaliator/process_json.py", metricsFilePath, processedFilePath)
 	cmdProcess.Stdout = os.Stdout
 	cmdProcess.Stderr = os.Stderr
 	if err := cmdProcess.Run(); err != nil {
@@ -54,7 +54,7 @@ func callAvaliatorAndProcess() {
 	fmt.Printf("%s%s%s: %sFinished processing metrics data.%s\n",
 		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
 
-	cmdAvaliate := exec.Command("python3", "avaliator/avaliator.py", processedFilePath)
+	cmdAvaliate := exec.Command("venv/bin/python", "avaliator/avaliator.py", processedFilePath)
 	cmdAvaliate.Stdout = os.Stdout
 	cmdAvaliate.Stderr = os.Stderr
 	if err := cmdAvaliate.Run(); err != nil {
@@ -129,7 +129,7 @@ func main() {
 
 	if err := api.CallAIEngineAPI("http://0.0.0.0:8083/stop"); err != nil {
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine STOP API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
-	} 
+	}
 
 	callAvaliatorAndProcess()
 

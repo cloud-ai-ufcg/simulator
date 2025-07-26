@@ -15,6 +15,17 @@ set -euo pipefail
 trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
 # -----------------------------------------------------------------------------
+# Setup Python venv and dependencies for Avaliator
+# -----------------------------------------------------------------------------
+echo -e "${COLOR}🐍 Setting up Python venv for Avaliator...${RESET}"
+SCRIPT_DIR="$(dirname "$0")"
+pushd "$SCRIPT_DIR" > /dev/null
+chmod +x setup_venv.sh
+./setup_venv.sh
+popd > /dev/null
+echo -e "${COLOR}✅ Python venv ready.${RESET}"
+
+# -----------------------------------------------------------------------------
 # 1. Load configuration from YAML
 # -----------------------------------------------------------------------------
 CONFIG_FILE="initialization.yaml"

@@ -161,7 +161,8 @@ function install_go() {
 
 function install_yq() {
   DESIRED_VERSION="v4.44.5"
-  if ! command -v yq &> /dev/null || [[ "$(yq --version 2>/dev/null)" != "${DESIRED_VERSION}"* ]]; then
+  CURRENT_VERSION="$(yq --version 2>/dev/null | awk '{print $NF}')"
+  if ! command -v yq &> /dev/null || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
     echo -e "${COLOR}📦 Installing yq ${DESIRED_VERSION} (from GitHub)...${RESET}"
     sudo wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${DESIRED_VERSION}/yq_linux_amd64"
     sudo chmod +x /usr/local/bin/yq
