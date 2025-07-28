@@ -160,13 +160,15 @@ function install_go() {
 }
 
 function install_yq() {
-  if ! command -v yq &> /dev/null; then
-    echo -e "${COLOR}📦 Installing yq (via APT)...${RESET}"
-    sudo add-apt-repository -y ppa:rmescandon/yq
-    sudo apt update
-    sudo apt install -y yq
+  DESIRED_VERSION="v4.44.5"
+  CURRENT_VERSION="$(yq --version 2>/dev/null | awk '{print $NF}')"
+  if ! command -v yq &> /dev/null || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
+    echo -e "${COLOR}📦 Installing yq ${DESIRED_VERSION} (from GitHub)...${RESET}"
+    sudo wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${DESIRED_VERSION}/yq_linux_amd64"
+    sudo chmod +x /usr/local/bin/yq
+    echo -e "${COLOR}✅ yq ${DESIRED_VERSION} installed.${RESET}"
   else
-    echo -e "${COLOR}✅ yq is already installed.${RESET}"
+    echo -e "${COLOR}✅ yq ${DESIRED_VERSION} is already installed.${RESET}"
   fi
 }
 
