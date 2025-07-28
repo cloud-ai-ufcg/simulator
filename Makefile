@@ -203,7 +203,7 @@ start:
 			fi; \
 			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
 		fi; \
-		HOME="$$_EFFECTIVE_HOME" go run main.go; \
+		(cd simulator && HOME="$$_EFFECTIVE_HOME" go run main.go); \
 	)
 
 start-off-engine:
@@ -218,7 +218,7 @@ start-off-engine:
 			fi; \
 			_EFFECTIVE_HOME="/mnt/c/Users/$$_WIN_USER"; \
 		fi; \
-		AI_ENGINE_ROUTE="/stop" HOME="$$_EFFECTIVE_HOME" go run main.go; \
+		(cd simulator && AI_ENGINE_ROUTE="/stop" HOME="$$_EFFECTIVE_HOME" go run main.go); \
 	)
 
 # Sets up Kubernetes infrastructure

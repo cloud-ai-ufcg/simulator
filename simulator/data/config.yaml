@@ -1,0 +1,2 @@
+kubeconfig: "karmada.config"
+namespace: "default"

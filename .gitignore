@@ -31,7 +31,7 @@ venv/
 
 # AI Engine
 logs
-/data/output
+simulator/data/output
 .vscode
 
 scripts/karmada
