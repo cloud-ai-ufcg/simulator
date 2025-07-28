@@ -108,7 +108,7 @@ func main() {
 
 	// 1. Broker via API
 	apiURL := "http://localhost:8080/broker/"
-	inputFilePath := "data/input_json.json" // Relative to the project root
+	inputFilePath := "data/input.json" // Relative to the project root
 
 	aiEngineFlag := os.Getenv("AI_ENGINE")
 
