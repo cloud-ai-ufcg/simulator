@@ -110,25 +110,27 @@ func main() {
 	apiURL := "http://localhost:8080/broker/"
 	inputFilePath := "data/input_json.json" // Relative to the project root
 
+	aiEngineFlag := os.Getenv("AI_ENGINE")
+
 	// 2. AI Engine via API
-	aiEngineRoute := os.Getenv("AI_ENGINE_ROUTE")
-	if aiEngineRoute == "" {
-		aiEngineRoute = "/start"
+	if aiEngineFlag == "ON" {
+		aiEngineAPIURL := "http://0.0.0.0:8083/start"
+		go func() {
+			if err := api.CallAIEngineAPI(aiEngineAPIURL); err != nil {
+				fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+			}
+		}()
 	}
-	aiEngineAPIURL := "http://0.0.0.0:8083" + aiEngineRoute
-	go func() {
-		if err := api.CallAIEngineAPI(aiEngineAPIURL); err != nil {
-			fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
-		}
-	}()
 
 	if err := api.CallBrokerAPI(inputFilePath, apiURL); err != nil {
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling Broker API: %v%s\n", constants.ColorCyan, constants.LogPrefixBroker, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
 		os.Exit(1)
 	}
 
-	if err := api.CallAIEngineAPI("http://0.0.0.0:8083/stop"); err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine STOP API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+	if aiEngineFlag == "ON" {
+		if err := api.CallAIEngineAPI("http://0.0.0.0:8083/stop"); err != nil {
+			fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine STOP API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+		}
 	}
 
 	callAvaliatorAndProcess()
