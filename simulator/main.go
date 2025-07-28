@@ -141,10 +141,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Erro ao criar diretório de logs: %v\n", err)
 	}
 	containerLogs := map[string]string{
-		"actuator-simulator":  filepath.Join(logsDir, "actuator.log"),
-		"broker-simulator":    filepath.Join(logsDir, "broker.log"),
-		"monitor-simulator":   filepath.Join(logsDir, "monitor.log"),
-		"ai-engine-simulator": filepath.Join(logsDir, "ai-engine.log"),
+		"simulator-actuator-1":  filepath.Join(logsDir, "actuator.log"),
+		"simulator-broker-1":    filepath.Join(logsDir, "broker.log"),
+		"simulator-monitor-1":   filepath.Join(logsDir, "monitor.log"),
+		"simulator-ai-engine-1": filepath.Join(logsDir, "ai-engine.log"),
 	}
 	for container, logFile := range containerLogs {
 		cmd := exec.Command("docker", "logs", container)
