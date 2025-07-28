@@ -23,10 +23,10 @@ clean-mongo-db:
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
 start:
-	@(cd simulator && AI_ENGINE="ON" go run main.go)
+	@(cd simulator/cmd && AI_ENGINE="ON" go run main.go)
 
 start-ai-engine-off:
-	@(cd simulator && AI_ENGINE="OFF" go run main.go)
+	@(cd simulator/cmd && AI_ENGINE="OFF" go run main.go)
 
 # Sets up Kubernetes infrastructure
 setup-kubernetes-infra:

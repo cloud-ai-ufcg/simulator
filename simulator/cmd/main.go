@@ -7,8 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"simulator/api"
-	"simulator/constants"
+	"simulator/internal/aiengine"
+	"simulator/internal/broker"
+	"simulator/internal/constants"
 )
 
 func callAvaliatorAndProcess() {
@@ -34,7 +35,7 @@ func callAvaliatorAndProcess() {
 		return
 	}
 
-	metricsFilePath := "../avaliator/data/metrics.json"
+	metricsFilePath := "../../avaliator/data/metrics.json"
 	err = ioutil.WriteFile(metricsFilePath, body, 0644)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sError writing metrics file: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
@@ -43,8 +44,8 @@ func callAvaliatorAndProcess() {
 	fmt.Printf("%s%s%s: %sMetrics data saved to %s%s\n",
 		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, metricsFilePath, constants.ColorReset)
 
-	processedFilePath := "../avaliator/data/processed_metrics.json"
-	cmdProcess := exec.Command("../venv/bin/python", "../avaliator/process_json.py", metricsFilePath, processedFilePath)
+	processedFilePath := "../../avaliator/data/processed_metrics.json"
+	cmdProcess := exec.Command("../../venv/bin/python", "../../avaliator/process_json.py", metricsFilePath, processedFilePath)
 	cmdProcess.Stdout = os.Stdout
 	cmdProcess.Stderr = os.Stderr
 	if err := cmdProcess.Run(); err != nil {
@@ -54,7 +55,7 @@ func callAvaliatorAndProcess() {
 	fmt.Printf("%s%s%s: %sFinished processing metrics data.%s\n",
 		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
 
-	cmdAvaliate := exec.Command("../venv/bin/python", "../avaliator/avaliator.py", processedFilePath)
+	cmdAvaliate := exec.Command("../../venv/bin/python", "../../avaliator/avaliator.py", processedFilePath)
 	cmdAvaliate.Stdout = os.Stdout
 	cmdAvaliate.Stderr = os.Stderr
 	if err := cmdAvaliate.Run(); err != nil {
@@ -74,33 +75,7 @@ func callAvaliatorAndProcess() {
 
 func main() {
 	// Print webSC banner
-	fmt.Println(`                                                                                                                                                                                                   
-                                                                           ███                                    
-                                                                      █████ ██                                    
-                                                                   ████    ██                                     
-                                                                ███            ████████                           
-                                                             ███         ██████     ██                            
-                         ████████                         ███       █████          ██░                            
-                                 █                     ███     █████              ██                              
-                      ███████  ██ ██                ████   ████▒                ███                               
-                                 █████████ █████  █████████                  ███▒                                 
-                                 ███ ░█  ███      ████▓                   ████                                    
-                                ██ ████  ██    ███            ▒███████████                                        
-                               ██ █████ ███     ███████████████   ████                                            
-                               ██  ▓  ███ ██               █   ███    ████                                        
- ████████████████████████████  ██ █████   █████           ██████         ███████████████████████████████████████  
-                               ████    ████   ███      ███    ██       ██  ██                                     
-                                    ████        █████████    █ ██    ██░    ██                                    
-                                 ████          ██    ██ ░██████▒█████       ██                                    
-                              ███            ██       ██     ██  ██     ████ ██                                   
-                                           ██          ██     ██  ░██████    ██                                   
-                                                         ██    ██    ██     ███                                   
-                        █   █   █   ██   ▒███▒ █████      ██    ██     █████ ██                                   
-                        ██ █ █ ██  █ █   ██    ██  ██            ███     ██ ██                                    
-                         █ █ █ █  █████     ██ █████               ███    ████                                    
-                          █   █░ ██    █ ████▒ ██                    ███    █                                     
-                                                                        █░      
-																		                                  `)
+	fmt.Println(constants.SimulatorLogo)
 
 	fmt.Printf("%s%s%s: %sStarting sequential operation cycle...%s\n",
 		constants.ColorCyan, constants.LogPrefixSimulator, constants.ColorReset, constants.ColorBlue, constants.ColorReset)
@@ -108,7 +83,7 @@ func main() {
 
 	// 1. Broker via API
 	apiURL := "http://localhost:8080/broker/"
-	inputFilePath := "data/input.json" // Relative to the project root
+	inputFilePath := "../data/input.json" 
 
 	aiEngineFlag := os.Getenv("AI_ENGINE")
 
@@ -116,19 +91,19 @@ func main() {
 	if aiEngineFlag == "ON" {
 		aiEngineAPIURL := "http://0.0.0.0:8083/start"
 		go func() {
-			if err := api.CallAIEngineAPI(aiEngineAPIURL); err != nil {
+			if err := aiengine.CallAIEngineAPI(aiEngineAPIURL); err != nil {
 				fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
 			}
 		}()
 	}
 
-	if err := api.CallBrokerAPI(inputFilePath, apiURL); err != nil {
+	if err := broker.CallBrokerAPI(inputFilePath, apiURL); err != nil {
 		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling Broker API: %v%s\n", constants.ColorCyan, constants.LogPrefixBroker, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
 		os.Exit(1)
 	}
 
 	if aiEngineFlag == "ON" {
-		if err := api.CallAIEngineAPI("http://0.0.0.0:8083/stop"); err != nil {
+		if err := aiengine.CallAIEngineAPI("http://0.0.0.0:8083/stop"); err != nil {
 			fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine STOP API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
 		}
 	}
@@ -136,7 +111,7 @@ func main() {
 	callAvaliatorAndProcess()
 
 	// Salvar logs dos containers na pasta data/output/logs
-	logsDir := filepath.Join("data", "output", "logs")
+	logsDir := filepath.Join("../data", "output", "logs")
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Erro ao criar diretório de logs: %v\n", err)
 	}
