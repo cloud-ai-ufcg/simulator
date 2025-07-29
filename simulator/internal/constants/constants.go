@@ -46,7 +46,7 @@ const (
 	AvaliatorScript      = "../../avaliator/avaliator.py"
 )
 
-// Caminho absoluto para o diretório de logs
+// Absolute path to the logs directory
 const LogsDir = "../data/output/logs"
 
 // Simulator ASCII logo
