@@ -36,6 +36,39 @@
     "memory": "0.0424093391659979",
     "replicas": "1",
     "timestamp": 1
+  },
+  {
+    "action": "create",
+    "cpu": "4.0",
+    "id": "1",
+    "job_duration": "10",
+    "kind": "job",
+    "label": "",
+    "memory": "0.0424093391659979",
+    "replicas": "2",
+    "timestamp": 1
+  },
+  {
+    "action": "create",
+    "cpu": "4.0",
+    "id": "2",
+    "job_duration": "15",
+    "kind": "job",
+    "label": "",
+    "memory": "0.0424093391659979",
+    "replicas": "2",
+    "timestamp": 1
+  },
+  {
+    "action": "create",
+    "cpu": "8.0",
+    "id": "3",
+    "job_duration": "20",
+    "kind": "job",
+    "label": "",
+    "memory": "0.0424093391659979",
+    "replicas": "2",
+    "timestamp": 1
   }
 ]
 }
