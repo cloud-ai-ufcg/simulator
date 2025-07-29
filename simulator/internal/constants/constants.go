@@ -2,10 +2,10 @@ package constants
 
 // Container names
 const (
-	ContainerActuator = "simulator-actuator-1"
-	ContainerBroker   = "simulator-broker-1"
-	ContainerMonitor  = "simulator-monitor-1"
-	ContainerAIEngine = "simulator-ai-engine-1"
+	ContainerActuator = "actuator"
+	ContainerBroker   = "broker"
+	ContainerMonitor  = "monitor"
+	ContainerAIEngine = "ai-engine"
 )
 
 // API routes

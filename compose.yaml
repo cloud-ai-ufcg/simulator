@@ -1,10 +1,9 @@
 services:
     broker:
+        container_name: broker
         build:
             context: ./broker
             dockerfile: Dockerfile.api
-        ports:
-            - "8081:8081"
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -12,23 +11,22 @@ services:
         network_mode: "host"
 
     monitor:
+        container_name: monitor
         build:
             context: ./monitor
             dockerfile: Dockerfile
         network_mode: host
     ai-engine:
+        container_name: ai-engine
         build:
             context: ./ai-engine
             dockerfile: Dockerfile.api
-        ports:
-            - "8083:8083"
         network_mode: "host"
     actuator:
+        container_name: actuator
         build:
             context: ./actuator
             dockerfile: Dockerfile.api
-        ports:
-            - "8084:8084"
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -38,6 +36,7 @@ services:
               target: /root/.kwok
         network_mode: "host"
     mongo:
+        container_name: mongo
         image: mongo:latest
         ports:
             - "27017:27017"
