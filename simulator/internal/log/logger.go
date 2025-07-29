@@ -19,7 +19,7 @@ func init() {
 }
 
 func getPrefix(level string) string {
-	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	timestampColor := constants.ColorBlue
 	levelColor := ""
 	moduleColor := constants.ColorCyan
