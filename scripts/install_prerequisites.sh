@@ -82,7 +82,7 @@ function install_kubectl() {
 function install_helm() {
   if ! command -v helm &> /dev/null; then
     echo -e "${COLOR}⛵ Installing Helm...${RESET}"
-    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash -s -- --version v3.17.4
   else
     echo -e "${COLOR}✅ Helm is already installed.${RESET}"
   fi
