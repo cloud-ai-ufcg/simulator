@@ -10,11 +10,11 @@ import (
 )
 
 // CallBrokerAPI reads a JSON file and sends its content to the Broker API.
-func CallBrokerAPI(inputFilePath, apiURL string) error {
-	fmt.Printf("%s%s%s: %sCalling Broker API at %s%s%s with file %s%s%s...%s\n",
+func CallBrokerAPI(inputFilePath string) error {
+	apiURL := constants.APIURLBroker
+	fmt.Printf("%s%s%s: %sCalling Broker API at %s with file %s...%s\n",
 		constants.ColorCyan, constants.LogPrefixBroker, constants.ColorReset,
-		constants.ColorBlue, constants.ColorPurple, apiURL, constants.ColorBlue,
-		constants.ColorPurple, inputFilePath, constants.ColorBlue, constants.ColorReset)
+		constants.ColorBlue, apiURL, inputFilePath, constants.ColorReset)
 
 	jsonFile, err := os.Open(inputFilePath)
 	if err != nil {

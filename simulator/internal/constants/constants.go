@@ -1,6 +1,21 @@
 package constants
 
-// ANSI Color Codes
+// Container names
+const (
+	ContainerActuator = "simulator-actuator-1"
+	ContainerBroker   = "simulator-broker-1"
+	ContainerMonitor  = "simulator-monitor-1"
+	ContainerAIEngine = "simulator-ai-engine-1"
+)
+
+// API routes
+const (
+	APIURLBroker       = "http://localhost:8080/broker/"
+	APIURLAIEngine     = "http://0.0.0.0:8083/start"
+	APIURLAIEngineStop = "http://0.0.0.0:8083/stop"
+)
+
+// ANSI color codes
 const (
 	ColorReset  = "\033[0m"
 	ColorRed    = "\033[31m"
@@ -11,7 +26,7 @@ const (
 	ColorCyan   = "\033[36m"
 )
 
-// Log Prefixes
+// Log prefixes
 const (
 	LogPrefixSimulator = "Simulator"
 	LogPrefixBroker    = "Broker"
@@ -21,8 +36,21 @@ const (
 	LogPrefixAvaliator = "Avaliator"
 )
 
-// Simulator ASCII Logo
-const SimulatorLogo =`                                                                                                                                                                                                   
+// Avaliator constants
+const (
+	MetricsURL           = "http://localhost:8082/metrics"
+	MetricsFilePath      = "../../avaliator/data/metrics.json"
+	ProcessedMetricsPath = "../../avaliator/data/processed_metrics.json"
+	PythonExecutable     = "../../venv/bin/python"
+	ProcessJSONScript    = "../../avaliator/process_json.py"
+	AvaliatorScript      = "../../avaliator/avaliator.py"
+)
+
+// Caminho absoluto para o diretório de logs
+const LogsDir = "../data/output/logs"
+
+// Simulator ASCII logo
+const SimulatorLogo = `                                                                                                                                                                                                   
                                                                            ███                                    
                                                                       █████ ██                                    
                                                                    ████    ██                                     
@@ -48,4 +76,4 @@ const SimulatorLogo =`
                          █ █ █ █  █████     ██ █████               ███    ████                                    
                           █   █░ ██    █ ████▒ ██                    ███    █                                     
                                                                         █░      
-																		                                  `
+                                                                                        `
