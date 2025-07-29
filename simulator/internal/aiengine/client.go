@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"simulator/internal/constants"
+	"simulator/internal/log"
 	"time"
 )
-
 
 func CallAIEngineAPI(flag string) error {
 	client := &http.Client{Timeout: 0}
@@ -36,26 +35,21 @@ func CallAIEngineAPI(flag string) error {
 		resp, err := client.Post(url, "application/json", nil)
 		if err != nil {
 			lastErr = err
-			fmt.Fprintf(os.Stderr, "%s%s%s: %s%s (attempt %d/%d): %v. Retrying in %v...%s\n",
-				constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset,
-				constants.ColorRed, errorMsg, i+1, maxRetries, err, retryDelay, constants.ColorReset)
+			log.Errorf("%s (attempt %d/%d): %v. Retrying in %v...", errorMsg, i+1, maxRetries, err, retryDelay)
 			time.Sleep(retryDelay)
 			continue
 		}
 
 		if resp.StatusCode == http.StatusOK {
 			resp.Body.Close()
-			fmt.Printf("%s%s%s: %s%s%s\n",
-				constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorGreen, successMsg, constants.ColorReset)
+			log.Infof("%s", successMsg)
 			return nil
 		}
 
 		body, _ := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		lastErr = fmt.Errorf("%s returned non-OK status: %s, body: %s", url, resp.Status, string(body))
-		fmt.Fprintf(os.Stderr, "%s%s%s: %s%v (attempt %d/%d). Retrying in %v...%s\n",
-			constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset,
-			constants.ColorRed, lastErr, i+1, maxRetries, retryDelay, constants.ColorReset)
+		log.Errorf("%v (attempt %d/%d). Retrying in %v...", lastErr, i+1, maxRetries, retryDelay)
 		time.Sleep(retryDelay)
 	}
 

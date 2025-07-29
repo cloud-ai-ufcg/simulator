@@ -7,14 +7,13 @@ import (
 	"net/http"
 	"os"
 	"simulator/internal/constants"
+	"simulator/internal/log"
 )
 
 // CallBrokerAPI reads a JSON file and sends its content to the Broker API.
 func CallBrokerAPI(inputFilePath string) error {
 	apiURL := constants.APIURLBroker
-	fmt.Printf("%s%s%s: %sCalling Broker API at %s with file %s...%s\n",
-		constants.ColorCyan, constants.LogPrefixBroker, constants.ColorReset,
-		constants.ColorBlue, apiURL, inputFilePath, constants.ColorReset)
+	log.Infof("Calling Broker API at %s with file %s...", apiURL, inputFilePath)
 
 	jsonFile, err := os.Open(inputFilePath)
 	if err != nil {
@@ -48,7 +47,6 @@ func CallBrokerAPI(inputFilePath string) error {
 		return fmt.Errorf("broker API returned non-OK status: %s, body: %s", resp.Status, string(body))
 	}
 
-	fmt.Printf("%s%s%s: %sBroker API called successfully.%s\n",
-		constants.ColorCyan, constants.LogPrefixBroker, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
+	log.Infof("Broker API called successfully.")
 	return nil
 }

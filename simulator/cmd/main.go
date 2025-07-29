@@ -1,22 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"simulator/internal/aiengine"
 	"simulator/internal/avaliator"
 	"simulator/internal/broker"
 	"simulator/internal/constants"
+	"simulator/internal/log"
 	"simulator/internal/utils"
 	"sync"
 )
 
 func main() {
-	fmt.Println(constants.SimulatorLogo)
+	log.Println(constants.SimulatorLogo)
 
-	fmt.Printf("%s%s%s: %sStarting sequential operation cycle...%s\n",
-		constants.ColorCyan, constants.LogPrefixSimulator, constants.ColorReset, constants.ColorBlue, constants.ColorReset)
-	fmt.Println("")
+	log.Infof("Starting sequential operation cycle...")
 
 	aiEngineFlag := os.Getenv("AI_ENGINE")
 	inputFilePath := "../data/input.json"
@@ -29,7 +27,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			if err := aiengine.CallAIEngineAPI(aiEngineFlag); err != nil {
-				fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+				log.Errorf("Error calling AI-Engine API: %v", err)
 			}
 		}()
 	}
@@ -38,13 +36,13 @@ func main() {
 	go func() {
 		defer wg.Done()
 		if err := broker.CallBrokerAPI(inputFilePath); err != nil {
-			fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling Broker API: %v%s\n", constants.ColorCyan, constants.LogPrefixBroker, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+			log.Errorf("Error calling Broker API: %v", err)
 			brokerErr = err
 		}
 
 		if aiEngineFlag == "ON" {
 			if err := aiengine.CallAIEngineAPI("OFF"); err != nil {
-				fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling AI-Engine STOP API: %v%s\n", constants.ColorCyan, constants.LogPrefixAIEngine, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+				log.Errorf("Error calling AI-Engine STOP API: %v", err)
 			}
 		}
 	}()
@@ -58,8 +56,5 @@ func main() {
 
 	utils.SaveContainerLogs()
 
-	fmt.Printf("\n%s%s%s: %sAll operations completed successfully.%s\n",
-		constants.ColorCyan, constants.LogPrefixSimulator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
-	fmt.Printf("%s%s%s: %sSequential execution cycle finished.%s\n",
-		constants.ColorCyan, constants.LogPrefixSimulator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
+	log.Infof("Sequential execution cycle finished.")
 }

@@ -1,49 +1,45 @@
 package avaliator
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"simulator/internal/constants"
+	"simulator/internal/log"
 )
 
 func CallAvaliatorAndProcess() {
-	fmt.Printf("%s%s%s: %sCalling metrics endpoint at %s...%s\n",
-		constants.ColorCyan, constants.LogPrefixSimulator, constants.ColorReset, constants.ColorBlue, constants.MetricsURL, constants.ColorReset)
+	log.Infof("Calling metrics endpoint at %s...", constants.MetricsURL)
 
 	resp, err := http.Get(constants.MetricsURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError calling metrics API: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+		log.Errorf("Error calling metrics API: %v", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sMetrics API returned non-200 status code: %d%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, resp.StatusCode, constants.ColorReset)
+		log.Errorf("Metrics API returned non-200 status code: %d", resp.StatusCode)
 		return
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError reading metrics response body: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+		log.Errorf("Error reading metrics response body: %v", err)
 		return
 	}
 
 	err = ioutil.WriteFile(constants.MetricsFilePath, body, 0644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError writing metrics file: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+		log.Errorf("Error writing metrics file: %v", err)
 		return
 	}
-	fmt.Printf("%s%s%s: %sMetrics data saved to %s%s\n",
-		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, constants.MetricsFilePath, constants.ColorReset)
-
 	cmdProcess := exec.Command(constants.PythonExecutable, constants.ProcessJSONScript, constants.MetricsFilePath, constants.ProcessedMetricsPath)
 	cmdProcess.Stdout = os.Stdout
 	cmdProcess.Stderr = os.Stderr
 	if err := cmdProcess.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError running process_json.py: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+		log.Errorf("Error running process_json.py: %v", err)
 		return
 	}
 
@@ -51,16 +47,15 @@ func CallAvaliatorAndProcess() {
 	cmdAvaliate.Stdout = os.Stdout
 	cmdAvaliate.Stderr = os.Stderr
 	if err := cmdAvaliate.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError running avaliator.py: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, err, constants.ColorReset)
+		log.Errorf("Error running avaliator.py: %v", err)
 		return
 	}
-	fmt.Printf("%s%s%s: %sFinished generating visualizations.%s\n",
-		constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorGreen, constants.ColorReset)
+	log.Infof("Finished generating visualizations.")
 
 	if err := os.Remove(constants.MetricsFilePath); err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError deleting %s: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, constants.MetricsFilePath, err, constants.ColorReset)
+		log.Errorf("Error deleting %s: %v", constants.MetricsFilePath, err)
 	}
 	if err := os.Remove(constants.ProcessedMetricsPath); err != nil {
-		fmt.Fprintf(os.Stderr, "%s%s%s: %sError deleting %s: %v%s\n", constants.ColorCyan, constants.LogPrefixAvaliator, constants.ColorReset, constants.ColorRed, constants.ProcessedMetricsPath, err, constants.ColorReset)
+		log.Errorf("Error deleting %s: %v", constants.ProcessedMetricsPath, err)
 	}
 }
