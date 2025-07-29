@@ -52,6 +52,12 @@ run-all-containers:
 restart-all-containers: stop-all-containers run-all-containers
 	@echo "All services have been fully restarted."
 
+# Para derrubar os containers KIND do cluster
+stop-kubernetes-infra:
+	@echo "Parando containers KIND do cluster..."
+	docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
+	@echo "Containers KIND removidos."
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Important Notes
 # - You must export the KUBECONFIG variable with the correct files
