@@ -69,9 +69,11 @@ function install_git() {
 }
 
 function install_kubectl() {
+  local KUBECTL_VERSION=v1.32.3
+
   if ! command -v kubectl &> /dev/null; then
     echo -e "${COLOR}📦 Installing kubectl...${RESET}"
-    curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
     chmod +x kubectl
     sudo mv kubectl /usr/local/bin/
   else
@@ -100,9 +102,14 @@ function install_kind() {
 }
 
 function install_jq() {
+  remove_from_apt "jq"
+
   if ! command -v jq &> /dev/null; then
+    local JQ_VERSION="jq-1.6"
+
     echo -e "${COLOR}🔧 Installing jq...${RESET}"
-    sudo apt install -y jq
+    sudo curl -L -o /usr/local/bin/jq https://github.com/stedolan/jq/releases/download/$JQ_VERSION/jq-linux64
+    sudo chmod +x /usr/local/bin/jq
   else
     echo -e "${COLOR}✅ jq is already installed.${RESET}"
   fi
@@ -162,6 +169,7 @@ function install_go() {
 function install_yq() {
   DESIRED_VERSION="v4.44.5"
   CURRENT_VERSION="$(yq --version 2>/dev/null | awk '{print $NF}')"
+
   if ! command -v yq &> /dev/null || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
     echo -e "${COLOR}📦 Installing yq ${DESIRED_VERSION} (from GitHub)...${RESET}"
     sudo wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${DESIRED_VERSION}/yq_linux_amd64"
@@ -169,6 +177,15 @@ function install_yq() {
     echo -e "${COLOR}✅ yq ${DESIRED_VERSION} installed.${RESET}"
   else
     echo -e "${COLOR}✅ yq ${DESIRED_VERSION} is already installed.${RESET}"
+  fi
+}
+
+function remove_from_apt() {
+  local TARGET_PACKAGE=$1
+
+  if dpkg -l | grep -q "^ii  $TARGET_PACKAGE"; then
+    echo "${COLOR}🔧 $TARGET_PACKAGE is installed via apt. Removing...${RESET}"
+    sudo apt remove -y $TARGET_PACKAGE
   fi
 }
 
