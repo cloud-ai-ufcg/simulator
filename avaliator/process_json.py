@@ -150,7 +150,7 @@ def main():
         with open(output_file, 'w') as f:
             json.dump(processed_data, f, indent=2)
         
-        print(f"Successfully processed '{input_file}' and saved result to '{output_file}'")
+        #print(f"Successfully processed '{input_file}' and saved result to '{output_file}'")
         
     except FileNotFoundError:
         print(f"Error: File '{input_file}' not found.")
