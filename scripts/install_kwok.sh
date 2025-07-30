@@ -21,7 +21,7 @@ trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND$
 # -----------------------------------------------------------------------------
 export KUBECONFIG=~/.kube/members.config
 KWOK_REPO="kubernetes-sigs/kwok"
-KWOK_LATEST_RELEASE=$(curl -s "https://api.github.com/repos/${KWOK_REPO}/releases/latest" | jq -r '.tag_name')
+KWOK_RELEASE="v0.7.0"
 
 # -----------------------------------------------------------------------------
 # 1. Install KWOK on member1
@@ -29,8 +29,8 @@ KWOK_LATEST_RELEASE=$(curl -s "https://api.github.com/repos/${KWOK_REPO}/release
 echo -e "${COLOR}[1/2] Installing KWOK on member1...${RESET}"
 kubectl config use-context member1
 
-kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/kwok.yaml" --context member1
-kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/stage-fast.yaml" --context member1
+kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_RELEASE}/kwok.yaml" --context member1
+kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_RELEASE}/stage-fast.yaml" --context member1
 kubectl apply -f fast-stages.yaml
 
 KWOK_NAMESPACE_M1=$(kubectl get deployment --context member1 --all-namespaces | grep kwok-controller | awk '{print $1}')
@@ -42,8 +42,8 @@ kubectl rollout status deployment/kwok-controller -n "$KWOK_NAMESPACE_M1" --cont
 echo -e "${COLOR}[2/2] Installing KWOK on member2...${RESET}"
 kubectl config use-context member2
 
-kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/kwok.yaml"
-kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_LATEST_RELEASE}/stage-fast.yaml"
+kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_RELEASE}/kwok.yaml"
+kubectl apply -f "https://github.com/${KWOK_REPO}/releases/download/${KWOK_RELEASE}/stage-fast.yaml"
 kubectl apply -f fast-stages.yaml
 
 KWOK_NAMESPACE_M2=$(kubectl get deployment --all-namespaces | grep kwok-controller | awk '{print $1}')
