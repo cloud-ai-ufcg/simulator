@@ -20,11 +20,13 @@ trap 'echo -e "${COLOR}❌  Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND
 
 # -----------------------------------------------------------------------------
 # 1. Clone and launch Karmada control plane
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+KARMADA_RELEASE=v1.14.1
+
 echo -e "${COLOR}🚀 Starting local Karmada environment...${RESET}"
 if [ ! -d "karmada" ]; then
   echo -e "${COLOR}[INFO] Cloning Karmada repository...${RESET}"
-  git clone https://github.com/karmada-io/karmada.git
+  git clone --branch $KARMADA_RELEASE --depth 1 https://github.com/karmada-io/karmada.git
 else
   echo -e "${COLOR}[INFO] Karmada repository already exists. Skipping clone.${RESET}"
 fi
