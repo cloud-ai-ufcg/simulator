@@ -65,6 +65,7 @@ for CONTEXT in member1 member2; do
   echo -e "${COLOR}🚀 Installing kube-prometheus-stack via Helm...${RESET}"
   helm upgrade --install "$RELEASE_NAME" prometheus-community/kube-prometheus-stack \
   -f prometheus_grafana.yaml \
+  --version 75.15.1 \
   --namespace "$NAMESPACE" \
   --wait \
   --timeout 30m \
