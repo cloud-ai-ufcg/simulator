@@ -19,6 +19,7 @@ trap 'echo -e "\033[1;31m❌ Error in $BASH_SOURCE:$LINENO – $BASH_COMMAND\033
 
 RELEASE_NAME="prometheus"
 NAMESPACE="monitoring"
+KUBE_PROMETHEUS_STACK_VERSION=75.15.1
 SLEEP_TIME=${SLEEP_TIME:-5}
 
 GRAFANA_USER="adminuser"
@@ -65,7 +66,7 @@ for CONTEXT in member1 member2; do
   echo -e "${COLOR}🚀 Installing kube-prometheus-stack via Helm...${RESET}"
   helm upgrade --install "$RELEASE_NAME" prometheus-community/kube-prometheus-stack \
   -f prometheus_grafana.yaml \
-  --version 75.15.1 \
+  --version $KUBE_PROMETHEUS_STACK_VERSION \
   --namespace "$NAMESPACE" \
   --wait \
   --timeout 30m \
