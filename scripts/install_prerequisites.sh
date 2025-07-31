@@ -59,6 +59,18 @@ function install_docker() {
   fi
 }
 
+function install_compose() {
+  if ! command -v docker-compose &> /dev/null; then
+    local COMPOSE_VERSION=2.38.2
+
+    echo -e "${COLOR}🐳 Installing Docker-compose...${RESET}"
+    sudo curl -L "https://github.com/docker/compose/releases/download/v$COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+  else
+    echo -e "${COLOR}✅ Docker-compose is already installed.${RESET}"
+  fi 
+}
+
 function install_git() {
   if ! command -v git &> /dev/null; then
     echo -e "${COLOR}🐙 Installing Git...${RESET}"
@@ -194,6 +206,7 @@ function remove_from_apt() {
 # -----------------------------------------------------------------------------
 install_curl
 install_docker
+install_compose
 install_git
 install_kubectl
 install_helm
