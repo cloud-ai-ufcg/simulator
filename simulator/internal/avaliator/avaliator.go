@@ -52,10 +52,10 @@ func CallAvaliatorAndProcess() {
 	}
 	log.Infof("Finished generating visualizations.")
 
-	if err := os.Remove(constants.MetricsFilePath); err != nil {
-		log.Errorf("Error deleting %s: %v", constants.MetricsFilePath, err)
-	}
-	if err := os.Remove(constants.ProcessedMetricsPath); err != nil {
-		log.Errorf("Error deleting %s: %v", constants.ProcessedMetricsPath, err)
-	}
+	// if err := os.Remove(constants.MetricsFilePath); err != nil {
+	// 	log.Errorf("Error deleting %s: %v", constants.MetricsFilePath, err)
+	// }
+	// if err := os.Remove(constants.ProcessedMetricsPath); err != nil {
+	// 	log.Errorf("Error deleting %s: %v", constants.ProcessedMetricsPath, err)
+	// }
 }
