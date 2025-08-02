@@ -16,16 +16,16 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
     # Concatenar com Capacity depois de Load para Capacity ficar acima
     plot_df = pd.concat([cluster_df, cap_df], ignore_index=True)
     # Garantir que Capacity venha depois de Load na ordem dos dados
-    plot_df['type'] = pd.Categorical(plot_df['type'], categories=['Load', 'Capacity', 'Private Migration', 'Public Migration', 'Both Migrations'], ordered=True)
+    plot_df['type'] = pd.Categorical(plot_df['type'], categories=['Load', 'Capacity', 'Private AI Migration', 'Public AI Migration', 'Both AI Migrations'], ordered=True)
     plot_df = plot_df.sort_values('type')
     
     color_map = {
         'Load': '#d62728', 'Capacity': '#1f77b4',
-        'Private Migration': '#9467bd', 'Public Migration': '#ff7f0e', 'Both Migrations': '#2ca02c',
+        'Private AI Migration': '#9467bd', 'Public AI Migration': '#ff7f0e', 'Both AI Migrations': '#2ca02c',
     }
     linetype_map = {
         'Load': 'solid', 'Capacity': 'dashed',
-        'Private Migration': 'dotted', 'Public Migration': 'dotted', 'Both Migrations': 'dotted'
+        'Private AI Migration': 'dotted', 'Public AI Migration': 'dotted', 'Both AI Migrations': 'dotted'
     }
     x_breaks = pd.date_range(df['timestamp'].min(), df['timestamp'].max(), periods=10)
     
@@ -43,7 +43,7 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
     if migration_data is not None and not migration_data.empty:
         migration_data = migration_data.copy()
         migration_data['mig_legend'] = migration_data['type'].map({
-            'private': 'Private Migration', 'public': 'Public Migration', 'both': 'Both Migrations'
+            'private': 'Private AI Migration', 'public': 'Public AI Migration', 'both': 'Both AI Migrations'
         })
         g += geom_vline(
             migration_data,
@@ -62,25 +62,25 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
 def main():
     data = load_data('avaliator/data/metrics.json')
     migration_data = parse_migration_logs('simulator/data/output/logs/actuator.log')
-    timestamps, mem_allocated, mem_unallocated, cpu_allocated, cpu_unallocated = process_resources(data)
+    timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested = process_resources(data)
     cluster_info_alloc = process_cluster_info(data, timestamps, limit_load=True)
-    df_alloc = build_dataframe(timestamps, mem_allocated, mem_unallocated, cpu_allocated, cpu_unallocated, cluster_info_alloc)
+    df_alloc = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, cluster_info_alloc)
     cluster_info_req = process_cluster_info(data, timestamps, limit_load=False)
-    df_req = build_dataframe(timestamps, mem_allocated, mem_unallocated, cpu_allocated, cpu_unallocated, cluster_info_req)
+    df_req = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, cluster_info_req)
     plot_resource(
         df_alloc,
         ['mem_allocated_public', 'mem_allocated_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Allocated', 'avaliator/allocated_memory.png',
+        'Memory', 'Memory Allocated', 'simulator/data/output/plots/allocated_memory.png',
         migration_data
     )
     plot_resource(
         df_req,
-        ['mem_allocated_public', 'mem_allocated_private'],
+        ['mem_requested_public', 'mem_requested_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Requested', 'avaliator/requested_memory.png',
+        'Memory', 'Memory Requested', 'simulator/data/output/plots/requested_memory.png',
         migration_data
     )
     plot_resource(
@@ -88,15 +88,15 @@ def main():
         ['cpu_allocated_public', 'cpu_allocated_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Allocated', 'avaliator/allocated_cpu.png',
+        'CPU', 'CPU Allocated', 'simulator/data/output/plots/allocated_cpu.png',
         migration_data
     )
     plot_resource(
         df_req,
-        ['cpu_allocated_public', 'cpu_allocated_private'],
+        ['cpu_requested_public', 'cpu_requested_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Requested', 'avaliator/requested_cpu.png',
+        'CPU', 'CPU Requested', 'simulator/data/output/plots/requested_cpu.png',
         migration_data
     )
 
