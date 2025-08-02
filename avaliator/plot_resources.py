@@ -13,7 +13,11 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
     cap_df = cap_df.rename(columns={f'{y_label}_cap': 'value'})
     cluster_df['type'] = 'Load'
     cap_df['type'] = 'Capacity'
+    # Concatenar com Capacity depois de Load para Capacity ficar acima
     plot_df = pd.concat([cluster_df, cap_df], ignore_index=True)
+    # Garantir que Capacity venha depois de Load na ordem dos dados
+    plot_df['type'] = pd.Categorical(plot_df['type'], categories=['Load', 'Capacity', 'Private Migration', 'Public Migration', 'Both Migrations'], ordered=True)
+    plot_df = plot_df.sort_values('type')
     
     color_map = {
         'Load': '#d62728', 'Capacity': '#1f77b4',
@@ -44,23 +48,15 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
         g += geom_vline(
             migration_data,
             aes(xintercept='timestamp', color='mig_legend', linetype='mig_legend'),
-            size=1
+            size=1,
+            show_legend=False
         )
-        
-        # Dynamically build the legend customization
-        active_mig_legends = migration_data['mig_legend'].unique()
-        num_mig_legends = len(active_mig_legends)
-        
-        # Define symbols for Load/Capacity (lines) and Migrations (vertical bars)
-        override_shapes = ['', ''] + ['|'] * num_mig_legends
-        
-        g += guides(color=guide_legend(override_aes={'shape': override_shapes}))
 
     # Apply color and linetype scales
     g += scale_color_manual(name='Legend', values=color_map)
     g += scale_linetype_manual(name='Legend', values=linetype_map)
     
-    g.save(filename, width=10, height=7, dpi=150)
+    g.save(filename, width=16, height=7, dpi=150)
 
 
 def main():
