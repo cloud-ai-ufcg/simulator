@@ -3,6 +3,10 @@ from plotnine import *
 from utils import load_data
 from migration import parse_migration_logs
 from processing import process_resources, process_cluster_info, build_dataframe, melt_df_with_cluster_and_cap
+import warnings
+from plotnine.exceptions import PlotnineWarning
+
+warnings.filterwarnings("ignore", category=PlotnineWarning)
 
 
 def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filename, migration_data=None):
@@ -60,8 +64,8 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
 
 
 def main():
-    data = load_data('avaliator/data/metrics.json')
-    migration_data = parse_migration_logs('simulator/data/output/logs/actuator.log')
+    data = load_data('../../avaliator/data/metrics.json')
+    migration_data = parse_migration_logs('../data/output/logs/actuator.log')
     timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested = process_resources(data)
     cluster_info_alloc = process_cluster_info(data, timestamps, limit_load=True)
     df_alloc = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, cluster_info_alloc)
@@ -72,7 +76,7 @@ def main():
         ['mem_allocated_public', 'mem_allocated_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Allocated', 'simulator/data/output/plots/allocated_memory.png',
+        'Memory', 'Memory Allocated', '../data/output/plots/allocated_memory.png',
         migration_data
     )
     plot_resource(
@@ -80,7 +84,7 @@ def main():
         ['mem_requested_public', 'mem_requested_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Requested', 'simulator/data/output/plots/requested_memory.png',
+        'Memory', 'Memory Requested', '../data/output/plots/requested_memory.png',
         migration_data
     )
     plot_resource(
@@ -88,7 +92,7 @@ def main():
         ['cpu_allocated_public', 'cpu_allocated_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Allocated', 'simulator/data/output/plots/allocated_cpu.png',
+        'CPU', 'CPU Allocated', '../data/output/plots/allocated_cpu.png',
         migration_data
     )
     plot_resource(
@@ -96,7 +100,7 @@ def main():
         ['cpu_requested_public', 'cpu_requested_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Requested', 'simulator/data/output/plots/requested_cpu.png',
+        'CPU', 'CPU Requested', '../data/output/plots/requested_cpu.png',
         migration_data
     )
 

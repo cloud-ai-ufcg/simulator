@@ -52,9 +52,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	avaliator.CallAvaliatorAndProcess()
-
 	utils.SaveContainerLogs()
+
+	avaliator.CallAvaliatorAndProcess()
 
 	log.Infof("Sequential execution cycle finished.")
 }

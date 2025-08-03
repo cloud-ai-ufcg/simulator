@@ -42,8 +42,10 @@ const (
 	MetricsFilePath      = "../../avaliator/data/metrics.json"
 	ProcessedMetricsPath = "../../avaliator/data/processed_metrics.json"
 	PythonExecutable     = "../../venv/bin/python"
-	ProcessJSONScript    = "../../avaliator/process_json.py"
 	AvaliatorScript      = "../../avaliator/avaliator.py"
+	PlotResourcesScript  = "../../avaliator/plot_resources.py"
+	ProcessJSONScript    = "../../avaliator/process_json.py"
+	ActuatorLogPath      = "data/output/logs/actuator.log"
 )
 
 // Absolute path to the logs directory
