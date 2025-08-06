@@ -7,7 +7,6 @@ all: setup-and-start
 
 # Sets up the complete infrastructure and runs the simulator
 setup-and-start: setup-kubernetes-infra stop-all-containers run-all-containers start
-	@echo -e "\\e[32mFull infrastructure setup and simulator startup process completed.\\e[0m"
 
 # Cleans all documents from all collections in the mongo container
 clean-mongo-db:

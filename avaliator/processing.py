@@ -1,0 +1,99 @@
+import pandas as pd
+from utils import parse_resource_value
+
+def process_resources(data):
+    """Calcula recursos alocados e requisitados para cada cluster."""
+    timestamps = sorted([int(ts) for ts in data.keys()])
+    mem_allocated = {'public': [], 'private': []}
+    mem_requested = {'public': [], 'private': []}
+    cpu_allocated = {'public': [], 'private': []}
+    cpu_requested = {'public': [], 'private': []}
+    for ts in timestamps:
+        ts_str = str(ts)
+        for c in data[ts_str]['cluster_info']:
+            label = c['cluster_label']
+            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi')
+            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm')
+            mem_load = c['cluster_load'].get('memory', 0)
+            cpu_load = c['cluster_load'].get('cpu', 0)
+            # Alocado: capacity * min(load, 1)
+            mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
+            cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
+            # Requisitado: capacity * load
+            mem_requested[label].append(mem_cap * mem_load)
+            cpu_requested[label].append(cpu_cap * cpu_load)
+    return timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested
+
+def process_cluster_info(data, timestamps, limit_load=True):
+    """Processes cluster info (limiting load or not)."""
+    result = {k: [] for k in [
+        'mem_load_public', 'mem_load_private', 'cpu_load_public', 'cpu_load_private',
+        'cpu_capacity_public', 'cpu_capacity_private', 'memory_capacity_public', 'memory_capacity_private']}
+    for ts in timestamps:
+        ts_str = str(ts)
+        for c in data[ts_str]['cluster_info']:
+            mem_load = c['cluster_load'].get('memory', 0)
+            cpu_load = c['cluster_load'].get('cpu', 0)
+            if limit_load:
+                mem_load = min(mem_load, 1.0)
+                cpu_load = min(cpu_load, 1.0)
+            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi')
+            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm')
+            if c['cluster_label'] == 'public':
+                result['mem_load_public'].append(mem_load * mem_cap)
+                result['cpu_load_public'].append(cpu_load * cpu_cap)
+                result['cpu_capacity_public'].append(cpu_cap)
+                result['memory_capacity_public'].append(mem_cap)
+            elif c['cluster_label'] == 'private':
+                result['mem_load_private'].append(mem_load * mem_cap)
+                result['cpu_load_private'].append(cpu_load * cpu_cap)
+                result['cpu_capacity_private'].append(cpu_cap)
+                result['memory_capacity_private'].append(mem_cap)
+    return (
+        result['mem_load_public'], result['mem_load_private'],
+        result['cpu_load_public'], result['cpu_load_private'],
+        result['cpu_capacity_public'], result['cpu_capacity_private'],
+        result['memory_capacity_public'], result['memory_capacity_private']
+    )
+
+def build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, cluster_info):
+    """Builds a pandas DataFrame from the processed data."""
+    index = pd.to_datetime(timestamps, unit='s')
+    df = pd.DataFrame({
+        'timestamp': index,
+        'mem_allocated_public': mem_allocated['public'],
+        'mem_allocated_private': mem_allocated['private'],
+        'mem_requested_public': mem_requested['public'],
+        'mem_requested_private': mem_requested['private'],
+        'cpu_allocated_public': cpu_allocated['public'],
+        'cpu_allocated_private': cpu_allocated['private'],
+        'cpu_requested_public': cpu_requested['public'],
+        'cpu_requested_private': cpu_requested['private'],
+        'cluster_mem_load_public': cluster_info[0],
+        'cluster_mem_load_private': cluster_info[1],
+        'cluster_cpu_load_public': cluster_info[2],
+        'cluster_cpu_load_private': cluster_info[3],
+        'cluster_cpu_capacity_public': cluster_info[4],
+        'cluster_cpu_capacity_private': cluster_info[5],
+        'cluster_memory_capacity_public': cluster_info[6],
+        'cluster_memory_capacity_private': cluster_info[7],
+    })
+    return df
+
+def melt_df_with_cluster_and_cap(df, value_vars, cluster_vars, cap_vars, var_name, value_name, cluster_value_name, cap_value_name):
+    """Melts the DataFrame to plot with cluster/capacity."""
+    melted = pd.melt(
+        df, id_vars=['timestamp'], value_vars=value_vars, var_name=var_name, value_name=value_name
+    )
+    melted['cluster'] = melted[var_name].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    cluster_df = pd.melt(
+        df, id_vars=['timestamp'], value_vars=cluster_vars, var_name=var_name, value_name=cluster_value_name
+    )
+    cluster_df['cluster'] = cluster_df[var_name].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    cluster_df['type'] = 'cluster_load'
+    cap_df = pd.melt(
+        df, id_vars=['timestamp'], value_vars=cap_vars, var_name=var_name, value_name=cap_value_name
+    )
+    cap_df['cluster'] = cap_df[var_name].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    cap_df['type'] = 'capacity'
+    return melted, cluster_df, cap_df
