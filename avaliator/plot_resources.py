@@ -31,30 +31,42 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
         'Load': 'solid', 'Capacity': 'dashed',
         'Private AI Migration': 'dotted', 'Public AI Migration': 'dotted', 'Both AI Migrations': 'dotted'
     }
-    x_breaks = pd.date_range(df['timestamp'].min(), df['timestamp'].max(), periods=10)
-    
+    # Calcular segundos desde o início
+    plot_df = plot_df.copy()
+    # Mapear cada timestamp único para um valor de segundos (30, 60, ..., 30*N)
+    unique_timestamps = sorted(plot_df['timestamp'].unique())
+    ts_to_sec = {ts: sec for ts, sec in zip(unique_timestamps, range(30, 30 * len(unique_timestamps) + 1, 30))}
+    plot_df['seconds'] = plot_df['timestamp'].map(ts_to_sec)
+    max_seconds = plot_df['seconds'].max()
+    x_breaks = list(range(30, int(max_seconds) + 30, 30))
     # Base plot
     g = (
         ggplot(plot_df)
-        + geom_step(aes(x='timestamp', y='value', color='type', linetype='type'), size=1.5, na_rm=True)
+        + geom_step(aes(x='seconds', y='value', color='type', linetype='type'), size=1.5, na_rm=True)
         + facet_wrap('~cluster', nrow=2, labeller=lambda x: 'Public Cluster' if x == 'Public' else 'Private Cluster')
-        + labs(title=title, y=y_label, x='Time', color='Legend', linetype='Legend')
-        + scale_x_datetime(date_labels="%H:%M:%S", breaks=x_breaks)
+        + labs(title=title, y=y_label, x='Time (s)', color='Legend', linetype='Legend')
+        + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
     )
 
     # Add migration lines if they exist
     if migration_data is not None and not migration_data.empty:
         migration_data = migration_data.copy()
+        # Mapear apenas os timestamps de migração que existem nos dados
+        unique_timestamps = sorted(df['timestamp'].unique())
+        ts_to_sec = {ts: sec for ts, sec in zip(unique_timestamps, range(30, 30 * len(unique_timestamps) + 1, 30))}
+        migration_data = migration_data[migration_data['timestamp'].isin(unique_timestamps)]
+        migration_data['seconds'] = migration_data['timestamp'].map(ts_to_sec)
         migration_data['mig_legend'] = migration_data['type'].map({
             'private': 'Private AI Migration', 'public': 'Public AI Migration', 'both': 'Both AI Migrations'
         })
-        g += geom_vline(
-            migration_data,
-            aes(xintercept='timestamp', color='mig_legend', linetype='mig_legend'),
-            size=1,
-            show_legend=False
-        )
+        if not migration_data.empty:
+            g += geom_vline(
+                migration_data,
+                aes(xintercept='seconds', color='mig_legend', linetype='mig_legend'),
+                size=1,
+                show_legend=False
+            )
 
     # Apply color and linetype scales
     g += scale_color_manual(name='Legend', values=color_map)
@@ -76,7 +88,7 @@ def main():
         ['mem_allocated_public', 'mem_allocated_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Allocated', '../data/output/plots/allocated_memory.png',
+        'Memory (in Gb)', 'Memory Allocated', '../data/output/plots/allocated_memory.png',
         migration_data
     )
     plot_resource(
@@ -84,7 +96,7 @@ def main():
         ['mem_requested_public', 'mem_requested_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Requested', '../data/output/plots/requested_memory.png',
+        'Memory (in Gb)', 'Memory Requested', '../data/output/plots/requested_memory.png',
         migration_data
     )
     plot_resource(
@@ -92,7 +104,7 @@ def main():
         ['cpu_allocated_public', 'cpu_allocated_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Allocated', '../data/output/plots/allocated_cpu.png',
+        'CPU (in cores)', 'CPU Allocated', '../data/output/plots/allocated_cpu.png',
         migration_data
     )
     plot_resource(
@@ -100,7 +112,7 @@ def main():
         ['cpu_requested_public', 'cpu_requested_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Requested', '../data/output/plots/requested_cpu.png',
+        'CPU (in cores)', 'CPU Requested', '../data/output/plots/requested_cpu.png',
         migration_data
     )
 
