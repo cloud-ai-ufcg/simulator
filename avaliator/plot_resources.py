@@ -31,42 +31,29 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
         'Load': 'solid', 'Capacity': 'dashed',
         'Private AI Migration': 'dotted', 'Public AI Migration': 'dotted', 'Both AI Migrations': 'dotted'
     }
-    # Calcular segundos desde o início
-    plot_df = plot_df.copy()
-    # Mapear cada timestamp único para um valor de segundos (30, 60, ..., 30*N)
-    unique_timestamps = sorted(plot_df['timestamp'].unique())
-    ts_to_sec = {ts: sec for ts, sec in zip(unique_timestamps, range(30, 30 * len(unique_timestamps) + 1, 30))}
-    plot_df['seconds'] = plot_df['timestamp'].map(ts_to_sec)
-    max_seconds = plot_df['seconds'].max()
-    x_breaks = list(range(30, int(max_seconds) + 30, 30))
+    x_breaks = pd.date_range(df['timestamp'].min(), df['timestamp'].max(), periods=10)
     # Base plot
     g = (
         ggplot(plot_df)
-        + geom_step(aes(x='seconds', y='value', color='type', linetype='type'), size=1.5, na_rm=True)
+        + geom_step(aes(x='timestamp', y='value', color='type', linetype='type'), size=1.5, na_rm=True)
         + facet_wrap('~cluster', nrow=2, labeller=lambda x: 'Public Cluster' if x == 'Public' else 'Private Cluster')
-        + labs(title=title, y=y_label, x='Time (s)', color='Legend', linetype='Legend')
-        + scale_x_continuous(breaks=x_breaks)
+        + labs(title=title, y=y_label, x='Time (HH:MM:SS)', color='Legend', linetype='Legend')
+        + scale_x_datetime(breaks=x_breaks, date_labels='%H:%M:%S')
         + theme_bw()
     )
 
     # Add migration lines if they exist
     if migration_data is not None and not migration_data.empty:
         migration_data = migration_data.copy()
-        # Mapear apenas os timestamps de migração que existem nos dados
-        unique_timestamps = sorted(df['timestamp'].unique())
-        ts_to_sec = {ts: sec for ts, sec in zip(unique_timestamps, range(30, 30 * len(unique_timestamps) + 1, 30))}
-        migration_data = migration_data[migration_data['timestamp'].isin(unique_timestamps)]
-        migration_data['seconds'] = migration_data['timestamp'].map(ts_to_sec)
         migration_data['mig_legend'] = migration_data['type'].map({
             'private': 'Private AI Migration', 'public': 'Public AI Migration', 'both': 'Both AI Migrations'
         })
-        if not migration_data.empty:
-            g += geom_vline(
-                migration_data,
-                aes(xintercept='seconds', color='mig_legend', linetype='mig_legend'),
-                size=1,
-                show_legend=False
-            )
+        g += geom_vline(
+            migration_data,
+            aes(xintercept='timestamp', color='mig_legend', linetype='mig_legend'),
+            size=1,
+            show_legend=False
+        )
 
     # Apply color and linetype scales
     g += scale_color_manual(name='Legend', values=color_map)
