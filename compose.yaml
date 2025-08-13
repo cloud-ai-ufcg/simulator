@@ -8,6 +8,9 @@ services:
             - type: bind
               source: ~/.kube/karmada.config
               target: /root/.kube/karmada.config
+            - type: bind
+              source: ~/.kube/members.config
+              target: /root/.kube/members.config
         network_mode: "host"
 
     monitor:

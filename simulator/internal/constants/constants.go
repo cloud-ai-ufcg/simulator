@@ -10,7 +10,7 @@ const (
 
 // API routes
 const (
-	APIURLBroker       = "http://localhost:8080/broker/"
+	APIURLBroker       = "http://localhost:8081/broker/"
 	APIURLAIEngine     = "http://0.0.0.0:8083/start"
 	APIURLAIEngineStop = "http://0.0.0.0:8083/stop"
 )
