@@ -80,19 +80,19 @@ def build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu
     })
     return df
 
-def melt_df_with_cluster_and_cap(df, value_vars, cluster_vars, cap_vars, var_name, value_name, cluster_value_name, cap_value_name):
+def melt_df_with_cluster_and_cap(df, value_vars, cluster_vars, cap_vars, var_name, value_name, cluster_value_name, cap_value_name, id_vars=['timestamp']):
     """Melts the DataFrame to plot with cluster/capacity."""
     melted = pd.melt(
-        df, id_vars=['timestamp'], value_vars=value_vars, var_name=var_name, value_name=value_name
+        df, id_vars=id_vars, value_vars=value_vars, var_name=var_name, value_name=value_name
     )
     melted['cluster'] = melted[var_name].apply(lambda x: 'Public' if 'public' in x else 'Private')
     cluster_df = pd.melt(
-        df, id_vars=['timestamp'], value_vars=cluster_vars, var_name=var_name, value_name=cluster_value_name
+        df, id_vars=id_vars, value_vars=cluster_vars, var_name=var_name, value_name=cluster_value_name
     )
     cluster_df['cluster'] = cluster_df[var_name].apply(lambda x: 'Public' if 'public' in x else 'Private')
     cluster_df['type'] = 'cluster_load'
     cap_df = pd.melt(
-        df, id_vars=['timestamp'], value_vars=cap_vars, var_name=var_name, value_name=cap_value_name
+        df, id_vars=id_vars, value_vars=cap_vars, var_name=var_name, value_name=cap_value_name
     )
     cap_df['cluster'] = cap_df[var_name].apply(lambda x: 'Public' if 'public' in x else 'Private')
     cap_df['type'] = 'capacity'

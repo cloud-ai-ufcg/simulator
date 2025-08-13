@@ -11,8 +11,12 @@ warnings.filterwarnings("ignore", category=PlotnineWarning)
 
 def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filename, migration_data=None):
     """Generic function to plot resource usage/capacity."""
+    # Convert timestamp to seconds from the start
+    start_time = df['timestamp'].min()
+    df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
+
     _, cluster_df, cap_df = melt_df_with_cluster_and_cap(
-        df, value_vars, cluster_vars, cap_vars, 'type', y_label, f'{y_label}_cluster', f'{y_label}_cap')
+        df, value_vars, cluster_vars, cap_vars, 'type', y_label, f'{y_label}_cluster', f'{y_label}_cap', id_vars=['time_seconds'])
     cluster_df = cluster_df.rename(columns={f'{y_label}_cluster': 'value'})
     cap_df = cap_df.rename(columns={f'{y_label}_cap': 'value'})
     cluster_df['type'] = 'Load'
@@ -31,15 +35,17 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
         'Load': 'solid', 'Capacity': 'dashed',
         'Private AI Migration': 'dotted', 'Public AI Migration': 'dotted', 'Both AI Migrations': 'dotted'
     }
-    x_breaks = pd.date_range(df['timestamp'].min(), df['timestamp'].max(), periods=10)
-    
+
+    max_time = df['time_seconds'].max()
+    x_breaks = range(0, int(max_time) + 120, 120)
+
     # Base plot
     g = (
         ggplot(plot_df)
-        + geom_step(aes(x='timestamp', y='value', color='type', linetype='type'), size=1.5, na_rm=True)
+        + geom_step(aes(x='time_seconds', y='value', color='type', linetype='type'), size=1.5, na_rm=True)
         + facet_wrap('~cluster', nrow=2, labeller=lambda x: 'Public Cluster' if x == 'Public' else 'Private Cluster')
-        + labs(title=title, y=y_label, x='Time', color='Legend', linetype='Legend')
-        + scale_x_datetime(date_labels="%H:%M:%S", breaks=x_breaks)
+        + labs(title=title, y=y_label, x='Time (seconds)', color='Legend', linetype='Legend')
+        + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
     )
 
@@ -49,9 +55,10 @@ def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filena
         migration_data['mig_legend'] = migration_data['type'].map({
             'private': 'Private AI Migration', 'public': 'Public AI Migration', 'both': 'Both AI Migrations'
         })
+        migration_data['xintercept'] = migration_data['execution'] * 60
         g += geom_vline(
             migration_data,
-            aes(xintercept='timestamp', color='mig_legend', linetype='mig_legend'),
+            aes(xintercept='xintercept', color='mig_legend', linetype='mig_legend'),
             size=1,
             show_legend=False
         )
@@ -76,7 +83,7 @@ def main():
         ['mem_allocated_public', 'mem_allocated_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Allocated', '../data/output/plots/allocated_memory.png',
+        'Memory (in Gb)', 'Memory Allocated', '../data/output/plots/allocated_memory.png',
         migration_data
     )
     plot_resource(
@@ -84,7 +91,7 @@ def main():
         ['mem_requested_public', 'mem_requested_private'],
         ['cluster_mem_load_public', 'cluster_mem_load_private'],
         ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'],
-        'Memory', 'Memory Requested', '../data/output/plots/requested_memory.png',
+        'Memory (in Gb)', 'Memory Requested', '../data/output/plots/requested_memory.png',
         migration_data
     )
     plot_resource(
@@ -92,7 +99,7 @@ def main():
         ['cpu_allocated_public', 'cpu_allocated_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Allocated', '../data/output/plots/allocated_cpu.png',
+        'CPU (in cores)', 'CPU Allocated', '../data/output/plots/allocated_cpu.png',
         migration_data
     )
     plot_resource(
@@ -100,7 +107,7 @@ def main():
         ['cpu_requested_public', 'cpu_requested_private'],
         ['cluster_cpu_load_public', 'cluster_cpu_load_private'],
         ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'],
-        'CPU', 'CPU Requested', '../data/output/plots/requested_cpu.png',
+        'CPU (in cores)', 'CPU Requested', '../data/output/plots/requested_cpu.png',
         migration_data
     )
 

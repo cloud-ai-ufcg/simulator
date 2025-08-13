@@ -77,7 +77,7 @@ git submodule update --init --recursive
   - Image: `broker:latest`
   - Container name: `broker-simulator`
   - Dockerfile: `broker/Dockerfile.api`
-  - Listens on port: 8080
+  - Listens on port: 8081
 
 - **Monitor**
   - Image: `monitor:latest`

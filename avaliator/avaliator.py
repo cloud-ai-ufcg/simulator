@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 import json
-import matplotlib.dates as mdates
 import os
+from plotnine import ggplot, aes, geom_step, labs, theme_bw, ggsave, scale_x_continuous, geom_area, scale_fill_manual, scale_color_manual, geom_ribbon
 os.environ['LIBGL_DEBUG'] = 'quiet'
 
 def load_data(json_path):
@@ -14,9 +14,14 @@ def load_data(json_path):
         raw_data = json.load(f)
     
     records = []
-    for ts, data in raw_data.items():
+    # Sort by timestamp to ensure correct order
+    sorted_ts = sorted(raw_data.keys(), key=int)
+
+    for ts_str in sorted_ts:
+        ts = int(ts_str)
+        data = raw_data[ts_str]
         records.append({
-            "timestamp": datetime.fromtimestamp(int(ts)),
+            "timestamp": datetime.fromtimestamp(ts),
             "cpu_load_private": data["cluster_load_cpu"]["private"],
             "cpu_load_public": data["cluster_load_cpu"]["public"],
             "mem_load_private": data["cluster_load_memory"]["private"],
@@ -24,116 +29,118 @@ def load_data(json_path):
             "number_of_pods_pending": data["number_of_pods_pending"],
             "number_pending_private": data["number_pending_private"],
             "number_pending_public": data["number_pending_public"],
-            "total_percent_pending": data["total_percent_pending"]
+            "total_percent_pending": data["total_percent_pending"],
+            "percent_pending_private": data.get("percent_pending_private", 0),
+            "percent_pending_public": data.get("percent_pending_public", 0)
         })
     
     df = pd.DataFrame(records)
-    df['time_str'] = df['timestamp'].dt.strftime('%H:%M')
+
+    # Calculate elapsed time in seconds from the first timestamp
+    if not df.empty:
+        start_time = df['timestamp'].min()
+        df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
+    else:
+        df['time_seconds'] = pd.Series(dtype='float64')
+
     return df
 
 def plot_cpu_load(df, output_dir):
-    """Plot CPU load by cluster over time."""
-    plt.figure(figsize=(12, 6))
-    sns.lineplot(x="timestamp", y="cpu_load_private", data=df, label="CPU Load Private", marker="o")
-    sns.lineplot(x="timestamp", y="cpu_load_public", data=df, label="CPU Load Public", marker="o")
-    plt.title("CPU Load by Cluster over time")
-    plt.ylabel("CPU Load")
-    plt.xlabel("Time")
-    ax = plt.gca()
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
+    """Plot CPU load by cluster over time using plotnine."""
+    plot_df = df.melt(id_vars=['time_seconds'], value_vars=['cpu_load_private', 'cpu_load_public'],
+                        var_name='Cluster', value_name='CPU Load')
+    plot_df['Cluster'] = plot_df['Cluster'].map({'cpu_load_private': 'Private', 'cpu_load_public': 'Public'})
+
+    max_time = df['time_seconds'].max()
+    x_breaks = range(0, int(max_time) + 120, 120)
+
+    g = (
+        ggplot(plot_df, aes(x='time_seconds', y='CPU Load', color='Cluster'))
+        + geom_step(size=1.5)
+        + labs(title="CPU Load by Cluster over time", y="CPU Load", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + theme_bw()
+    )
     
-    # Save the plot
     output_path = os.path.join(output_dir, "cpu_load.png")
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
     # print(f"CPU load plot saved to: {output_path}")
-    # plt.show()
 
 def plot_memory_load(df, output_dir):
-    """Plot memory load by cluster over time."""
-    plt.figure(figsize=(12, 6))
-    sns.lineplot(x="timestamp", y="mem_load_private", data=df, label="Mem Load Private", marker="o")
-    sns.lineplot(x="timestamp", y="mem_load_public", data=df, label="Mem Load Public", marker="o")
-    plt.title("Memory Load by Cluster over time")
-    plt.ylabel("Memory Load")
-    plt.xlabel("Time")
-    ax = plt.gca()
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
+    """Plot memory load by cluster over time using plotnine."""
+    plot_df = df.melt(id_vars=['time_seconds'], value_vars=['mem_load_private', 'mem_load_public'],
+                        var_name='Cluster', value_name='Memory Load')
+    plot_df['Cluster'] = plot_df['Cluster'].map({'mem_load_private': 'Private', 'mem_load_public': 'Public'})
+
+    max_time = df['time_seconds'].max()
+    x_breaks = range(0, int(max_time) + 120, 120)
+
+    g = (
+        ggplot(plot_df, aes(x='time_seconds', y='Memory Load', color='Cluster'))
+        + geom_step(size=1.5)
+        + labs(title="Memory Load by Cluster over time", y="Memory Load", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + theme_bw()
+    )
     
-    # Save the plot
     output_path = os.path.join(output_dir, "memory_load.png")
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
     # print(f"Memory load plot saved to: {output_path}")
-    # plt.show()
 
 def plot_pending_pods(df, output_dir):
-    """Plot stacked area for pending pods (private/public) over time, with hatching."""
-    plt.figure(figsize=(12, 6))
-    x = df['timestamp']
-    y_private = df['number_pending_private'].fillna(0)
-    y_public = df['number_pending_public'].fillna(0)
+    """Plot stacked step area for pending pods (private/public) over time using plotnine."""
+    # Ensure data is sorted by time and prepare pod columns
+    df = df.sort_values('time_seconds').reset_index(drop=True)
+    df['private_pods'] = df['number_pending_private'].fillna(0)
+    df['public_pods'] = df['number_pending_public'].fillna(0)
+    df['total_pods'] = df['private_pods'] + df['public_pods']
 
-    plt.fill_between(
-        x, 0, y_private,
-        label="Pending Private",
-        color='tab:blue',
-        alpha=0.4,
-        hatch='//',
-        edgecolor='tab:blue'
+    # Create a stepped version of the DataFrame for accurate area plotting
+    if len(df) > 1:
+        stepped_df = pd.concat([df.iloc[[0]]] + [
+            row for i in range(len(df) - 1)
+            for row in [df.iloc[[i]].assign(time_seconds=df.iloc[i+1].time_seconds), df.iloc[[i+1]]]
+                ], ignore_index=True)
+    else:
+        stepped_df = df
+
+    max_time = df['time_seconds'].max() if not df.empty else 0
+    x_breaks = range(0, int(max_time) + 120, 120)
+
+    g = (
+        ggplot(stepped_df, aes(x='time_seconds'))
+        # Stacked areas using the pre-stepped data
+        + geom_area(aes(y='total_pods', fill="'Public'"), position='identity', alpha=0.7)
+        + geom_area(aes(y='private_pods', fill="'Private'"), position='identity', alpha=0.7)
+        # Line for the total
+        + geom_step(aes(y='total_pods'), color='black', size=1)
+
+        + labs(title="Total Pending Pods over time (Stacked Private/Public)", y="Pending Pods", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + scale_fill_manual(name='Cluster', values={'Private': '#6495ED', 'Public': '#FFA500'})
+        + theme_bw()
     )
 
-    plt.fill_between(
-        x, y_private, y_private + y_public,
-        label="Pending Public",
-        color='tab:orange',
-        alpha=0.4,
-        hatch='\\\\',
-        edgecolor='tab:orange'
-    )
-
-    plt.plot(x, y_private + y_public, label="Total Pending", color='black', marker='o')
-    plt.title("Total Pending Pods over time (Stacked Private/Public)")
-    plt.ylabel("Pending Pods")
-    plt.xlabel("Time")
-    ax = plt.gca()
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    
-    # Save the plot
     output_path = os.path.join(output_dir, "pending_pods.png")
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
     # print(f"Pending pods plot saved to: {output_path}")
-    # plt.show()
 
 def plot_total_percent_pending(df, output_dir):
-    """Plot total percent pending over time."""
-    plt.figure(figsize=(12, 6))
-    sns.lineplot(x="timestamp", y="total_percent_pending", data=df, label="Total Percent Pending", marker="o")
-    plt.title("Total Percent Pending over time")
-    plt.ylabel("Total Percent Pending (%)")
-    plt.xlabel("Time")
-    ax = plt.gca()
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
+    """Plot total percent pending pods over time."""
+    max_time = df['time_seconds'].max() if not df.empty else 0
+    x_breaks = range(0, int(max_time) + 120, 120)
+
+    g = (
+        ggplot(df, aes(x='time_seconds', y='total_percent_pending'))
+        + geom_step(color='black', size=1)
+        + labs(title="Total Percent Pending over time", y="Percent Pending (%)", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + theme_bw()
+    )
     
-    # Save the plot
     output_path = os.path.join(output_dir, "total_percent_pending.png")
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
     # print(f"Total percent pending plot saved to: {output_path}")
-    # plt.show()
 
 def main():
     """Main function to run the analysis."""
