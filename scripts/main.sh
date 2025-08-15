@@ -15,9 +15,9 @@ set -euo pipefail
 trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
 # -----------------------------------------------------------------------------
-# Setup Python venv and dependencies for Avaliator
+# Setup Python venv and dependencies for Analyzer
 # -----------------------------------------------------------------------------
-echo -e "${COLOR}🐍 Setting up Python venv for Avaliator...${RESET}"
+echo -e "${COLOR}🐍 Setting up Python venv for Analyzer...${RESET}"
 SCRIPT_DIR="$(dirname "$0")"
 pushd "$SCRIPT_DIR" > /dev/null
 chmod +x setup_venv.sh

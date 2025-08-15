@@ -1,6 +1,54 @@
 import pandas as pd
+from typing import Dict, Any, List
 from utils import parse_resource_value
 
+# Functions from process_json.py
+def calculate_total_percent_pending(workloads: List[Dict[str, Any]]) -> float:
+    """Calculate the total percentage of pending pods across all workloads."""
+    total_pods = sum(workload.get('pods_total', 0) for workload in workloads)
+    total_pending = sum(workload.get('pods_pending', 0) for workload in workloads)
+    return (total_pending / total_pods) if total_pods > 0 else 0.0
+
+def calculate_pending_per_cluster(workloads: List[Dict[str, Any]]) -> tuple:
+    """Calculate the number of pending pods for each cluster type."""
+    pending_private = sum(w.get('pods_pending', 0) for w in workloads if w.get('cluster_label') == 'private')
+    pending_public = sum(w.get('pods_pending', 0) for w in workloads if w.get('cluster_label') != 'private')
+    return pending_public, pending_private, pending_public + pending_private
+
+def extract_cluster_loads(cluster_info: List[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
+    """Extract cluster load information from cluster_info array."""
+    cluster_loads = {}
+    for cluster in cluster_info:
+        cluster_label = cluster.get('cluster_label')
+        if cluster_label and 'cluster_load' in cluster:
+            cluster_loads[cluster_label] = {
+                'cpu': cluster['cluster_load'].get('cpu', 0.0),
+                'memory': cluster['cluster_load'].get('memory', 0.0)
+            }
+    return cluster_loads
+
+def process_json_data(input_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Process the entire JSON input file into a cleaned dictionary."""
+    processed_data = {}
+    for timestamp, ts_data in input_data.items():
+        workloads = ts_data.get('workloads', [])
+        cluster_info = ts_data.get('cluster_info', [])
+        
+        total_percent_pending = calculate_total_percent_pending(workloads)
+        pending_public, pending_private, total_pending = calculate_pending_per_cluster(workloads)
+        cluster_loads = extract_cluster_loads(cluster_info)
+        
+        processed_data[timestamp] = {
+            'cluster_load_cpu': {lbl: loads['cpu'] for lbl, loads in cluster_loads.items()},
+            'cluster_load_memory': {lbl: loads['memory'] for lbl, loads in cluster_loads.items()},
+            'number_of_pods_pending': total_pending,
+            'number_pending_public': round(pending_public, 3),
+            'number_pending_private': round(pending_private, 3),
+            'total_percent_pending': round(total_percent_pending, 3)
+        }
+    return processed_data
+
+# Functions from processing.py
 def process_resources(data):
     """Calcula recursos alocados e requisitados para cada cluster."""
     timestamps = sorted([int(ts) for ts in data.keys()])
@@ -16,10 +64,8 @@ def process_resources(data):
             cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') // 1000
             mem_load = c['cluster_load'].get('memory', 0)
             cpu_load = c['cluster_load'].get('cpu', 0)
-            # Alocado: capacity * min(load, 1)
             mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
             cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
-            # Requisitado: capacity * load
             mem_requested[label].append(mem_cap * mem_load)
             cpu_requested[label].append(cpu_cap * cpu_load)
     return timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested
