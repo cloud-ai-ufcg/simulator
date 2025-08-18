@@ -56,8 +56,12 @@ def plot_total_percent_pending(df, output_dir):
     max_time = df['time_seconds'].max() if not df.empty else 0
     x_breaks = range(0, int(max_time) + 120, 120)
 
+    # Create a copy of the dataframe to avoid modifying the original
+    plot_df = df.copy()
+    plot_df['total_percent_pending'] = plot_df['total_percent_pending'] * 100
+
     g = (
-        ggplot(df, aes(x='time_seconds', y='total_percent_pending'))
+        ggplot(plot_df, aes(x='time_seconds', y='total_percent_pending'))
         + geom_step(color='black', size=1)
         + labs(title="Total Percent Pending over time", y="Percent Pending (%)", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)

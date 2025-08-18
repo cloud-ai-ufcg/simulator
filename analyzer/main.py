@@ -63,7 +63,6 @@ def main():
                 "total_percent_pending": data["total_percent_pending"],
             })
         df_summary = pd.DataFrame(records)
-        print(df_summary)
         if not df_summary.empty:
             start_time = df_summary['timestamp'].min()
             df_summary['time_seconds'] = (df_summary['timestamp'] - start_time).dt.total_seconds()
