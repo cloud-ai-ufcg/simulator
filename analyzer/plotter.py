@@ -1,9 +1,12 @@
 import os
 import pandas as pd
-from plotnine import ggplot, aes, geom_step, labs, theme_bw, ggsave, scale_x_continuous, geom_area, scale_fill_manual, facet_wrap, geom_vline, scale_color_manual, scale_linetype_manual
 import warnings
 from plotnine.exceptions import PlotnineWarning
-from data_processor import melt_df_with_cluster_and_cap
+from plotnine import (
+    ggplot, aes, geom_step, labs, geom_vline, facet_wrap, 
+    scale_color_manual, scale_linetype_manual, scale_x_continuous, 
+    theme_bw
+)
 
 warnings.filterwarnings("ignore", category=PlotnineWarning)
 os.environ['LIBGL_DEBUG'] = 'quiet'
@@ -24,9 +27,9 @@ def plot_cpu_load(df, output_dir):
         + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
     )
-    
+
     output_path = os.path.join(output_dir, "cpu_load.png")
-    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
+    g.save(output_path, width=12, height=6, dpi=300)
 
 def plot_memory_load(df, output_dir):
     """Plot memory load by cluster over time using plotnine."""
@@ -44,41 +47,9 @@ def plot_memory_load(df, output_dir):
         + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
     )
-    
+
     output_path = os.path.join(output_dir, "memory_load.png")
-    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
-
-def plot_pending_pods(df, output_dir):
-    """Plot stacked step area for pending pods (private/public) over time using plotnine."""
-    df = df.sort_values('time_seconds').reset_index(drop=True)
-    df['private_pods'] = df['number_pending_private'].fillna(0)
-    df['public_pods'] = df['number_pending_public'].fillna(0)
-    df['total_pods'] = df['private_pods'] + df['public_pods']
-
-    if len(df) > 1:
-        stepped_df = pd.concat([df.iloc[[0]]] + [
-            row for i in range(len(df) - 1)
-            for row in [df.iloc[[i]].assign(time_seconds=df.iloc[i+1].time_seconds), df.iloc[[i+1]]]
-                ], ignore_index=True)
-    else:
-        stepped_df = df
-
-    max_time = df['time_seconds'].max() if not df.empty else 0
-    x_breaks = range(0, int(max_time) + 120, 120)
-
-    g = (
-        ggplot(stepped_df, aes(x='time_seconds'))
-        + geom_area(aes(y='total_pods', fill="'Public'"), position='identity', alpha=0.7)
-        + geom_area(aes(y='private_pods', fill="'Private'"), position='identity', alpha=0.7)
-        + geom_step(aes(y='total_pods'), color='black', size=1)
-        + labs(title="Total Pending Pods over time (Stacked Private/Public)", y="Pending Pods", x="Time (seconds)")
-        + scale_x_continuous(breaks=x_breaks)
-        + scale_fill_manual(name='Cluster', values={'Private': '#6495ED', 'Public': '#FFA500'})
-        + theme_bw()
-    )
-
-    output_path = os.path.join(output_dir, "pending_pods.png")
-    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
+    g.save(output_path, width=12, height=6, dpi=300)
 
 def plot_total_percent_pending(df, output_dir):
     """Plot total percent pending pods over time."""
@@ -92,83 +63,139 @@ def plot_total_percent_pending(df, output_dir):
         + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
     )
-    
-    output_path = os.path.join(output_dir, "total_percent_pending.png")
-    ggsave(g, filename=output_path, dpi=300, width=12, height=6)
 
-def plot_resource(df, value_vars, cluster_vars, cap_vars, y_label, title, filename, migration_data=None):
-    """Generic function to plot resource usage/capacity."""
-    # Ensure we have a time_seconds column starting from 0
-    if 'time_seconds' not in df.columns and 'timestamp' in df.columns:
+    output_path = os.path.join(output_dir, "total_percent_pending.png")
+    g.save(output_path, width=12, height=6, dpi=300)
+
+def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migration_data=None):
+    """
+    Generates a 4-panel plot for resource usage and pending pods.
+
+    Layout:
+    1. Top: Private Cluster - Pending Pods
+    2. Mid-Top: Private Cluster - Resource Usage
+    3. Mid-Bottom: Public Cluster - Resource Usage
+    4. Bottom: Public Cluster - Pending Pods
+    """
+    df = df.copy()
+
+    # Garante a existência de uma coluna time_seconds começando em 0
+    if 'timestamp' in df.columns:
         start_time = df['timestamp'].min()
         df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
-    
-    # Calculate time in seconds if not already done
-    if 'time_seconds' not in df.columns:
-        df['time_seconds'] = df.index * 60  # Assuming 1 minute intervals if no timestamp
-    
-    # Ensure time starts from 0
+    else:
+        df['time_seconds'] = df.index * 60  # Assume intervalos de 1 minuto se não houver timestamp
+
     min_time = df['time_seconds'].min()
     df['time_seconds'] = df['time_seconds'] - min_time
 
-    _, cluster_df, cap_df = melt_df_with_cluster_and_cap(
-        df, value_vars, cluster_vars, cap_vars, 'type', y_label, f'{y_label}_cluster', f'{y_label}_cap', id_vars=['time_seconds'])
-    cluster_df = cluster_df.rename(columns={f'{y_label}_cluster': 'value'})
-    cap_df = cap_df.rename(columns={f'{y_label}_cap': 'value'})
-    cluster_df['type'] = 'Load'
-    cap_df['type'] = 'Capacity'
-    plot_df = pd.concat([cluster_df, cap_df], ignore_index=True)
-    plot_df['type'] = pd.Categorical(plot_df['type'], categories=['Load', 'Capacity', 'Migration to Private', 'Migration to Public', 'Both Migrations', 'No Migration'], ordered=True)
+    # --- 1. Preparação dos dados de Recursos (Uso e Capacidade) ---
+    df_usage_melt = df.melt(id_vars=['time_seconds'], value_vars=value_vars, var_name='metric', value_name='value')
+    df_usage_melt['cluster'] = df_usage_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    df_usage_melt['type'] = 'Load'
+
+    df_cap_melt = df.melt(id_vars=['time_seconds'], value_vars=cap_vars, var_name='metric', value_name='value')
+    df_cap_melt['cluster'] = df_cap_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    df_cap_melt['type'] = 'Capacity'
+
+    plot_df_resources = pd.concat([df_usage_melt, df_cap_melt], ignore_index=True)
+    plot_df_resources['plot_group'] = plot_df_resources['cluster'].apply(lambda x: f'{x} Cluster Resources')
+
+    # --- 2. Preparação dos dados de Pods Pendentes ---
+    df_pending_melt = df.melt(id_vars=['time_seconds'], value_vars=pending_vars, var_name='metric', value_name='value')
+    df_pending_melt['cluster'] = df_pending_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    df_pending_melt['type'] = 'Pending'
+    df_pending_melt['plot_group'] = df_pending_melt['cluster'].apply(lambda x: f'{x} Cluster Pending Pods')
+
+    # --- 3. Combina os DataFrames e define a ordem dos gráficos ---
+    plot_df = pd.concat([plot_df_resources, df_pending_melt], ignore_index=True)
+
+    plot_order = [
+        'Private Cluster Pending Pods',
+        'Private Cluster Resources',
+        'Public Cluster Resources',
+        'Public Cluster Pending Pods'
+    ]
+    plot_df['plot_group'] = pd.Categorical(plot_df['plot_group'], categories=plot_order, ordered=True)
+
+    categories = [
+        'Load', 'Capacity', 'Pending', 'Migration to Private', 
+        'Migration to Public', 'Both Migrations', 'No Migration'
+    ]
+    plot_df['type'] = pd.Categorical(plot_df['type'], 
+                                   categories=categories, 
+                                   ordered=True)
     plot_df = plot_df.sort_values('type')
-    
+
+    # Mapas de cores e tipos de linha
     color_map = {
-        'Load': '#d62728', 'Capacity': '#1f77b4',
+        'Load': '#d62728', 'Capacity': '#1f77b4', 'Pending': '#8c564b',
         'Migration to Private': '#9467bd', 'Migration to Public': '#ff7f0e', 'Both Migrations': '#2ca02c', 'No Migration': '#5f615f',
     }
     linetype_map = {
-        'Load': 'solid', 'Capacity': 'dashed',
+        'Load': 'solid', 'Capacity': 'dashed', 'Pending': 'solid',
         'Migration to Private': 'dotted', 'Migration to Public': 'dotted', 'Both Migrations': 'dotted', 'No Migration': 'dotted'
     }
 
-    # Calculate x-axis breaks every 120 seconds
+    # Calcula os intervalos do eixo X
     max_time = df['time_seconds'].max()
     x_breaks = list(range(0, int(max_time) + 120, 120))
-    
-    # Ensure we don't have too many labels if the time range is large
     if len(x_breaks) > 20:
-        x_breaks = list(range(0, int(max_time) + 120, 300))  # Switch to 5-minute intervals if too many points
+        x_breaks = list(range(0, int(max_time) + 300, 300))
 
+    # --- 4. Criação do Gráfico com ggplot ---
     g = (
         ggplot(plot_df)
-        + geom_step(aes(x='time_seconds', y='value', color='type', linetype='type'), size=1.5, na_rm=True)
-        + facet_wrap('~cluster', nrow=2, labeller=lambda x: 'Public Cluster' if x == 'Public' else 'Private Cluster')
-        + labs(title=title, y=y_label, x='Time (seconds)', color='Legend', linetype='Legend')
+        + geom_step(
+            aes(x='time_seconds', y='value', color='type', linetype='type'), 
+            size=1.5, 
+            na_rm=True
+        )
+        + facet_wrap(
+            '~plot_group', 
+            ncol=1, 
+            scales='free_y', 
+            labeller=lambda x: x.replace(" Resources", "").replace(
+                " Pending Pods", "\n(Pending Pods)"
+            )
+        )
+        + labs(title=title, y='Value', x='Time (seconds)', color='Legend', linetype='Legend')
         + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
         + theme_bw()
     )
 
+    # Adiciona linhas verticais para migrações (será aplicado em todos os painéis)
     if migration_data is not None and not migration_data.empty:
         migration_data = migration_data.copy()
-        migration_data['mig_legend'] = migration_data['type'].map({
-            'private': 'Migration to Private', 'public': 'Migration to Public', 'both': 'Both Migrations', 'no migration': 'No Migration'
-        })
-        # Adjust migration times to be relative to the start time
+        migration_map = {
+            'private': 'Migration to Private', 
+            'public': 'Migration to Public', 
+            'both': 'Both Migrations', 
+            'no migration': 'No Migration'
+        }
+        migration_data['mig_legend'] = migration_data['type'].map(migration_map)
         migration_data['xintercept'] = migration_data['execution'] * 60 - min_time
-        
-        # Only include migrations that are within the plot's time range
-        migration_data = migration_data[(migration_data['xintercept'] >= 0) & (migration_data['xintercept'] <= max_time)]
-        
+        migration_data = migration_data[
+            (migration_data['xintercept'] >= 0) & 
+            (migration_data['xintercept'] <= max_time)
+        ]
+
         if not migration_data.empty:
             g += geom_vline(
                 migration_data,
-                aes(xintercept='xintercept', color='mig_legend', linetype='mig_legend'),
+                aes(
+                    xintercept='xintercept',
+                    color='mig_legend',
+                    linetype='mig_legend'
+                ),
                 size=1.5,
                 show_legend=False
             )
 
     g += scale_color_manual(name='Legend', values=color_map)
     g += scale_linetype_manual(name='Legend', values=linetype_map)
-    
-    # Ensure output directory exists
+
+    # Garante que o diretório de saída exista
     os.makedirs(os.path.dirname(filename) or '.', exist_ok=True)
-    g.save(filename, width=16, height=7, dpi=150)
+    # Aumenta a altura para acomodar os 4 gráficos
+    g.save(filename, width=16, height=12, dpi=300)

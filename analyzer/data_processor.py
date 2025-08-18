@@ -56,6 +56,8 @@ def process_resources(data):
     mem_requested = {'public': [], 'private': []}
     cpu_allocated = {'public': [], 'private': []}
     cpu_requested = {'public': [], 'private': []}
+    pending_pods = {'public': [], 'private': []}
+    
     for ts in timestamps:
         ts_str = str(ts)
         for c in data[ts_str]['cluster_info']:
@@ -68,41 +70,71 @@ def process_resources(data):
             cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
             mem_requested[label].append(mem_cap * mem_load)
             cpu_requested[label].append(cpu_cap * cpu_load)
-    return timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested
+
+        pods_sum_for_ts = {'public': 0, 'private': 0}
+        for workload in data[ts_str].get('workloads', []):
+            label = workload['cluster_label']
+            pending_count = workload.get('pods_pending', 0)
+            if label in pods_sum_for_ts:
+                pods_sum_for_ts[label] += pending_count
+        pending_pods['public'].append(pods_sum_for_ts['public'])
+        pending_pods['private'].append(pods_sum_for_ts['private'])
+
+    return timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods
 
 def process_cluster_info(data, timestamps, limit_load=True):
     """Processes cluster info (limiting load or not)."""
     result = {k: [] for k in [
         'mem_load_public', 'mem_load_private', 'cpu_load_public', 'cpu_load_private',
-        'cpu_capacity_public', 'cpu_capacity_private', 'memory_capacity_public', 'memory_capacity_private']}
+        'cpu_capacity_public', 'cpu_capacity_private', 'memory_capacity_public', 'memory_capacity_private',
+        'number_pending_public', 'number_pending_private'
+    ]}
+
     for ts in timestamps:
         ts_str = str(ts)
+        
+        pods_sum_for_ts = {'public': 0, 'private': 0}
+        
+        for workload in data[ts_str].get('workloads', []):
+            label = workload.get('cluster_label')
+            pending_count = workload.get('pods_pending', 0)
+            if label in pods_sum_for_ts:
+                pods_sum_for_ts[label] += pending_count
+                
+        result['number_pending_public'].append(pods_sum_for_ts['public'])
+        result['number_pending_private'].append(pods_sum_for_ts['private'])
+
         for c in data[ts_str]['cluster_info']:
             mem_load = c['cluster_load'].get('memory', 0)
             cpu_load = c['cluster_load'].get('cpu', 0)
             if limit_load:
                 mem_load = min(mem_load, 1.0)
                 cpu_load = min(cpu_load, 1.0)
+            
             mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') // 1024
             cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') // 1000
+            
             if c['cluster_label'] == 'public':
                 result['mem_load_public'].append(mem_load * mem_cap)
                 result['cpu_load_public'].append(cpu_load * cpu_cap)
                 result['cpu_capacity_public'].append(cpu_cap)
                 result['memory_capacity_public'].append(mem_cap)
+            
             elif c['cluster_label'] == 'private':
                 result['mem_load_private'].append(mem_load * mem_cap)
                 result['cpu_load_private'].append(cpu_load * cpu_cap)
                 result['cpu_capacity_private'].append(cpu_cap)
                 result['memory_capacity_private'].append(mem_cap)
+
     return (
         result['mem_load_public'], result['mem_load_private'],
         result['cpu_load_public'], result['cpu_load_private'],
         result['cpu_capacity_public'], result['cpu_capacity_private'],
-        result['memory_capacity_public'], result['memory_capacity_private']
+        result['memory_capacity_public'], result['memory_capacity_private'],
+        result['number_pending_public'], result['number_pending_private']
     )
 
-def build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, cluster_info):
+def build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info):
     """Builds a pandas DataFrame from the processed data."""
     index = pd.to_datetime(timestamps, unit='s')
     df = pd.DataFrame({
@@ -115,6 +147,8 @@ def build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu
         'cpu_allocated_private': cpu_allocated['private'],
         'cpu_requested_public': cpu_requested['public'],
         'cpu_requested_private': cpu_requested['private'],
+        'number_pending_public': pending_pods['public'],
+        'number_pending_private': pending_pods['private'],
         'cluster_mem_load_public': cluster_info[0],
         'cluster_mem_load_private': cluster_info[1],
         'cluster_cpu_load_public': cluster_info[2],

@@ -12,7 +12,7 @@ import json
 import pandas as pd
 from data_loader import load_json_data, parse_migration_logs
 from data_processor import process_json_data, process_resources, process_cluster_info, build_dataframe
-from plotter import plot_cpu_load, plot_memory_load, plot_pending_pods, plot_total_percent_pending, plot_resource
+from plotter import plot_cpu_load, plot_memory_load, plot_total_percent_pending, plot_resource
 
 def main():
     """Main function to run the analysis and generate plots."""
@@ -32,18 +32,18 @@ def main():
         raw_data = load_json_data(json_path)
         migration_data = parse_migration_logs(os.path.join(logs_dir, 'actuator.log'))
 
-        timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested = process_resources(raw_data)
+        timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods = process_resources(raw_data)
         
         cluster_info_alloc = process_cluster_info(raw_data, timestamps, limit_load=True)
-        df_alloc = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, cluster_info_alloc)
+        df_alloc = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info_alloc)
         
         cluster_info_req = process_cluster_info(raw_data, timestamps, limit_load=False)
-        df_req = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, cluster_info_req)
+        df_req = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info_req)
 
-        plot_resource(df_alloc, ['mem_allocated_public', 'mem_allocated_private'], ['cluster_mem_load_public', 'cluster_mem_load_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], 'Memory (in Gb)', 'Memory Allocated', os.path.join(output_dir, 'allocated_memory.png'), migration_data)
-        plot_resource(df_req, ['mem_requested_public', 'mem_requested_private'], ['cluster_mem_load_public', 'cluster_mem_load_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], 'Memory (in Gb)', 'Memory Requested', os.path.join(output_dir, 'requested_memory.png'), migration_data)
-        plot_resource(df_alloc, ['cpu_allocated_public', 'cpu_allocated_private'], ['cluster_cpu_load_public', 'cluster_cpu_load_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], 'CPU (in cores)', 'CPU Allocated', os.path.join(output_dir, 'allocated_cpu.png'), migration_data)
-        plot_resource(df_req, ['cpu_requested_public', 'cpu_requested_private'], ['cluster_cpu_load_public', 'cluster_cpu_load_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], 'CPU (in cores)', 'CPU Requested', os.path.join(output_dir, 'requested_cpu.png'), migration_data)
+        plot_resource(df_alloc, ['mem_allocated_public', 'mem_allocated_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Allocated', os.path.join(output_dir, 'allocated_memory.png'), migration_data)
+        plot_resource(df_req, ['mem_requested_public', 'mem_requested_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Requested', os.path.join(output_dir, 'requested_memory.png'), migration_data)
+        plot_resource(df_alloc, ['cpu_allocated_public', 'cpu_allocated_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Allocated', os.path.join(output_dir, 'allocated_cpu.png'), migration_data)
+        plot_resource(df_req, ['cpu_requested_public', 'cpu_requested_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Requested', os.path.join(output_dir, 'requested_cpu.png'), migration_data)
 
         processed_data_for_summary = process_json_data(raw_data)
         records = []
@@ -63,6 +63,7 @@ def main():
                 "total_percent_pending": data["total_percent_pending"],
             })
         df_summary = pd.DataFrame(records)
+        print(df_summary)
         if not df_summary.empty:
             start_time = df_summary['timestamp'].min()
             df_summary['time_seconds'] = (df_summary['timestamp'] - start_time).dt.total_seconds()
@@ -71,7 +72,6 @@ def main():
 
         plot_cpu_load(df_summary, output_dir)
         plot_memory_load(df_summary, output_dir)
-        plot_pending_pods(df_summary, output_dir)
         plot_total_percent_pending(df_summary, output_dir)
 
     except FileNotFoundError:
