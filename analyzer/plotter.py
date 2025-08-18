@@ -4,7 +4,7 @@ import warnings
 from plotnine.exceptions import PlotnineWarning
 from plotnine import (
     ggplot, aes, geom_step, labs, geom_vline, facet_wrap, 
-    scale_color_manual, scale_linetype_manual, scale_x_continuous, 
+    scale_color_manual, scale_linetype_manual, scale_x_continuous,
     theme_bw
 )
 
@@ -123,11 +123,11 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     plot_df['plot_group'] = pd.Categorical(plot_df['plot_group'], categories=plot_order, ordered=True)
 
     categories = [
-        'Load', 'Capacity', 'Pending', 'Migration to Private', 
+        'Load', 'Capacity', 'Pending', 'Migration to Private',
         'Migration to Public', 'Both Migrations', 'No Migration'
     ]
-    plot_df['type'] = pd.Categorical(plot_df['type'], 
-                                   categories=categories, 
+    plot_df['type'] = pd.Categorical(plot_df['type'],
+                                   categories=categories,
                                    ordered=True)
     plot_df = plot_df.sort_values('type')
 
@@ -151,14 +151,14 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     g = (
         ggplot(plot_df)
         + geom_step(
-            aes(x='time_seconds', y='value', color='type', linetype='type'), 
-            size=1.5, 
+            aes(x='time_seconds', y='value', color='type', linetype='type'),
+            size=1.5,
             na_rm=True
         )
         + facet_wrap(
-            '~plot_group', 
-            ncol=1, 
-            scales='free_y', 
+            '~plot_group',
+            ncol=1,
+            scales='free_y',
             labeller=lambda x: x.replace(" Resources", "").replace(
                 " Pending Pods", "\n(Pending Pods)"
             )
@@ -172,15 +172,15 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     if migration_data is not None and not migration_data.empty:
         migration_data = migration_data.copy()
         migration_map = {
-            'private': 'Migration to Private', 
-            'public': 'Migration to Public', 
-            'both': 'Both Migrations', 
+            'private': 'Migration to Private',
+            'public': 'Migration to Public',
+            'both': 'Both Migrations',
             'no migration': 'No Migration'
         }
         migration_data['mig_legend'] = migration_data['type'].map(migration_map)
-        migration_data['xintercept'] = migration_data['execution'] * 60 - min_time
+        migration_data['xintercept'] = migration_data['execution'] * 300 - min_time # Define o intervalo para as linhas verticais do AI-Engine
         migration_data = migration_data[
-            (migration_data['xintercept'] >= 0) & 
+            (migration_data['xintercept'] >= 0) &
             (migration_data['xintercept'] <= max_time)
         ]
 
