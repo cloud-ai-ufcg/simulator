@@ -33,23 +33,22 @@ const (
 	LogPrefixMonitor   = "Monitor"
 	LogPrefixAIEngine  = "AI-Engine"
 	LogPrefixActuator  = "Actuator"
-	LogPrefixAvaliator = "Avaliator"
+	LogPrefixAnalyzer  = "Analyzer"
 )
 
-// Avaliator constants
+// Analyzer constants
 const (
-	MetricsURL           = "http://localhost:8082/metrics"
-	MetricsFilePath      = "../../avaliator/data/metrics.json"
-	ProcessedMetricsPath = "../../avaliator/data/processed_metrics.json"
-	PythonExecutable     = "../../venv/bin/python"
-	AvaliatorScript      = "../../avaliator/avaliator.py"
-	PlotResourcesScript  = "../../avaliator/plot_resources.py"
-	ProcessJSONScript    = "../../avaliator/process_json.py"
-	ActuatorLogPath      = "data/output/logs/actuator.log"
-)
+	// API and file paths
+	MetricsURL      = "http://localhost:8082/metrics"
+	MetricsFilePath = "../../simulator/data/metrics.json"
 
-// Absolute path to the logs directory
-const LogsDir = "../data/output/logs"
+	// Python configuration
+	PythonExecutable = "python3"
+
+	// Output directories
+	OutputDir = "../../simulator/data/output/plots"
+	LogsDir   = "../../simulator/data/output/logs"
+)
 
 // Simulator ASCII logo
 const SimulatorLogo = `                                                                                                                                                                                                   

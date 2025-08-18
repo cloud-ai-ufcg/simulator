@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 	"simulator/internal/aiengine"
-	"simulator/internal/avaliator"
+	"simulator/internal/analyzer"
 	"simulator/internal/broker"
 	"simulator/internal/constants"
 	"simulator/internal/log"
@@ -54,7 +54,7 @@ func main() {
 
 	utils.SaveContainerLogs()
 
-	avaliator.CallAvaliatorAndProcess()
+	analyzer.CallAnalyzerAndProcess()
 
 	log.Infof("Sequential execution cycle finished.")
 }

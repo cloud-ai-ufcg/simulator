@@ -4,7 +4,7 @@
 set -e
 
 VENV_DIR="../venv"
-REQ_FILE="../avaliator/requirements.txt"
+REQ_FILE="../analyzer/requirements.txt"
 
 # Cria venv se não existir ou repara se estiver corrompido
 if [ ! -d "$VENV_DIR" ]; then
