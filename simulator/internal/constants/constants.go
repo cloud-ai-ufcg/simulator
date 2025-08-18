@@ -43,7 +43,7 @@ const (
 	MetricsFilePath = "../../simulator/data/metrics.json"
 
 	// Python configuration
-	PythonExecutable = "python3"
+	PythonExecutable = "../../venv/bin/python3"
 
 	// Output directories
 	OutputDir = "../../simulator/data/output/plots"
