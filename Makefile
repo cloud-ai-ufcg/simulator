@@ -57,6 +57,9 @@ stop-kubernetes-infra:
 	docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
 	@echo "Containers KIND removidos."
 
+generate-plots:
+	@(venv/bin/python3 analyzer/main.py simulator/data/metrics.json)
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Important Notes
 # - You must export the KUBECONFIG variable with the correct files
