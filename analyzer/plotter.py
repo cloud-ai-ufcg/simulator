@@ -17,8 +17,13 @@ def plot_cpu_load(df, output_dir):
                         var_name='Cluster', value_name='CPU Load')
     plot_df['Cluster'] = plot_df['Cluster'].map({'cpu_load_private': 'Private', 'cpu_load_public': 'Public'})
 
-    max_time = df['time_seconds'].max()
-    x_breaks = range(0, int(max_time) + 120, 120)
+    max_time = df['time_seconds'].max()    
+    x_breaks = list(range(0, int(max_time) + 120, 120))
+    if len(x_breaks) > 20:
+        x_breaks = list(range(0, int(max_time) + 300, 300))
+    elif len(x_breaks) < 4:
+        x_breaks = list(range(0, int(max_time) + 15, 15))
+
 
     g = (
         ggplot(plot_df, aes(x='time_seconds', y='CPU Load', color='Cluster'))
@@ -38,7 +43,12 @@ def plot_memory_load(df, output_dir):
     plot_df['Cluster'] = plot_df['Cluster'].map({'mem_load_private': 'Private', 'mem_load_public': 'Public'})
 
     max_time = df['time_seconds'].max()
-    x_breaks = range(0, int(max_time) + 120, 120)
+    x_breaks = list(range(0, int(max_time) + 120, 120))
+    if len(x_breaks) > 20:
+        x_breaks = list(range(0, int(max_time) + 300, 300))
+    elif len(x_breaks) < 4:
+        x_breaks = list(range(0, int(max_time) + 15, 15))
+
 
     g = (
         ggplot(plot_df, aes(x='time_seconds', y='Memory Load', color='Cluster'))
@@ -54,7 +64,11 @@ def plot_memory_load(df, output_dir):
 def plot_total_percent_pending(df, output_dir):
     """Plot total percent pending pods over time."""
     max_time = df['time_seconds'].max() if not df.empty else 0
-    x_breaks = range(0, int(max_time) + 120, 120)
+    x_breaks = list(range(0, int(max_time) + 120, 120))
+    if len(x_breaks) > 20:
+        x_breaks = list(range(0, int(max_time) + 300, 300))
+    elif len(x_breaks) < 4:
+        x_breaks = list(range(0, int(max_time) + 15, 15))
 
     # Create a copy of the dataframe to avoid modifying the original
     plot_df = df.copy()
@@ -146,6 +160,8 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     x_breaks = list(range(0, int(max_time) + 120, 120))
     if len(x_breaks) > 20:
         x_breaks = list(range(0, int(max_time) + 300, 300))
+    elif len(x_breaks) < 4:
+        x_breaks = list(range(0, int(max_time) + 15, 15))
 
     # --- 4. Criação do Gráfico com ggplot ---
     g = (
