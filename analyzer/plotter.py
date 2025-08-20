@@ -1,4 +1,5 @@
 import os
+import datetime
 import pandas as pd
 import warnings
 from plotnine.exceptions import PlotnineWarning
@@ -33,7 +34,9 @@ def plot_cpu_load(df, output_dir):
         + theme_bw()
     )
 
-    output_path = os.path.join(output_dir, "cpu_load.png")
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename_with_timestamp = os.path.splitext("cpu_load.png")[0] + '_' + timestamp + os.path.splitext("cpu_load.png")[1]
+    output_path = os.path.join(output_dir, filename_with_timestamp)
     g.save(output_path, width=12, height=6, dpi=300)
 
 def plot_memory_load(df, output_dir):
@@ -58,7 +61,9 @@ def plot_memory_load(df, output_dir):
         + theme_bw()
     )
 
-    output_path = os.path.join(output_dir, "memory_load.png")
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename_with_timestamp = os.path.splitext("memory_load.png")[0] + '_' + timestamp + os.path.splitext("memory_load.png")[1]
+    output_path = os.path.join(output_dir, filename_with_timestamp)
     g.save(output_path, width=12, height=6, dpi=300)
 
 def plot_total_percent_pending(df, output_dir):
@@ -82,7 +87,9 @@ def plot_total_percent_pending(df, output_dir):
         + theme_bw()
     )
 
-    output_path = os.path.join(output_dir, "total_percent_pending.png")
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename_with_timestamp = os.path.splitext("total_percent_pending.png")[0] + '_' + timestamp + os.path.splitext("total_percent_pending.png")[1]
+    output_path = os.path.join(output_dir, filename_with_timestamp)
     g.save(output_path, width=12, height=6, dpi=300)
 
 def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migration_data=None):
@@ -218,4 +225,6 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     # Garante que o diretório de saída exista
     os.makedirs(os.path.dirname(filename) or '.', exist_ok=True)
     # Aumenta a altura para acomodar os 4 gráficos
-    g.save(filename, width=16, height=12, dpi=300)
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename_with_timestamp = os.path.splitext(filename)[0] + '_' + timestamp + os.path.splitext(filename)[1]
+    g.save(filename_with_timestamp, width=16, height=12, dpi=300)
