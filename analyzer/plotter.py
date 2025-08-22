@@ -6,7 +6,7 @@ from plotnine.exceptions import PlotnineWarning
 from plotnine import (
     ggplot, aes, geom_step, labs, geom_vline, facet_wrap, 
     scale_color_manual, scale_linetype_manual, scale_x_continuous,
-    theme_bw
+    theme_bw, theme, element_blank
 )
 
 warnings.filterwarnings("ignore", category=PlotnineWarning)
@@ -32,6 +32,7 @@ def plot_cpu_load(df, output_dir):
         + labs(title="CPU Load by Cluster over time", y="CPU Load", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
+        + theme(legend_key=element_blank()) 
     )
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -59,6 +60,7 @@ def plot_memory_load(df, output_dir):
         + labs(title="Memory Load by Cluster over time", y="Memory Load", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
+        + theme(legend_key=element_blank()) 
     )
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -85,6 +87,7 @@ def plot_total_percent_pending(df, output_dir):
         + labs(title="Total Percent Pending over time", y="Percent Pending (%)", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
         + theme_bw()
+        + theme(legend_key=element_blank()) 
     )
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -104,17 +107,18 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     """
     df = df.copy()
 
-    # Garante a existência de uma coluna time_seconds começando em 0
+    # Ensure a time_seconds column exists, starting from 0
     if 'timestamp' in df.columns:
-        start_time = df['timestamp'].min()
+        start_time = df['timestamp'].min() # This is the starting point (time zero)
         df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
     else:
-        df['time_seconds'] = df.index * 60  # Assume intervalos de 1 minuto se não houver timestamp
+        df['time_seconds'] = df.index * 60  # Fallback
+        start_time = None # No start_time defined
 
     min_time = df['time_seconds'].min()
     df['time_seconds'] = df['time_seconds'] - min_time
 
-    # --- 1. Preparação dos dados de Recursos (Uso e Capacidade) ---
+    # --- 1. Prepare Resource data (Usage and Capacity) ---
     df_usage_melt = df.melt(id_vars=['time_seconds'], value_vars=value_vars, var_name='metric', value_name='value')
     df_usage_melt['cluster'] = df_usage_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
     df_usage_melt['type'] = 'Load'
@@ -126,13 +130,13 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     plot_df_resources = pd.concat([df_usage_melt, df_cap_melt], ignore_index=True)
     plot_df_resources['plot_group'] = plot_df_resources['cluster'].apply(lambda x: f'{x} Cluster Resources')
 
-    # --- 2. Preparação dos dados de Pods Pendentes ---
+    # --- 2. Prepare Pending Pods data ---
     df_pending_melt = df.melt(id_vars=['time_seconds'], value_vars=pending_vars, var_name='metric', value_name='value')
     df_pending_melt['cluster'] = df_pending_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
     df_pending_melt['type'] = 'Pending'
     df_pending_melt['plot_group'] = df_pending_melt['cluster'].apply(lambda x: f'{x} Cluster Pending Pods')
 
-    # --- 3. Combina os DataFrames e define a ordem dos gráficos ---
+    # --- 3. Combine DataFrames and set the plot order ---
     plot_df = pd.concat([plot_df_resources, df_pending_melt], ignore_index=True)
 
     plot_order = [
@@ -152,7 +156,7 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
                                    ordered=True)
     plot_df = plot_df.sort_values('type')
 
-    # Mapas de cores e tipos de linha
+    # Color and linetype maps
     color_map = {
         'Load': '#d62728', 'Capacity': '#1f77b4', 'Pending': '#8c564b',
         'Migration to Private': '#9467bd', 'Migration to Public': '#ff7f0e', 'Both Migrations': '#2ca02c', 'No Migration': '#5f615f',
@@ -162,7 +166,7 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
         'Migration to Private': 'dotted', 'Migration to Public': 'dotted', 'Both Migrations': 'dotted', 'No Migration': 'dotted'
     }
 
-    # Calcula os intervalos do eixo X
+    # Calculate X-axis intervals
     max_time = df['time_seconds'].max()
     x_breaks = list(range(0, int(max_time) + 120, 120))
     if len(x_breaks) > 20:
@@ -170,7 +174,7 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     elif len(x_breaks) < 4:
         x_breaks = list(range(0, int(max_time) + 15, 15))
 
-    # --- 4. Criação do Gráfico com ggplot ---
+    # --- 4. Create the plot with ggplot ---
     g = (
         ggplot(plot_df)
         + geom_step(
@@ -189,11 +193,24 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
         + labs(title=title, y='Value', x='Time (seconds)', color='Legend', linetype='Legend')
         + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
         + theme_bw()
+        + theme(legend_key=element_blank()) 
     )
 
-    # Adiciona linhas verticais para migrações (será aplicado em todos os painéis)
-    if migration_data is not None and not migration_data.empty:
+    # Add vertical lines for migrations (will be applied to all panels)
+    if migration_data is not None and not migration_data.empty and 'timestamp' in df.columns:
+        start_time = df['timestamp'].min()
+        end_time = df['timestamp'].max()
+        max_time = (end_time - start_time).total_seconds()
+
         migration_data = migration_data.copy()
+        migration_data['timestamp_dt'] = pd.to_datetime(migration_data['timestamp'], unit='s')
+        
+        # Subtract 3 hours from migration timestamps to align with metrics
+        migration_data['timestamp_dt'] = migration_data['timestamp_dt'] - pd.Timedelta(hours=3)
+        
+        migration_data['xintercept'] = (migration_data['timestamp_dt'] - start_time).dt.total_seconds()
+
+        # Mapping for the legend
         migration_map = {
             'private': 'Migration to Private',
             'public': 'Migration to Public',
@@ -201,16 +218,18 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
             'no migration': 'No Migration'
         }
         migration_data['mig_legend'] = migration_data['type'].map(migration_map)
-        migration_data['xintercept'] = migration_data['execution'] * 300 - min_time # Define o intervalo para as linhas verticais do AI-Engine
-        migration_data = migration_data[
+
+        # Filter only valid values within the plot range
+        migration_data_filtered = migration_data[
             (migration_data['xintercept'] >= 0) &
             (migration_data['xintercept'] <= max_time)
         ]
 
-        if not migration_data.empty:
+        if not migration_data_filtered.empty:
+            # Use color and legend mapping again
             g += geom_vline(
-                migration_data,
-                aes(
+                data=migration_data_filtered,
+                mapping=aes(
                     xintercept='xintercept',
                     color='mig_legend',
                     linetype='mig_legend'
@@ -222,9 +241,9 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     g += scale_color_manual(name='Legend', values=color_map)
     g += scale_linetype_manual(name='Legend', values=linetype_map)
 
-    # Garante que o diretório de saída exista
+    # Ensure the output directory exists
     os.makedirs(os.path.dirname(filename) or '.', exist_ok=True)
-    # Aumenta a altura para acomodar os 4 gráficos
+    # Increase height to accommodate the 4 plots
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     filename_with_timestamp = os.path.splitext(filename)[0] + '_' + timestamp + os.path.splitext(filename)[1]
     g.save(filename_with_timestamp, width=16, height=12, dpi=300)
