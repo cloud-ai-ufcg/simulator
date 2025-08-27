@@ -158,10 +158,10 @@ spec:
             operator: DoesNotExist
   placement:
     clusterAffinity:
-      labelSelector: {}
-    replicaScheduling:
-      replicaSchedulingType: Divided
-      replicaDivisionPreference: Weighted
+    spreadConstraints:
+      - spreadByField: "cluster"
+        minGroups: 1
+        maxGroups: 1
 EOF
 
 echo -e "${COLOR}[✓] clusterpropagationpolicy.yaml generated.${RESET}"
