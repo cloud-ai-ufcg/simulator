@@ -4,9 +4,9 @@ import pandas as pd
 import warnings
 from plotnine.exceptions import PlotnineWarning
 from plotnine import (
-    ggplot, aes, geom_step, labs, geom_vline, facet_wrap, 
+    ggplot, aes, geom_step, geom_point, labs, geom_vline, facet_wrap, 
     scale_color_manual, scale_linetype_manual, scale_x_continuous,
-    theme_bw, theme, element_blank
+    scale_y_continuous, theme_bw, theme, element_blank, expand_limits
 )
 
 warnings.filterwarnings("ignore", category=PlotnineWarning)
@@ -31,6 +31,7 @@ def plot_cpu_load(df, output_dir):
         + geom_step(size=1.5)
         + labs(title="CPU Load by Cluster over time", y="CPU Load", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
+        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0
         + theme_bw()
         + theme(legend_key=element_blank()) 
     )
@@ -59,6 +60,7 @@ def plot_memory_load(df, output_dir):
         + geom_step(size=1.5)
         + labs(title="Memory Load by Cluster over time", y="Memory Load", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
+        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0
         + theme_bw()
         + theme(legend_key=element_blank()) 
     )
@@ -86,6 +88,7 @@ def plot_total_percent_pending(df, output_dir):
         + geom_step(color='black', size=1)
         + labs(title="Total Percent Pending over time", y="Percent Pending (%)", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
+        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0
         + theme_bw()
         + theme(legend_key=element_blank()) 
     )
@@ -136,6 +139,17 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     df_pending_melt['type'] = 'Pending'
     df_pending_melt['plot_group'] = df_pending_melt['cluster'].apply(lambda x: f'{x} Cluster Pending Pods')
 
+    pending_groups = [
+        'Private Cluster Pending Pods',
+        'Public Cluster Pending Pods'
+    ]
+    ref_points_data = []
+    for group in pending_groups:
+        ref_points_data.append({'plot_group': group, 'time_seconds': df['time_seconds'].min(), 'value': 0})
+        ref_points_data.append({'plot_group': group, 'time_seconds': df['time_seconds'].min(), 'value': 1})
+    
+    ref_df = pd.DataFrame(ref_points_data)
+
     # --- 3. Combine DataFrames and set the plot order ---
     plot_df = pd.concat([plot_df_resources, df_pending_melt], ignore_index=True)
 
@@ -182,6 +196,7 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
             size=1.5,
             na_rm=True
         )
+        + geom_point(data=ref_df, mapping=aes(x='time_seconds', y='value'), alpha=0)
         + facet_wrap(
             '~plot_group',
             ncol=1,
@@ -192,6 +207,7 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
         )
         + labs(title=title, y='Value', x='Time (seconds)', color='Legend', linetype='Legend')
         + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
+        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0 and no negative values
         + theme_bw()
         + theme(legend_key=element_blank()) 
     )
