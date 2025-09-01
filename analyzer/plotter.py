@@ -247,3 +247,109 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     filename_with_timestamp = os.path.splitext(filename)[0] + '_' + timestamp + os.path.splitext(filename)[1]
     g.save(filename_with_timestamp, width=16, height=12, dpi=300)
+
+def plot_pricing(df, output_dir, migration_data=None):
+    """
+    Plot pricing data for both clusters in a 2-panel layout with migration events overlay.
+    
+    Args:
+        df: DataFrame containing pricing data with columns 'time_seconds', 'cost_public', 'cost_private'
+        output_dir: Directory to save the plot
+        migration_data: DataFrame containing migration events (optional)
+    """
+    # Prepare data for plotting
+    plot_df = df.melt(id_vars=['time_seconds'], value_vars=['cost_public', 'cost_private'],
+                      var_name='cluster', value_name='cost')
+    plot_df['cluster'] = plot_df['cluster'].map({'cost_public': 'Public', 'cost_private': 'Private'})
+    
+    # Calculate X-axis intervals
+    max_time = df['time_seconds'].max() if not df.empty else 0
+    x_breaks = list(range(0, int(max_time) + 120, 120))
+    if len(x_breaks) > 20:
+        x_breaks = list(range(0, int(max_time) + 300, 300))
+    elif len(x_breaks) < 4:
+        x_breaks = list(range(0, int(max_time) + 15, 15))
+
+    # Color mapping for clusters
+    cluster_colors = {'Public': '#1f77b4', 'Private': '#d62728'}  # Blue for public, red for private
+
+    # Create the base plot - removed scales='free_y' to have consistent y-axis
+    g = (
+        ggplot(plot_df, aes(x='time_seconds', y='cost', color='cluster'))
+        + geom_step(size=1.5)
+        + facet_wrap('~cluster', ncol=1)  # Removed scales='free_y'
+        + labs(title="Cluster Pricing Over Time", y="Cost per Interval", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
+        + scale_color_manual(values=cluster_colors)
+        + theme_bw()
+        + theme(legend_key=element_blank())
+    )
+
+    # Force y-axis to start at 0 for both panels
+    from plotnine import scale_y_continuous
+    g += scale_y_continuous(limits=(0, None))
+
+    # Add migration events overlay if available
+    if migration_data is not None and not migration_data.empty and 'timestamp' in df.columns:
+        start_time = df['timestamp'].min()
+        end_time = df['timestamp'].max()
+        
+        migration_data = migration_data.copy()
+        migration_data['timestamp_dt'] = pd.to_datetime(migration_data['timestamp'], unit='s')
+        
+        # Subtract 3 hours from migration timestamps to align with metrics
+        migration_data['timestamp_dt'] = migration_data['timestamp_dt'] - pd.Timedelta(hours=3)
+        
+        migration_data['xintercept'] = (migration_data['timestamp_dt'] - start_time).dt.total_seconds()
+
+        # Color mapping for migration types
+        migration_map = {
+            'private': 'Migration to Private',
+            'public': 'Migration to Public',
+            'both': 'Both Migrations',
+            'no migration': 'No Migration'
+        }
+        migration_data['mig_legend'] = migration_data['type'].map(migration_map)
+
+        # Filter only valid values within the plot range
+        migration_data_filtered = migration_data[
+            (migration_data['xintercept'] >= 0) &
+            (migration_data['xintercept'] <= max_time)
+        ]
+
+        if not migration_data_filtered.empty:
+            # Color and linetype mapping for migration events
+            migration_color_map = {
+                'Migration to Private': '#9467bd',
+                'Migration to Public': '#ff7f0e',
+                'Both Migrations': '#2ca02c',
+                'No Migration': '#5f615f'
+            }
+            migration_linetype_map = {
+                'Migration to Private': 'dotted',
+                'Migration to Public': 'dotted',
+                'Both Migrations': 'dotted',
+                'No Migration': 'dotted'
+            }
+            
+            g += geom_vline(
+                data=migration_data_filtered,
+                mapping=aes(
+                    xintercept='xintercept',
+                    color='mig_legend',
+                    linetype='mig_legend'
+                ),
+                size=1.5,
+                show_legend=True
+            )
+            
+            # Combine cluster and migration colors
+            combined_colors = {**cluster_colors, **migration_color_map}
+            g += scale_color_manual(name='Legend', values=combined_colors)
+            g += scale_linetype_manual(name='Migration Events', values=migration_linetype_map)
+
+    # Save the plot
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename_with_timestamp = f"pricing_{timestamp}.png"
+    output_path = os.path.join(output_dir, filename_with_timestamp)
+    g.save(output_path, width=12, height=8, dpi=300)

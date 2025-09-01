@@ -177,3 +177,43 @@ def melt_df_with_cluster_and_cap(df, value_vars, cluster_vars, cap_vars, var_nam
     cap_df['cluster'] = cap_df[var_name].apply(lambda x: 'Public' if 'public' in x else 'Private')
     cap_df['type'] = 'capacity'
     return melted, cluster_df, cap_df
+
+def process_pricing_data(data):
+    """Process pricing data for each cluster over time."""
+    timestamps = sorted([int(ts) for ts in data.keys()])
+    pricing_data = {'public': [], 'private': []}
+    
+    for ts in timestamps:
+        ts_str = str(ts)
+        cluster_info = data[ts_str].get('cluster_info', [])
+        
+        # Initialize costs to 0 for this timestamp
+        costs_for_ts = {'public': 0.0, 'private': 0.0}
+        
+        for cluster in cluster_info:
+            cluster_label = cluster.get('cluster_label')
+            pricing_info = cluster.get('pricing', {})
+            interval_cost = pricing_info.get('interval_cost', 0.0)
+            
+            if cluster_label in costs_for_ts:
+                costs_for_ts[cluster_label] = interval_cost
+        
+        pricing_data['public'].append(costs_for_ts['public'])
+        pricing_data['private'].append(costs_for_ts['private'])
+    
+    return timestamps, pricing_data
+
+def build_pricing_dataframe(timestamps, pricing_data):
+    """Build a pandas DataFrame for pricing data."""
+    index = pd.to_datetime(timestamps, unit='s')
+    df = pd.DataFrame({
+        'timestamp': index,
+        'cost_public': pricing_data['public'],
+        'cost_private': pricing_data['private'],
+    })
+    
+    # Add time_seconds column for plotting
+    start_time = df['timestamp'].min()
+    df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
+    
+    return df

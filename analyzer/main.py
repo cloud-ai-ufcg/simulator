@@ -11,8 +11,8 @@ import sys
 import json
 import pandas as pd
 from data_loader import load_json_data, parse_migration_logs
-from data_processor import process_json_data, process_resources, process_cluster_info, build_dataframe
-from plotter import plot_cpu_load, plot_memory_load, plot_total_percent_pending, plot_resource
+from data_processor import process_json_data, process_resources, process_cluster_info, build_dataframe, process_pricing_data, build_pricing_dataframe
+from plotter import plot_cpu_load, plot_memory_load, plot_total_percent_pending, plot_resource, plot_pricing
 
 def main():
     """Main function to run the analysis and generate plots."""
@@ -44,6 +44,11 @@ def main():
         plot_resource(df_req, ['mem_requested_public', 'mem_requested_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Requested', os.path.join(output_dir, 'requested_memory.png'), migration_data)
         plot_resource(df_alloc, ['cpu_allocated_public', 'cpu_allocated_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Allocated', os.path.join(output_dir, 'allocated_cpu.png'), migration_data)
         plot_resource(df_req, ['cpu_requested_public', 'cpu_requested_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Requested', os.path.join(output_dir, 'requested_cpu.png'), migration_data)
+
+        # Process and plot pricing data
+        pricing_timestamps, pricing_data = process_pricing_data(raw_data)
+        df_pricing = build_pricing_dataframe(pricing_timestamps, pricing_data)
+        plot_pricing(df_pricing, output_dir, migration_data)
 
         processed_data_for_summary = process_json_data(raw_data)
         records = []
