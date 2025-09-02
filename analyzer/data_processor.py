@@ -62,8 +62,8 @@ def process_resources(data):
         ts_str = str(ts)
         for c in data[ts_str]['cluster_info']:
             label = c['cluster_label']
-            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') // 1024
-            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') // 1000
+            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') / 1024
+            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
             mem_load = c['cluster_load'].get('memory', 0)
             cpu_load = c['cluster_load'].get('cpu', 0)
             mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
@@ -111,8 +111,8 @@ def process_cluster_info(data, timestamps, limit_load=True):
                 mem_load = min(mem_load, 1.0)
                 cpu_load = min(cpu_load, 1.0)
             
-            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') // 1024
-            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') // 1000
+            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') / 1024
+            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
             
             if c['cluster_label'] == 'public':
                 result['mem_load_public'].append(mem_load * mem_cap)
