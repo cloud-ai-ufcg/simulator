@@ -37,9 +37,18 @@ setup-kubernetes-infra:
 
 # Stops and removes all simulator containers, volumes, and images
 stop-all-containers:
-	@echo "Stopping and removing all containers, volumes, and images defined in compose.yaml..."
-	@sudo docker-compose -f compose.yaml down -v --rmi all
-	@echo "Cleanup process completed."
+	@echo "Stopping and removing all containers and volumes defined in compose.yaml..."
+	@sudo docker-compose -f compose.yaml down -v
+	@echo "Stopping any remaining running containers..."
+	@sudo docker stop $$(sudo docker ps -q) || true
+	@echo "Removing all images except MongoDB..."
+	@mongo_image_ids=$$(sudo docker images --format '{{.ID}} {{.Repository}}' | grep mongo | awk '{print $$1}'); \
+	for img in $$(sudo docker images -q); do \
+		if ! echo "$$mongo_image_ids" | grep -q "$$img"; then \
+			sudo docker rmi -f $$img 2>/dev/null || true; \
+		fi; \
+	done
+	@echo "Cleanup process completed. MongoDB image preserved."
 
 run-all-containers:
 	@echo "Updating compose.yaml paths with the user's HOME..."
