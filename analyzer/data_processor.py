@@ -23,7 +23,9 @@ def extract_cluster_loads(cluster_info: List[Dict[str, Any]]) -> Dict[str, Dict[
         if cluster_label and 'cluster_load' in cluster:
             cluster_loads[cluster_label] = {
                 'cpu': cluster['cluster_load'].get('cpu', 0.0),
-                'memory': cluster['cluster_load'].get('memory', 0.0)
+                'memory': cluster['cluster_load'].get('memory', 0.0),
+                'cpu_requested': cluster['cluster_load'].get('cpu_requested', 0.0),
+                'memory_requested': cluster['cluster_load'].get('memory_requested', 0.0)
             }
     return cluster_loads
 
@@ -68,8 +70,8 @@ def process_resources(data):
             cpu_load = c['cluster_load'].get('cpu', 0)
             mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
             cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
-            mem_requested[label].append(mem_cap * mem_load)
-            cpu_requested[label].append(cpu_cap * cpu_load)
+            mem_requested[label].append(mem_cap * c['cluster_load'].get('memory_requested', 0))
+            cpu_requested[label].append(cpu_cap * c['cluster_load'].get('cpu_requested', 0))
 
         pods_sum_for_ts = {'public': 0, 'private': 0}
         for workload in data[ts_str].get('workloads', []):
