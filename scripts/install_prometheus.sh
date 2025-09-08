@@ -67,6 +67,7 @@ for CONTEXT in member1 member2; do
   helm upgrade --install "$RELEASE_NAME" prometheus-community/kube-prometheus-stack \
   -f prometheus_grafana.yaml \
   --version $KUBE_PROMETHEUS_STACK_VERSION \
+  --set grafana.enabled=false \
   --namespace "$NAMESPACE" \
   --wait \
   --timeout 30m \
@@ -102,6 +103,7 @@ start_port_forward() {
 echo -e "${COLOR}🌐 Starting background port-forwards...${RESET}"
 start_port_forward member1 "$NAMESPACE" prometheus-prometheus 9090 9090
 start_port_forward member2 "$NAMESPACE" prometheus-prometheus 9091 9090
+
 start_port_forward member1 "$NAMESPACE" grafana 3000 80
 start_port_forward member2 "$NAMESPACE" grafana 3001 80
 
