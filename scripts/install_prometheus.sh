@@ -17,6 +17,7 @@ RESET="\033[0m"
 set -euo pipefail
 trap 'echo -e "\033[1;31m❌ Error in $BASH_SOURCE:$LINENO – $BASH_COMMAND\033[0m"' ERR
 
+GRAFANA_STATUS=${PROMETHEUS_GRAFANA_ENABLE}
 RELEASE_NAME="prometheus"
 NAMESPACE="monitoring"
 KUBE_PROMETHEUS_STACK_VERSION=75.15.1
@@ -67,7 +68,7 @@ for CONTEXT in member1 member2; do
   helm upgrade --install "$RELEASE_NAME" prometheus-community/kube-prometheus-stack \
   -f prometheus_grafana.yaml \
   --version $KUBE_PROMETHEUS_STACK_VERSION \
-  --set grafana.enabled=false \
+  --set grafana.enabled=${GRAFANA_STATUS} \
   --namespace "$NAMESPACE" \
   --wait \
   --timeout 30m \
