@@ -17,7 +17,7 @@ func SaveContainerLogs() {
 	}
 	timestamp := GetTimestamp()
 	containerLogs := map[string]string{
-		constants.ContainerActuator: filepath.Join(logsDir, "actuator.log"),
+		constants.ContainerActuator: filepath.Join(logsDir, fmt.Sprintf("actuator_%s.log", timestamp)),
 		constants.ContainerBroker:   filepath.Join(logsDir, fmt.Sprintf("broker_%s.log", timestamp)),
 		constants.ContainerMonitor:  filepath.Join(logsDir, fmt.Sprintf("monitor_%s.log", timestamp)),
 		constants.ContainerAIEngine: filepath.Join(logsDir, fmt.Sprintf("ai-engine_%s.log", timestamp)),
@@ -32,6 +32,19 @@ func SaveContainerLogs() {
 		err = os.WriteFile(logFile, logData, 0644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving logs from container %s to %s: %v\n", container, logFile, err)
+		}
+	}
+
+	// Save actuator log without timestamp in dataplots
+	actuatorLogSrc := filepath.Join(logsDir, fmt.Sprintf("actuator_%s.log", timestamp))
+	actuatorLogDst := filepath.Join(constants.DataplotsDir, "actuator.log")
+	logData, err := os.ReadFile(actuatorLogSrc)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading actuator log for dataplots: %v\n", err)
+	} else {
+		err = os.WriteFile(actuatorLogDst, logData, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving actuator log to dataplots: %v\n", err)
 		}
 	}
 

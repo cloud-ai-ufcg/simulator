@@ -67,10 +67,9 @@ stop-all-containers:
 
 generate-plots:
 	@if [ -z "$(METRICS)" ]; then \
-		echo "Usage: make generate-plots METRICS=path/to/metrics.json"; \
-		exit 1; \
-	fi
-	@(venv/bin/python3 analyzer/main.py $(METRICS))
+		METRICS=simulator/data/dataplots/metrics.json; \
+	fi; \
+	venv/bin/python3 analyzer/main.py $$METRICS
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Important Notes

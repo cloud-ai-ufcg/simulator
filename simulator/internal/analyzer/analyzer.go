@@ -33,17 +33,31 @@ func CallAnalyzerAndProcess() {
 		return
 	}
 
-	// Ensure output directory exists
-	metricsDir := filepath.Dir(constants.MetricsFilePath)
-	if err := os.MkdirAll(metricsDir, 0755); err != nil {
-		log.Errorf("Error creating metrics directory: %v", err)
+	// Ensure dataplots directory exists
+	dataplotsDir := constants.DataplotsDir
+	if err := os.MkdirAll(dataplotsDir, 0755); err != nil {
+		log.Errorf("Error creating dataplots directory: %v", err)
+		return
+	}
+	// Save metrics as metrics.json (always overwrite)
+	dataplotsFile := filepath.Join(dataplotsDir, "metrics.json")
+	err = ioutil.WriteFile(dataplotsFile, body, 0644)
+	if err != nil {
+		log.Errorf("Error writing metrics.json in dataplots: %v", err)
+		return
+	}
+
+	// Ensure output/metrics directory exists
+	outputMetricsDir := "../../simulator/data/output/metrics"
+	if err := os.MkdirAll(outputMetricsDir, 0755); err != nil {
+		log.Errorf("Error creating output/metrics directory: %v", err)
 		return
 	}
 	timestamp := utils.GetTimestamp()
-	metricsFile := filepath.Join(metricsDir, fmt.Sprintf("metrics_%s.json", timestamp))
-	err = ioutil.WriteFile(metricsFile, body, 0644)
+	outputMetricsFile := filepath.Join(outputMetricsDir, fmt.Sprintf("metrics_%s.json", timestamp))
+	err = ioutil.WriteFile(outputMetricsFile, body, 0644)
 	if err != nil {
-		log.Errorf("Error writing metrics file: %v", err)
+		log.Errorf("Error writing metrics file in output/metrics: %v", err)
 		return
 	}
 
@@ -51,7 +65,7 @@ func CallAnalyzerAndProcess() {
 	cmd := exec.Command(
 		constants.PythonExecutable,
 		"../../analyzer/main.py",
-		metricsFile,
+		dataplotsFile,
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
