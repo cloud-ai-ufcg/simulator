@@ -67,7 +67,7 @@ stop-all-containers:
 
 generate-plots:
 	@if [ -z "$(METRICS)" ]; then \
-		METRICS=simulator/data/dataplots/metrics.json; \
+		METRICS=analyzer/dataplots/metrics.json; \
 	fi; \
 	venv/bin/python3 analyzer/main.py $$METRICS
 

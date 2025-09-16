@@ -22,8 +22,13 @@ def main():
 
     json_path = sys.argv[1]
     base_dir = os.path.dirname(json_path)
-    plots_dir = os.path.dirname(base_dir) 
-    output_dir = os.path.join(plots_dir, "output", "plots")
+    print(base_dir)
+    # Se o json_path for analyzer/dataplots/metrics.json, 
+    # então base_dir será analyzer/dataplots
+    # e os plots vão para simulator/data/output/plots
+    # Vamos para o diretório raiz do projeto e depois para simulator/data/output/plots
+    project_root = os.path.dirname(os.path.dirname(base_dir))  # vai para o diretório raiz
+    output_dir = os.path.join(project_root, "simulator", "data", "output", "plots")
     
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
