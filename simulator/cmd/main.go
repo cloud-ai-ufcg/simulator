@@ -5,6 +5,7 @@ import (
 	"simulator/internal/aiengine"
 	"simulator/internal/analyzer"
 	"simulator/internal/broker"
+	"simulator/internal/config"
 	"simulator/internal/constants"
 	"simulator/internal/log"
 	"simulator/internal/utils"
@@ -16,17 +17,21 @@ func main() {
 
 	log.Infof("Starting sequential operation cycle...")
 
-	aiEngineFlag := os.Getenv("AI_ENGINE")
+	enabled, err := config.LoadAIEngineEnabled("../data/config.yaml")
+	if err != nil {
+		log.Errorf("Erro ao ler config.yaml: %v", err)
+		os.Exit(1)
+	}
 	inputFilePath := "../data/input.json"
 
 	var wg sync.WaitGroup
 	var brokerErr error
 
-	if aiEngineFlag == "ON" {
+	if enabled {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := aiengine.CallAIEngineAPI(aiEngineFlag); err != nil {
+			if err := aiengine.CallAIEngineAPI(true); err != nil {
 				log.Errorf("Error calling AI-Engine API: %v", err)
 			}
 		}()
@@ -40,8 +45,8 @@ func main() {
 			brokerErr = err
 		}
 
-		if aiEngineFlag == "ON" {
-			if err := aiengine.CallAIEngineAPI("OFF"); err != nil {
+		if enabled {
+			if err := aiengine.CallAIEngineAPI(false); err != nil {
 				log.Errorf("Error calling AI-Engine STOP API: %v", err)
 			}
 		}

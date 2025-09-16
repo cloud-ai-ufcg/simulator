@@ -4,10 +4,13 @@ This project provides a simulator environment using Docker containers for an Act
 It also works with submodules to manage dependencies, such as the Broker, Actuator, Monitor, and AI-Engine repositories.
 
 After cloning the repository, you need to initialize the submodules using the following command:
+
 ```sh
 make init-submodules
 ```
+
 or
+
 ```sh
 git submodule update --init --recursive
 ```
@@ -23,6 +26,7 @@ git submodule update --init --recursive
 
 - **all / setup-and-start**  
   Sets up the Kubernetes infrastructure, starts the Broker, Actuator, Monitor, and AI-Engine containers, and then runs the Go simulator. This is the main target to get everything running from scratch.
+
   ```sh
   make
   # or
@@ -31,33 +35,31 @@ git submodule update --init --recursive
 
 - **start**  
   Runs only the Go simulator. This assumes that the Kubernetes infrastructure and all required containers are already running.
+
   ```sh
   make start
   ```
 
 - **run-all-containers**  
   Starts all required containers (Broker, Actuator, Monitor, AI-Engine) without running the Go simulator.
+
   ```sh
   make run-all-containers
   ```
 
 - **stop-all-containers**  
   Stops and removes all simulator containers.
+
   ```sh
   make stop-all-containers
   ```
 
 - **setup-kubernetes-infra**  
   Runs the script to set up the Kubernetes infrastructure.
+
   ```sh
   make setup-kubernetes-infra
   ```
-
-- **Individual Container Start Targets**
-  - `make start-broker-container`
-  - `make start-actuator-container`
-  - `make start-monitor-container`
-  - `make start-ai-engine-container`
 
 - **help**  
   Shows a list of available targets and their descriptions.
@@ -68,18 +70,21 @@ git submodule update --init --recursive
 ## Container Details
 
 - **Actuator**
+
   - Image: `actuator-api`
   - Container name: `actuator-simulator`
   - Dockerfile: `actuator/Dockerfile.api`
   - Listens on port: 8085
 
 - **Broker**
+
   - Image: `broker:latest`
   - Container name: `broker-simulator`
   - Dockerfile: `broker/Dockerfile.api`
   - Listens on port: 8081
 
 - **Monitor**
+
   - Image: `monitor:latest`
   - Container name: `monitor-simulator`
   - Dockerfile: `monitor/Dockerfile`
@@ -90,6 +95,22 @@ git submodule update --init --recursive
   - Container name: `ai-engine-simulator`
   - Dockerfile: `ai-engine/Dockerfile.api`
   - Listens on port: 8083
+
+## AI Engine Activation/Deactivation
+
+The AI Engine is now controlled via the configuration file `simulator/data/config.yaml`:
+
+```yaml
+ai-engine:
+  enabled: true  # Set to false to disable the AI Engine
+  ...
+```
+
+To enable or disable the AI Engine, simply change the value of `enabled` and run the simulator normally:
+
+```sh
+make start
+```
 
 ## Notes
 

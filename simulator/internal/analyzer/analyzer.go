@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"simulator/internal/constants"
 	"simulator/internal/log"
+	"simulator/internal/utils"
 )
 
 func CallAnalyzerAndProcess() {
@@ -32,12 +34,14 @@ func CallAnalyzerAndProcess() {
 	}
 
 	// Ensure output directory exists
-	if err := os.MkdirAll(filepath.Dir(constants.MetricsFilePath), 0755); err != nil {
+	metricsDir := filepath.Dir(constants.MetricsFilePath)
+	if err := os.MkdirAll(metricsDir, 0755); err != nil {
 		log.Errorf("Error creating metrics directory: %v", err)
 		return
 	}
-
-	err = ioutil.WriteFile(constants.MetricsFilePath, body, 0644)
+	timestamp := utils.GetTimestamp()
+	metricsFile := filepath.Join(metricsDir, fmt.Sprintf("metrics_%s.json", timestamp))
+	err = ioutil.WriteFile(metricsFile, body, 0644)
 	if err != nil {
 		log.Errorf("Error writing metrics file: %v", err)
 		return
@@ -47,7 +51,7 @@ func CallAnalyzerAndProcess() {
 	cmd := exec.Command(
 		constants.PythonExecutable,
 		"../../analyzer/main.py",
-		constants.MetricsFilePath,
+		metricsFile,
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -59,11 +63,4 @@ func CallAnalyzerAndProcess() {
 	}
 
 	log.Infof("Finished generating visualizations.")
-
-	//if err := os.Remove(constants.MetricsFilePath); err != nil {
-	//	log.Errorf("Error deleting %s: %v", constants.MetricsFilePath, err)
-	//}
-	//if err := os.Remove(constants.ProcessedMetricsPath); err != nil {
-	//	log.Errorf("Error deleting %s: %v", constants.ProcessedMetricsPath, err)
-	//}
 }

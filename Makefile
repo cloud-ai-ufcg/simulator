@@ -5,8 +5,31 @@ SHELL := /bin/bash
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
 
+# Sets up Kubernetes infrastructure
+setup-kubernetes-infra:
+	@echo -e "\\e[35mStarting Kubernetes infrastructure setup (scripts/main.sh)...\\e[0m"
+	@( \
+		cd scripts && ./main.sh; \
+	)
+	@echo -e "\\e[35mKubernetes infrastructure setup completed.\\e[0m"
+
+# Starts all required containers via docker-compose
+run-all-containers:
+	@echo "Updating compose.yaml paths with the user's HOME..."
+	@echo scripts/replace_paths_in_compose.sh
+	@echo "Starting all necessary containers via docker-compose..."
+	@docker-compose -f compose.yaml up --build -d
+	@echo "All containers started successfully."
+
+# Sets up the complete infrastructure
+setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
+
+# Starts only the Go simulator (assumes infrastructure is already set up)
+start:
+	@(cd simulator/cmd && go run main.go)
+
 # Sets up the complete infrastructure and runs the simulator
-setup-and-start: setup-kubernetes-infra stop-all-containers run-all-containers start
+setup-and-start: setup start
 
 # Cleans all documents from all collections in the mongo container
 clean-mongo-db:
@@ -20,20 +43,14 @@ clean-mongo-db:
 	sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
 	echo "All documents removed from all user collections via mongosh in container."
 
-# Starts only the Go simulator (assumes infrastructure is already set up)
-start:
-	@(cd simulator/cmd && AI_ENGINE="ON" go run main.go)
+restart-all-containers: stop-all-containers run-all-containers
+	@echo "All services have been fully restarted."
 
-start-ai-engine-off:
-	@(cd simulator/cmd && AI_ENGINE="OFF" go run main.go)
-
-# Sets up Kubernetes infrastructure
-setup-kubernetes-infra:
-	@echo -e "\\e[35mStarting Kubernetes infrastructure setup (scripts/main.sh)...\\e[0m"
-	@( \
-		cd scripts && ./main.sh; \
-	)
-	@echo -e "\\e[35mKubernetes infrastructure setup completed.\\e[0m"
+# Para derrubar os containers KIND do cluster
+stop-kubernetes-infra:
+	@echo "Parando containers KIND do cluster..."
+	docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
+	@echo "Containers KIND removidos."
 
 # Stops and removes all simulator containers, volumes, and images
 stop-all-containers:
@@ -47,22 +64,6 @@ stop-all-containers:
 		fi; \
 	done
 	@echo "Cleanup process completed."
-
-run-all-containers:
-	@echo "Updating compose.yaml paths with the user's HOME..."
-	@echo scripts/replace_paths_in_compose.sh
-	@echo "Starting all necessary containers via docker-compose..."
-	@docker-compose -f compose.yaml up --build -d
-	@echo "All containers started successfully."
-
-restart-all-containers: stop-all-containers run-all-containers
-	@echo "All services have been fully restarted."
-
-# Para derrubar os containers KIND do cluster
-stop-kubernetes-infra:
-	@echo "Parando containers KIND do cluster..."
-	docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
-	@echo "Containers KIND removidos."
 
 generate-plots:
 	@(venv/bin/python3 analyzer/main.py simulator/data/metrics.json)

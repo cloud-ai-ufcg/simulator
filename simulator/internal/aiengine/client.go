@@ -9,25 +9,21 @@ import (
 	"time"
 )
 
-func CallAIEngineAPI(flag string) error {
+func CallAIEngineAPI(enabled bool) error {
 	client := &http.Client{Timeout: 0}
 	var url string
 	var successMsg, errorMsg string
-	var maxRetries int
-	var retryDelay time.Duration
+	var maxRetries int = 5
+	var retryDelay time.Duration = 3 * time.Second
 
-	if flag == "ON" {
+	if enabled {
 		url = constants.APIURLAIEngine
 		successMsg = "AI-Engine API called successfully."
 		errorMsg = "Error calling AI-Engine API"
-		maxRetries = 5
-		retryDelay = 3 * time.Second
 	} else {
 		url = constants.APIURLAIEngineStop
 		successMsg = "AI-Engine STOP API called successfully."
 		errorMsg = "Error calling AI-Engine STOP API"
-		maxRetries = 5
-		retryDelay = 3 * time.Second
 	}
 
 	var lastErr error
