@@ -22,15 +22,15 @@ def main():
 
     json_path = sys.argv[1]
     base_dir = os.path.dirname(json_path)
-    output_dir = os.path.join(base_dir, "output", "plots")
-    logs_dir = os.path.join(base_dir, "output", "logs")
-
+    plots_dir = os.path.dirname(base_dir) 
+    output_dir = os.path.join(plots_dir, "output", "plots")
+    
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     try:
         raw_data = load_json_data(json_path)
-        migration_data = parse_migration_logs(os.path.join(logs_dir, 'actuator.log'))
+        migration_data = parse_migration_logs(os.path.join(base_dir, 'actuator.log'))
 
         timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods = process_resources(raw_data)
         
