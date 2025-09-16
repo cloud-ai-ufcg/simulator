@@ -66,7 +66,11 @@ stop-all-containers:
 	@echo "Cleanup process completed."
 
 generate-plots:
-	@(venv/bin/python3 analyzer/main.py simulator/data/metrics.json)
+	@if [ -z "$(METRICS)" ]; then \
+		echo "Usage: make generate-plots METRICS=path/to/metrics.json"; \
+		exit 1; \
+	fi
+	@(venv/bin/python3 analyzer/main.py $(METRICS))
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Important Notes

@@ -17,7 +17,7 @@ func SaveContainerLogs() {
 	}
 	timestamp := GetTimestamp()
 	containerLogs := map[string]string{
-		constants.ContainerActuator: filepath.Join(logsDir, fmt.Sprintf("actuator_%s.log", timestamp)),
+		constants.ContainerActuator: filepath.Join(logsDir, "actuator.log"),
 		constants.ContainerBroker:   filepath.Join(logsDir, fmt.Sprintf("broker_%s.log", timestamp)),
 		constants.ContainerMonitor:  filepath.Join(logsDir, fmt.Sprintf("monitor_%s.log", timestamp)),
 		constants.ContainerAIEngine: filepath.Join(logsDir, fmt.Sprintf("ai-engine_%s.log", timestamp)),
