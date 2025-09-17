@@ -1,7 +1,8 @@
-from unittest import result
 import pandas as pd
 from plotnine import stat_function
 from utils import parse_resource_value
+
+STAT_FUNCTION = ["mean", "min", "max", "std", "median"]
 
 
 def grouping_elements(raw_data) -> dict:
@@ -14,23 +15,57 @@ def grouping_elements(raw_data) -> dict:
     for timestamp in raw_data.keys():
         list_of_workloads = raw_data[timestamp]["workloads"]
         list_of_cluster_info = raw_data[timestamp]["cluster_info"]
-        
+
         grouped_data["workloads"].append(list_of_workloads)
         grouped_data["cluster_info"].append(list_of_cluster_info)
 
     return grouped_data
 
+
 def summarize_cost(list_of_cluster_info: list) -> list:
     cost_list = []
 
     for info in list_of_cluster_info:
-        private_cost = info[0]["interval_cost"]
-        public_cost = info[1]["interval_cost"]
+        private_cost = info[0]["pricing"]["interval_cost"]
+        public_cost = info[1]["pricing"]["interval_cost"]
 
         local_total_cost = private_cost + public_cost
         cost_list.append(local_total_cost)
-    
-    return cost_list
+
+    local_serie = pd.Series(cost_list)
+    return local_serie.agg(STAT_FUNCTION).to_dict()
+
+
+def summarize_resources(
+    list_of_cluster_info: list, type_resource: str, unit: str
+) -> list:
+    resource_list = []
+
+    for info in list_of_cluster_info:
+        private_resource = parse_resource_value(
+            info[0]["cluster_load"][type_resource], unit
+        )
+        public_resource = parse_resource_value(
+            info[1]["cluster_load"][type_resource], unit
+        )
+
+        total_cpu = private_resource + public_resource
+        resource_list.append(total_cpu)
+
+    local_serie = pd.Series(resource_list)
+    return local_serie.agg(STAT_FUNCTION).to_dict()
+
+
+def summarize_pending_pods(list_of_workloads: list) -> list:
+    pending_pods_list = []
+
+    for workloads in list_of_workloads:
+        for workload in workloads:
+            pending_pods = workload["pods_pending"]
+            pending_pods_list.append(pending_pods)
+
+    local_serie = pd.Series(pending_pods_list)
+    return local_serie.agg(STAT_FUNCTION).to_dict()
 
 
 def summarize(raw_data):
@@ -39,17 +74,14 @@ def summarize(raw_data):
     """
     grouped_data = grouping_elements(raw_data)
     data = {
-        "cost" : summarize_cost(grouped_data["cluster_info"]),
-        "cpu_usage" : [],
-        "mem_usage" : [],
-        "pods_pending" : [],
-        "time_with_pending" : [],
-        "wokloads_with_pending_pods" : [],
-        "number_of_migrations" : []
+        "cost": summarize_cost(grouped_data["cluster_info"]),
+        "cpu_usage": summarize_resources(grouped_data["cluster_info"], "cpu", "m"),
+        "mem_usage": summarize_resources(grouped_data["cluster_info"], "memory", "Mi"),
+        "pending_pods": summarize_pending_pods(grouped_data["workloads"]),
+        "time_with_pending": summarize_pending_pods(grouped_data["workloads"]),  # TODO
+        "wokloads_with_pending_pods": summarize_pending_pods(grouped_data["workloads"]), # TODO
+        "number_of_migrations": summarize_pending_pods(grouped_data["workloads"]), # TODO
     }
 
-    stat_functions = ["mean", "min", "max", "std"]
-    data_frame = pd.DataFrame(data).T
-    out = data_frame.agg(stat_functions)
-    
-    result = out.T 
+    summary_result = pd.DataFrame.from_dict(data, orient="index")
+    print(summary_result)
