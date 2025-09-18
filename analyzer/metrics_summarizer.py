@@ -1,5 +1,6 @@
 import pandas as pd
-from plotnine import stat_function
+import os
+from datetime import datetime
 from utils import parse_resource_value
 
 STAT_FUNCTION = ["mean", "min", "max", "std", "median"]
@@ -68,7 +69,14 @@ def summarize_pending_pods(list_of_workloads: list) -> list:
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
 
-def summarize(raw_data):
+def save_summary(summary_result, summary_dir):
+    localtime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    summary_path = os.path.join(summary_dir, f"summary_metrics_{localtime}.csv")
+    pd.DataFrame.to_csv(summary_result, summary_path)
+    print(f"Summary saved to {summary_path}")
+
+
+def summarize(raw_data, summary_dir):
     """
     Receives a `raw_data` representing the metrics to summarize it.
     """
@@ -79,9 +87,13 @@ def summarize(raw_data):
         "mem_usage": summarize_resources(grouped_data["cluster_info"], "memory", "Mi"),
         "pending_pods": summarize_pending_pods(grouped_data["workloads"]),
         "time_with_pending": summarize_pending_pods(grouped_data["workloads"]),  # TODO
-        "wokloads_with_pending_pods": summarize_pending_pods(grouped_data["workloads"]), # TODO
-        "number_of_migrations": summarize_pending_pods(grouped_data["workloads"]), # TODO
+        "wokloads_with_pending_pods": summarize_pending_pods(
+            grouped_data["workloads"]
+        ),  # TODO
+        "number_of_migrations": summarize_pending_pods(
+            grouped_data["workloads"]
+        ),  # TODO
     }
 
     summary_result = pd.DataFrame.from_dict(data, orient="index")
-    print(summary_result)
+    save_summary(summary_result, summary_dir)
