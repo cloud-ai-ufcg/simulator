@@ -73,7 +73,6 @@ def save_summary(summary_result, summary_dir):
     localtime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     summary_path = os.path.join(summary_dir, f"summary_metrics_{localtime}.csv")
     pd.DataFrame.to_csv(summary_result, summary_path)
-    print(f"Summary saved to {summary_path}")
 
 
 def summarize(raw_data, summary_dir):
