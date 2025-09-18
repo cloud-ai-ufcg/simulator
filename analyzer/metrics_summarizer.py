@@ -1,7 +1,6 @@
 import pandas as pd
 import os
 from datetime import datetime
-from utils import parse_resource_value
 
 STAT_FUNCTION = ["mean", "min", "max", "std", "median"]
 
@@ -10,7 +9,6 @@ def grouping_elements(raw_data) -> dict:
     """
     Read the raw_data grouping the information over time.
     """
-
     grouped_data = {"workloads": [], "cluster_info": []}
 
     for timestamp in raw_data.keys():
@@ -24,6 +22,9 @@ def grouping_elements(raw_data) -> dict:
 
 
 def summarize_cost(list_of_cluster_info: list) -> list:
+    """
+    Calculate the cost summary from the list of cluster info. Sum the cost of each type of cluster (private and public).
+    """
     cost_list = []
 
     for info in list_of_cluster_info:
@@ -37,39 +38,44 @@ def summarize_cost(list_of_cluster_info: list) -> list:
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
 
-def summarize_resources(
-    list_of_cluster_info: list, type_resource: str, unit: str
-) -> list:
+def summarize_resources(list_of_cluster_info: list, type_resource: str) -> list:
+    """
+    Calculate the resource summary from the list of cluster info. It considers the sum of resource usage of each type of cluster (private and public).
+    """
     resource_list = []
 
     for info in list_of_cluster_info:
-        private_resource = parse_resource_value(
-            info[0]["cluster_load"][type_resource], unit
-        )
-        public_resource = parse_resource_value(
-            info[1]["cluster_load"][type_resource], unit
-        )
+        private_resource = info[0]["cluster_load"][type_resource]
+        public_resource = info[1]["cluster_load"][type_resource]
 
-        total_cpu = private_resource + public_resource
-        resource_list.append(total_cpu)
+        total_resource = private_resource + public_resource
+        resource_list.append(total_resource)
 
     local_serie = pd.Series(resource_list)
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
 
 def summarize_pending_pods(list_of_workloads: list) -> list:
+    """
+    Calculate the pending pods summary from the list of workloads. It considers the sum of pending pods from all workloads in each timestamp. 
+    """
     pending_pods_list = []
-
+    
     for workloads in list_of_workloads:
+        pending_sum = 0
         for workload in workloads:
-            pending_pods = workload["pods_pending"]
-            pending_pods_list.append(pending_pods)
+            pending_sum += workload["pods_pending"]
+        
+        pending_pods_list.append(pending_sum)
 
     local_serie = pd.Series(pending_pods_list)
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
 
 def save_summary(summary_result, summary_dir):
+    """
+    Save the summary result in a CSV file in the summary_dir.
+    """
     localtime = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     summary_path = os.path.join(summary_dir, f"summary_metrics_{localtime}.csv")
     pd.DataFrame.to_csv(summary_result, summary_path)
@@ -82,8 +88,8 @@ def summarize(raw_data, summary_dir):
     grouped_data = grouping_elements(raw_data)
     data = {
         "cost": summarize_cost(grouped_data["cluster_info"]),
-        "cpu_usage": summarize_resources(grouped_data["cluster_info"], "cpu", "m"),
-        "mem_usage": summarize_resources(grouped_data["cluster_info"], "memory", "Mi"),
+        "cpu_usage": summarize_resources(grouped_data["cluster_info"], "cpu"),
+        "mem_usage": summarize_resources(grouped_data["cluster_info"], "memory"),
         "pending_pods": summarize_pending_pods(grouped_data["workloads"]),
         "time_with_pending": summarize_pending_pods(grouped_data["workloads"]),  # TODO
         "wokloads_with_pending_pods": summarize_pending_pods(
@@ -95,4 +101,5 @@ def summarize(raw_data, summary_dir):
     }
 
     summary_result = pd.DataFrame.from_dict(data, orient="index")
-    save_summary(summary_result, summary_dir)
+    print(summary_result)
+    # save_summary(summary_result, summary_dir)
