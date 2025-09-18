@@ -40,14 +40,15 @@ const (
 const (
 	// API and file paths
 	MetricsURL      = "http://localhost:8082/metrics"
-	MetricsFilePath = "../../simulator/data/metrics.json"
+	MetricsFilePath = "../../analyzer/dataplots/metrics.json"
 
 	// Python configuration
 	PythonExecutable = "../../venv/bin/python3"
 
 	// Output directories
-	OutputDir = "../../simulator/data/output/plots"
-	LogsDir   = "../../simulator/data/output/logs"
+	OutputDir    = "../../simulator/data/output/plots"
+	LogsDir      = "../../simulator/data/output/logs"
+	DataplotsDir = "../../analyzer/dataplots"
 )
 
 // Simulator ASCII logo

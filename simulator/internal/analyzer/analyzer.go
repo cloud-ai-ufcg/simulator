@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"simulator/internal/constants"
 	"simulator/internal/log"
+	"simulator/internal/utils"
 )
 
 func CallAnalyzerAndProcess() {
@@ -31,15 +33,31 @@ func CallAnalyzerAndProcess() {
 		return
 	}
 
-	// Ensure output directory exists
-	if err := os.MkdirAll(filepath.Dir(constants.MetricsFilePath), 0755); err != nil {
-		log.Errorf("Error creating metrics directory: %v", err)
+	// Ensure dataplots directory exists
+	dataplotsDir := constants.DataplotsDir
+	if err := os.MkdirAll(dataplotsDir, 0755); err != nil {
+		log.Errorf("Error creating dataplots directory: %v", err)
+		return
+	}
+	// Save metrics as metrics.json (always overwrite)
+	dataplotsFile := filepath.Join(dataplotsDir, "metrics.json")
+	err = ioutil.WriteFile(dataplotsFile, body, 0644)
+	if err != nil {
+		log.Errorf("Error writing metrics.json in dataplots: %v", err)
 		return
 	}
 
-	err = ioutil.WriteFile(constants.MetricsFilePath, body, 0644)
+	// Ensure output/metrics directory exists
+	outputMetricsDir := "../../simulator/data/output/metrics"
+	if err := os.MkdirAll(outputMetricsDir, 0755); err != nil {
+		log.Errorf("Error creating output/metrics directory: %v", err)
+		return
+	}
+	timestamp := utils.GetTimestamp()
+	outputMetricsFile := filepath.Join(outputMetricsDir, fmt.Sprintf("metrics_%s.json", timestamp))
+	err = ioutil.WriteFile(outputMetricsFile, body, 0644)
 	if err != nil {
-		log.Errorf("Error writing metrics file: %v", err)
+		log.Errorf("Error writing metrics file in output/metrics: %v", err)
 		return
 	}
 
@@ -47,7 +65,7 @@ func CallAnalyzerAndProcess() {
 	cmd := exec.Command(
 		constants.PythonExecutable,
 		"../../analyzer/main.py",
-		constants.MetricsFilePath,
+		dataplotsFile,
 	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -59,11 +77,4 @@ func CallAnalyzerAndProcess() {
 	}
 
 	log.Infof("Finished generating visualizations.")
-
-	//if err := os.Remove(constants.MetricsFilePath); err != nil {
-	//	log.Errorf("Error deleting %s: %v", constants.MetricsFilePath, err)
-	//}
-	//if err := os.Remove(constants.ProcessedMetricsPath); err != nil {
-	//	log.Errorf("Error deleting %s: %v", constants.ProcessedMetricsPath, err)
-	//}
 }
