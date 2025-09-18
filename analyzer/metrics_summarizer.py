@@ -101,5 +101,4 @@ def summarize(raw_data, summary_dir):
     }
 
     summary_result = pd.DataFrame.from_dict(data, orient="index")
-    print(summary_result)
-    # save_summary(summary_result, summary_dir)
+    save_summary(summary_result, summary_dir)
