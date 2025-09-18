@@ -71,6 +71,26 @@ def summarize_pending_pods(list_of_workloads: list) -> list:
     local_serie = pd.Series(pending_pods_list)
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
+def summarize_time_with_pending(list_of_workloads: list) -> list:
+    list_of_time_pending = []
+
+    for workloads in list_of_workloads:
+        idx = 0
+        has_pending = False
+        
+        while idx < len(workloads) and not has_pending:
+            if workloads[idx]["pods_pending"] > 0:
+                list_of_time_pending.append(1)
+                has_pending = True
+            
+            idx += 1
+        
+        if not has_pending:
+            list_of_time_pending.append(0)
+
+    local_serie = pd.Series(list_of_time_pending)
+    return local_serie.agg(STAT_FUNCTION).to_dict()
+
 
 def save_summary(summary_result, summary_dir):
     """
@@ -91,7 +111,7 @@ def summarize(raw_data, summary_dir):
         "cpu_usage": summarize_resources(grouped_data["cluster_info"], "cpu"),
         "mem_usage": summarize_resources(grouped_data["cluster_info"], "memory"),
         "pending_pods": summarize_pending_pods(grouped_data["workloads"]),
-        "time_with_pending": summarize_pending_pods(grouped_data["workloads"]),  # TODO
+        "time_with_pending": summarize_time_with_pending(grouped_data["workloads"]),
         "wokloads_with_pending_pods": summarize_pending_pods(
             grouped_data["workloads"]
         ),  # TODO
