@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"simulator/internal/constants"
+	"time"
 )
 
 // SaveContainerLogs creates the logs directory and saves logs from all relevant containers.
@@ -14,11 +15,12 @@ func SaveContainerLogs() {
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating logs directory: %v\n", err)
 	}
+	timestamp := GetTimestamp()
 	containerLogs := map[string]string{
-		constants.ContainerActuator: filepath.Join(logsDir, "actuator.log"),
-		constants.ContainerBroker:   filepath.Join(logsDir, "broker.log"),
-		constants.ContainerMonitor:  filepath.Join(logsDir, "monitor.log"),
-		constants.ContainerAIEngine: filepath.Join(logsDir, "ai-engine.log"),
+		constants.ContainerActuator: filepath.Join(logsDir, fmt.Sprintf("actuator_%s.log", timestamp)),
+		constants.ContainerBroker:   filepath.Join(logsDir, fmt.Sprintf("broker_%s.log", timestamp)),
+		constants.ContainerMonitor:  filepath.Join(logsDir, fmt.Sprintf("monitor_%s.log", timestamp)),
+		constants.ContainerAIEngine: filepath.Join(logsDir, fmt.Sprintf("ai-engine_%s.log", timestamp)),
 	}
 	for container, logFile := range containerLogs {
 		cmd := exec.Command("docker", "logs", container)
@@ -33,7 +35,20 @@ func SaveContainerLogs() {
 		}
 	}
 
-	kubectlLogFile := filepath.Join(logsDir, "kubectl.log")
+	// Save actuator log without timestamp in dataplots
+	actuatorLogSrc := filepath.Join(logsDir, fmt.Sprintf("actuator_%s.log", timestamp))
+	actuatorLogDst := filepath.Join(constants.DataplotsDir, "actuator.log")
+	logData, err := os.ReadFile(actuatorLogSrc)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading actuator log for dataplots: %v\n", err)
+	} else {
+		err = os.WriteFile(actuatorLogDst, logData, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving actuator log to dataplots: %v\n", err)
+		}
+	}
+
+	kubectlLogFile := filepath.Join(logsDir, fmt.Sprintf("kubectl_%s.log", timestamp))
 	kubeconfigPath := filepath.Join(os.Getenv("HOME"), ".kube/members.config")
 	kubectlCmd := exec.Command("kubectl", "get", "nodes", "--namespace=default", "--context=member2", "--kubeconfig="+kubeconfigPath)
 	kubectlLogData, err := kubectlCmd.CombinedOutput()
@@ -45,4 +60,9 @@ func SaveContainerLogs() {
 			fmt.Fprintf(os.Stderr, "Error saving kubectl logs to %s: %v\n", kubectlLogFile, err)
 		}
 	}
+}
+
+// GetTimestamp returns a string with the current date and time in YYYYMMDD_HHMMSS format
+func GetTimestamp() string {
+	return time.Now().Format("20060102_150405")
 }

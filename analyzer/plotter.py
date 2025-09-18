@@ -287,7 +287,7 @@ def plot_pricing(df, output_dir, migration_data=None):
         x_breaks = list(range(0, int(max_time) + 15, 15))
 
     # Color mapping for clusters
-    cluster_colors = {'Public': '#1f77b4', 'Private': '#d62728'}  # Blue for public, red for private
+    cluster_colors = {'Public': '#d62728', 'Private': '#d62728'}  # Both clusters in red
 
     # Create the base plot - removed scales='free_y' to have consistent y-axis
     g = (
@@ -297,8 +297,9 @@ def plot_pricing(df, output_dir, migration_data=None):
         + labs(title="Cluster Pricing Over Time", y="Cost per Interval", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
         + scale_color_manual(values=cluster_colors)
-        + theme_bw()
-        + theme(legend_key=element_blank())
+    + theme_bw()
+    + theme(legend_key=element_blank())
+    + theme(legend_position='none')
     )
 
     # Force y-axis to start at 0 for both panels
@@ -356,7 +357,7 @@ def plot_pricing(df, output_dir, migration_data=None):
                     linetype='mig_legend'
                 ),
                 size=1.5,
-                show_legend=True
+                show_legend=False
             )
             
             # Combine cluster and migration colors
