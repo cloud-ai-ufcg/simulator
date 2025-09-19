@@ -58,20 +58,38 @@ def summarize_resources(list_of_cluster_info: list, type_resource: str) -> list:
 def summarize_pending_pods(list_of_workloads: list) -> list:
     """
     Calculate the pending pods summary from the list of workloads. It considers the sum of pending pods from all workloads in each timestamp. 
+
+    -------
+    Returns: it returns a dictionary with two keys: "pending_pods" and "percent_workloads". 
+    Each key contains a dictionary with the statistical summary (mean, min, max, std, median) of the respective metric.
     """
     pending_pods_list = []
+    percent_workloads_list = []
     
     for workloads in list_of_workloads:
         pending_sum = 0
+        workload_pending = 0
+        total_workloads = len(workloads)
+
         for workload in workloads:
             pending_sum += workload["pods_pending"]
-        
-        pending_pods_list.append(pending_sum)
+            
+            if workload["pods_pending"] > 0:
+                workload_pending += 1
 
-    local_serie = pd.Series(pending_pods_list)
-    return local_serie.agg(STAT_FUNCTION).to_dict()
+        final_percent = (workload_pending / total_workloads) if total_workloads > 0 else 0
+        pending_pods_list.append(pending_sum)
+        percent_workloads_list.append(final_percent)
+
+    pending_pods_series = pd.Series(pending_pods_list)
+    percent_pods_list_series = pd.Series(percent_workloads_list)
+
+    return {"pending_pods": pending_pods_series.agg(STAT_FUNCTION).to_dict(), "percent_workloads": percent_pods_list_series.agg(STAT_FUNCTION).to_dict()}
 
 def summarize_time_with_pending(list_of_workloads: list) -> list:
+    """
+    Calculate the number of periods (timestamps) with pending pods in any workload.
+    """
     list_of_time_pending = []
 
     for workloads in list_of_workloads:
@@ -91,7 +109,6 @@ def summarize_time_with_pending(list_of_workloads: list) -> list:
     local_serie = pd.Series(list_of_time_pending)
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
-
 def save_summary(summary_result, summary_dir):
     """
     Save the summary result in a CSV file in the summary_dir.
@@ -106,18 +123,16 @@ def summarize(raw_data, summary_dir):
     Receives a `raw_data` representing the metrics to summarize it.
     """
     grouped_data = grouping_elements(raw_data)
+    pending_data = summarize_pending_pods(grouped_data["workloads"])
+
     data = {
         "cost": summarize_cost(grouped_data["cluster_info"]),
         "cpu_usage": summarize_resources(grouped_data["cluster_info"], "cpu"),
         "mem_usage": summarize_resources(grouped_data["cluster_info"], "memory"),
-        "pending_pods": summarize_pending_pods(grouped_data["workloads"]),
+        "pending_pods": pending_data["pending_pods"],
         "time_with_pending": summarize_time_with_pending(grouped_data["workloads"]),
-        "wokloads_with_pending_pods": summarize_pending_pods(
-            grouped_data["workloads"]
-        ),  # TODO
-        "number_of_migrations": summarize_pending_pods(
-            grouped_data["workloads"]
-        ),  # TODO
+        "wokloads_with_pending_pods": pending_data["percent_workloads"],
+        "number_of_migrations": pending_data["pending_pods"],  # TODO
     }
 
     summary_result = pd.DataFrame.from_dict(data, orient="index")
