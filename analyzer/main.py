@@ -82,7 +82,7 @@ def main():
         plot_cpu_load(df_summary, plots_dir)
         plot_memory_load(df_summary, plots_dir)
         plot_total_percent_pending(df_summary, plots_dir)
-        summarize(raw_data, summary_dir)
+        summarize(raw_data, summary_dir, migration_data)
 
     except FileNotFoundError:
         print(f"Error: File '{json_path}' not found.")

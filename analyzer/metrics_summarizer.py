@@ -109,6 +109,23 @@ def summarize_time_with_pending(list_of_workloads: list) -> list:
     local_serie = pd.Series(list_of_time_pending)
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
+
+def summarize_migrations(migration_df):
+    """
+    Calculate migration metrics from migration log data.
+    """
+    if migration_df is None or migration_df.empty:
+        zero_series = pd.Series([0])
+        return zero_series.agg(STAT_FUNCTION).to_dict()
+    
+    migrated_pods_per_execution = []
+    
+    for _, row in migration_df.iterrows():
+        migrated_pods_per_execution.append(row['total_migrated_pods'])
+    
+    pods_series = pd.Series(migrated_pods_per_execution)
+    return pods_series.agg(STAT_FUNCTION).to_dict()
+
 def save_summary(summary_result, summary_dir):
     """
     Save the summary result in a CSV file in the summary_dir.
@@ -118,7 +135,7 @@ def save_summary(summary_result, summary_dir):
     pd.DataFrame.to_csv(summary_result, summary_path)
 
 
-def summarize(raw_data, summary_dir):
+def summarize(raw_data, summary_dir, migration_df=None):
     """
     Receives a `raw_data` representing the metrics to summarize it.
     """
@@ -132,7 +149,7 @@ def summarize(raw_data, summary_dir):
         "pending_pods": pending_data["pending_pods"],
         "time_with_pending": summarize_time_with_pending(grouped_data["workloads"]),
         "wokloads_with_pending_pods": pending_data["percent_workloads"],
-        "number_of_migrations": pending_data["pending_pods"],  # TODO
+        "number_of_migrations": summarize_migrations(migration_df),
     }
 
     summary_result = pd.DataFrame.from_dict(data, orient="index")
