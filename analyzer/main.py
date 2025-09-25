@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import pandas as pd
+from metrics_summarizer import summarize
 from data_loader import load_json_data, parse_migration_logs
 from data_processor import process_json_data, process_resources, process_cluster_info, build_dataframe, process_pricing_data, build_pricing_dataframe
 from plotter import plot_cpu_load, plot_memory_load, plot_total_percent_pending, plot_resource, plot_pricing
@@ -23,10 +24,14 @@ def main():
     json_path = sys.argv[1]
     base_dir = os.path.dirname(json_path)
     project_root = os.path.dirname(os.path.dirname(base_dir))  
-    output_dir = os.path.join(project_root, "simulator", "data", "output", "plots")
+    plots_dir = os.path.join(project_root, "simulator", "data", "output", "plots")
+    summary_dir = os.path.join(project_root, "simulator", "data", "output", "summary")
     
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not os.path.exists(plots_dir):
+        os.makedirs(plots_dir)
+    
+    if not os.path.exists(summary_dir):
+        os.makedirs(summary_dir)
 
     try:
         raw_data = load_json_data(json_path)
@@ -40,15 +45,15 @@ def main():
         cluster_info_req = process_cluster_info(raw_data, timestamps, limit_load=False)
         df_req = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info_req)
 
-        plot_resource(df_alloc, ['mem_allocated_public', 'mem_allocated_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Allocated', os.path.join(output_dir, 'allocated_memory.png'), migration_data)
-        plot_resource(df_req, ['mem_requested_public', 'mem_requested_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Requested', os.path.join(output_dir, 'requested_memory.png'), migration_data)
-        plot_resource(df_alloc, ['cpu_allocated_public', 'cpu_allocated_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Allocated', os.path.join(output_dir, 'allocated_cpu.png'), migration_data)
-        plot_resource(df_req, ['cpu_requested_public', 'cpu_requested_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Requested', os.path.join(output_dir, 'requested_cpu.png'), migration_data)
+        plot_resource(df_alloc, ['mem_allocated_public', 'mem_allocated_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Allocated', os.path.join(plots_dir, 'allocated_memory.png'), migration_data)
+        plot_resource(df_req, ['mem_requested_public', 'mem_requested_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Requested', os.path.join(plots_dir, 'requested_memory.png'), migration_data)
+        plot_resource(df_alloc, ['cpu_allocated_public', 'cpu_allocated_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Allocated', os.path.join(plots_dir, 'allocated_cpu.png'), migration_data)
+        plot_resource(df_req, ['cpu_requested_public', 'cpu_requested_private'], ['cluster_cpu_capacity_public', 'cluster_cpu_capacity_private'], ['number_pending_private', 'number_pending_public'], 'CPU Requested', os.path.join(plots_dir, 'requested_cpu.png'), migration_data)
 
         # Process and plot pricing data
         pricing_timestamps, pricing_data = process_pricing_data(raw_data)
         df_pricing = build_pricing_dataframe(pricing_timestamps, pricing_data)
-        plot_pricing(df_pricing, output_dir, migration_data)
+        plot_pricing(df_pricing, plots_dir, migration_data)
 
         processed_data_for_summary = process_json_data(raw_data)
         records = []
@@ -74,9 +79,10 @@ def main():
         else:
             df_summary['time_seconds'] = pd.Series(dtype='float64')
 
-        plot_cpu_load(df_summary, output_dir)
-        plot_memory_load(df_summary, output_dir)
-        plot_total_percent_pending(df_summary, output_dir)
+        plot_cpu_load(df_summary, plots_dir)
+        plot_memory_load(df_summary, plots_dir)
+        plot_total_percent_pending(df_summary, plots_dir)
+        summarize(raw_data, summary_dir, migration_data)
 
     except FileNotFoundError:
         print(f"Error: File '{json_path}' not found.")
