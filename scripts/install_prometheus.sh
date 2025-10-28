@@ -14,10 +14,10 @@
 COLOR="\033[1;36m"  # Cyan – this script's identity color
 RESET="\033[0m"
 
-set -euo pipefail
+set -eo pipefail
 trap 'echo -e "\033[1;31m❌ Error in $BASH_SOURCE:$LINENO – $BASH_COMMAND\033[0m"' ERR
 
-GRAFANA_STATUS=${PROMETHEUS_GRAFANA_ENABLE}
+GRAFANA_STATUS=${PROMETHEUS_GRAFANA_ENABLE:-false}
 RELEASE_NAME="prometheus"
 NAMESPACE="monitoring"
 KUBE_PROMETHEUS_STACK_VERSION=75.15.1

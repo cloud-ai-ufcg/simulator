@@ -31,7 +31,29 @@ else
   echo -e "${COLOR}[INFO] Karmada repository already exists. Skipping clone.${RESET}"
 fi
 
+# Modify member1 and member2 configs to include worker nodes
 cd karmada
+echo -e "${COLOR}🔧 Modifying KIND configs to include worker nodes...${RESET}"
+if [ -f "artifacts/kindClusterConfig/member1.yaml" ]; then
+  # Add workers to member1 config
+  if ! grep -q "role: worker" "artifacts/kindClusterConfig/member1.yaml"; then
+    cat >> "artifacts/kindClusterConfig/member1.yaml" <<'EOF'
+  - role: worker
+  - role: worker
+EOF
+  fi
+fi
+
+if [ -f "artifacts/kindClusterConfig/member2.yaml" ]; then
+  # Add workers to member2 config
+  if ! grep -q "role: worker" "artifacts/kindClusterConfig/member2.yaml"; then
+    cat >> "artifacts/kindClusterConfig/member2.yaml" <<'EOF'
+  - role: worker
+  - role: worker
+EOF
+  fi
+fi
+echo -e "${COLOR}✅ Config files updated with workers${RESET}"
 sudo sysctl fs.inotify.max_user_watches=524288
 sudo sysctl fs.inotify.max_user_instances=512
 hack/local-up-karmada.sh

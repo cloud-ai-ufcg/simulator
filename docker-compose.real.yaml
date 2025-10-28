@@ -1,4 +1,7 @@
+version: '3.8'
+
 services:
+    # Broker (same as before)
     broker:
         container_name: broker
         build:
@@ -13,20 +16,26 @@ services:
               target: /root/.kube/members.config
         network_mode: "host"
         environment:
-            - KWOK_MODE=true # Set to false for real mode
+            - MODE=real
+            - KWOK_MODE=false # Real mode: no KWOK tolerations
 
+    # Monitor (same as before, adapts to both modes)
     monitor:
         container_name: monitor
         build:
             context: ./monitor
             dockerfile: Dockerfile
         network_mode: host
+
+    # AI-Engine (same as before)
     ai-engine:
         container_name: ai-engine
         build:
             context: ./ai-engine
             dockerfile: Dockerfile.api
         network_mode: "host"
+
+    # Actuator (same as before)
     actuator:
         container_name: actuator
         build:
@@ -36,10 +45,9 @@ services:
             - type: bind
               source: ~/.kube/karmada.config
               target: /root/.kube/config
-            - type: bind
-              source: ~/.kwok
-              target: /root/.kwok
         network_mode: "host"
+
+    # MongoDB (same as before)
     mongo:
         container_name: mongo
         image: mongo:latest
@@ -55,4 +63,3 @@ networks:
 
 volumes:
     mongo_data:
-    config_data:

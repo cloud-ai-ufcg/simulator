@@ -7,12 +7,25 @@
 #   • Loads cluster definitions from initialization.yaml.
 #   • Installs prerequisites, generates manifests, starts Karmada.
 #   • Deploys Prometheus, KWOK, Cluster Autoscaler (conditionally), and nodes.
+#   • Supports both KWOK (simulated) and real workload modes
 # -----------------------------------------------------------------------------
 COLOR="\033[1;32m"  # Green – this script's identity color
 RESET="\033[0m"
 
 set -euo pipefail
 trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
+
+# -----------------------------------------------------------------------------
+# Load execution mode configuration
+# -----------------------------------------------------------------------------
+if [ -f "mode.env" ]; then
+    source mode.env
+else
+    # Default to KWOK mode if mode.env doesn't exist
+    EXECUTION_MODE="kwok"
+fi
+
+echo -e "${COLOR}🎯 Execution Mode: ${EXECUTION_MODE}${RESET}"
 
 # -----------------------------------------------------------------------------
 # Setup Python venv and dependencies for Analyzer
@@ -30,7 +43,9 @@ echo -e "${COLOR}✅ Python venv ready.${RESET}"
 # -----------------------------------------------------------------------------
 chmod +x install_prerequisites.sh generate_manifests.sh install_karmada.sh \
         install_prometheus.sh install_kwok.sh install_autoscaler.sh \
-        taint_control_plane.sh create_kwok_nodes.sh load_config.sh
+        install_autoscaler_kind.sh taint_control_plane.sh create_kwok_nodes.sh \
+        create_kind_clusters.sh create_real_nodes.sh real-mode_setup.sh kwok-mode_setup.sh \
+        load_config.sh
 
 echo -e "${COLOR}[1/8] 📦 Installing prerequisites...${RESET}"
 ./install_prerequisites.sh
@@ -59,27 +74,44 @@ echo -e "${COLOR}[4/8] ☸️  Bringing up Karmada...${RESET}"
 ./install_karmada.sh
 export KUBECONFIG=~/.kube/karmada.config
 
-echo -e "${COLOR}[5/8] 📊 Installing Prometheus...${RESET}"
-./install_prometheus.sh  # includes readiness check and port-forwards
-
 # -----------------------------------------------------------------------------
-# 4. Setup KWOK & Autoscaler stack
+# 4. Setup according to execution mode (before Prometheus for Real mode)
 # -----------------------------------------------------------------------------
 export KUBECONFIG=~/.kube/members.config
 
-echo -e "${COLOR}[6/8] ☁️ Installing KWOK controller...${RESET}"
-./install_kwok.sh
-
-if [[ "${MEMBER2_AUTOSCALER:-true}" == "true" ]]; then
-  echo -e "${COLOR}[7/8] ⚙️ Installing Cluster Autoscaler...${RESET}"
-  ./install_autoscaler.sh
+if [[ "$EXECUTION_MODE" == "kwok" ]]; then
+    echo -e "${COLOR}[5/8] 🎭 Setting up KWOK mode (simulated)...${RESET}"
+    ./kwok-mode_setup.sh
+    
+    echo -e "${COLOR}[6/8] 📊 Installing Prometheus...${RESET}"
+    ./install_prometheus.sh  # includes readiness check and port-forwards
+elif [[ "$EXECUTION_MODE" == "real" ]]; then
+    echo -e "${COLOR}[5/8] 🌐 Setting up Real mode (creating clusters)...${RESET}"
+    ./real-mode_setup.sh
+    
+    echo -e "${COLOR}[6/8] 📊 Installing Prometheus...${RESET}"
+    ./install_prometheus.sh  # includes readiness check and port-forwards
 else
-  echo -e "${COLOR}[7/8] ⚙️ Skipping Autoscaler installation (disabled in config)...${RESET}"
+    echo -e "${COLOR}❌ Unknown execution mode: ${EXECUTION_MODE}${RESET}"
+    echo -e "${COLOR}   Valid options: kwok, real${RESET}"
+    exit 1
 fi
 
-echo -e "${COLOR}[8/8] 🧪 Applying taints and creating KWOK nodes...${RESET}"
-./taint_control_plane.sh
-./create_kwok_nodes.sh
+# Autoscaler (for KWOK mode or KIND mode in member2)
+if [[ "${MEMBER2_AUTOSCALER:-true}" == "true" ]]; then
+    if [[ "$EXECUTION_MODE" == "kwok" ]]; then
+        echo -e "${COLOR}[7/10] ⚙️ Installing Cluster Autoscaler (KWOK)...${RESET}"
+        ./install_autoscaler.sh
+    elif [[ "$EXECUTION_MODE" == "real" ]]; then
+        echo -e "${COLOR}[7/10] ⚙️ Installing Cluster Autoscaler (KIND - member2 only)...${RESET}"
+        chmod +x install_autoscaler_kind.sh
+        ./install_autoscaler_kind.sh
+    fi
+else
+    echo -e "${COLOR}[7/10] ⚙️ Skipping Autoscaler installation...${RESET}"
+fi
+
+echo -e "${COLOR}[8/10] ✅ Mode setup completed${RESET}"
 
 # -----------------------------------------------------------------------------
 # 5. Final message

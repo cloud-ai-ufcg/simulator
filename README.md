@@ -40,6 +40,20 @@ git submodule update --init --recursive
   make start
   ```
 
+- **start-kwok**  
+  Switches to KWOK mode (simulated nodes), sets up infrastructure, starts all containers, and runs the simulator.
+
+  ```sh
+  make start-kwok
+  ```
+
+- **start-real**  
+  Switches to Real mode (KIND clusters), sets up infrastructure, starts all containers, and runs the simulator.
+
+  ```sh
+  make start-real
+  ```
+
 - **run-all-containers**  
   Starts all required containers (Broker, Actuator, Monitor, AI-Engine) without running the Go simulator.
 
@@ -111,6 +125,50 @@ To enable or disable the AI Engine, simply change the value of `enabled` and run
 ```sh
 make start
 ```
+
+## Execution Modes
+
+The simulator supports two execution modes: **KWOK** (simulated) and **Real** (real workloads).
+
+### Switching Between Modes
+
+```bash
+# Switch to KWOK mode (simulated - default)
+./scripts/setup-mode.sh kwok
+
+# Switch to Real mode (real workloads)
+./scripts/setup-mode.sh real
+```
+
+### KWOK Mode (Default)
+
+- **Use for**: Development, testing, POCs
+- **Nodes**: Simulated via KWOK
+- **Cost**: Free
+- **Setup**: Fast (< 5 min)
+
+### Real Mode
+
+- **Use for**: Production validation, performance testing
+- **Nodes**: Real Kubernetes clusters
+- **Cost**: Based on cloud provider
+- **Setup**: Requires pre-configured clusters
+
+**✨ Real Mode Now Auto-creates KIND Clusters!**
+
+For detailed information, see [README-EXECUTION-MODES.md](README-EXECUTION-MODES.md)
+
+## Real Workloads
+
+The simulator now uses **real workload processing** instead of dummy busybox containers. Workloads use `stress-ng` to generate actual CPU and memory load, providing:
+
+- ✅ **Real CPU usage** (99-100%)
+- ✅ **Real memory usage**
+- ✅ **Real metrics** for monitoring
+- ✅ **Working autoscaling** (detects real load)
+- ✅ **Accurate AI recommendations** (based on real data)
+
+For details, see [CHANGELOG-REAL-WORKLOADS.md](CHANGELOG-REAL-WORKLOADS.md)
 
 ## Notes
 

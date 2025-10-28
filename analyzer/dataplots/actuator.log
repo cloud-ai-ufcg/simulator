@@ -1,0 +1,487 @@
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+> INFO: 2025/10/27 22:22:20 Successfully created karmada orchestrator
+[GIN-debug] POST   /apply                    --> actuator/router.SetupRoutes.func1 (3 handlers)
+> INFO: 2025/10/27 22:22:20 Starting server with karmada orchestrator on port 8084
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8084
+> INFO: 2025/10/27 22:27:39 Request received: [{ID:default/87 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/74 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/58 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/65 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/94 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/35 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/14 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/43 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/54 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/42 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/46 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/30 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/5 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/51 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/56 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/67 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/28 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/39 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/73 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/10 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/97 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/22 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/77 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/78 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/34 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/31 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/76 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/18 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/45 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/23 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/9 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/15 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/82 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/49 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/53 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/86 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/33 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/98 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/38 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/1 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/40 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/0 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/47 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/62 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/7 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/85 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/2 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/93 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/91 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/83 OriginCluster:1 DestinationCluster:1 Kind:deployment}]
+2025/10/27 22:27:39 🔄 Deployment default/87 updated to private
+2025/10/27 22:27:39 🔄 Deployment default/74 updated to private
+2025/10/27 22:27:39 🔄 Deployment default/58 updated to private
+2025/10/27 22:27:39 ⚠️  Deployment default/65 already labeled public
+2025/10/27 22:27:39 ⚠️  Deployment default/94 already labeled public
+2025/10/27 22:27:39 ⚠️  Deployment default/35 already labeled public
+2025/10/27 22:27:39 ⚠️  Deployment default/14 already labeled public
+2025/10/27 22:27:39 ⚠️  Deployment default/43 already labeled public
+2025/10/27 22:27:40 ⚠️  Deployment default/54 already labeled public
+2025/10/27 22:27:40 ⚠️  Deployment default/42 already labeled public
+2025/10/27 22:27:40 ⚠️  Deployment default/46 already labeled public
+2025/10/27 22:27:40 ⚠️  Deployment default/30 already labeled public
+2025/10/27 22:27:40 ⚠️  Deployment default/5 already labeled public
+2025/10/27 22:27:40 ⚠️  Deployment default/51 already labeled public
+2025/10/27 22:27:41 ⚠️  Deployment default/56 already labeled public
+2025/10/27 22:27:41 ⚠️  Deployment default/67 already labeled public
+2025/10/27 22:27:41 ⚠️  Deployment default/28 already labeled public
+2025/10/27 22:27:41 ⚠️  Deployment default/39 already labeled public
+2025/10/27 22:27:42 ⚠️  Deployment default/73 already labeled public
+2025/10/27 22:27:42 ⚠️  Deployment default/10 already labeled public
+2025/10/27 22:27:42 🔄 Deployment default/97 updated to public
+2025/10/27 22:27:42 ⚠️  Deployment default/22 already labeled private
+2025/10/27 22:27:43 ⚠️  Deployment default/77 already labeled private
+2025/10/27 22:27:43 🔄 Deployment default/78 updated to public
+2025/10/27 22:27:43 🔄 Deployment default/34 updated to public
+2025/10/27 22:27:44 ⚠️  Deployment default/31 already labeled private
+2025/10/27 22:27:44 ⚠️  Deployment default/76 already labeled private
+2025/10/27 22:27:44 ⚠️  Deployment default/18 already labeled private
+2025/10/27 22:27:44 🔄 Deployment default/45 updated to public
+2025/10/27 22:27:45 ⚠️  Deployment default/23 already labeled private
+2025/10/27 22:27:45 🔄 Deployment default/9 updated to public
+2025/10/27 22:27:45 ⚠️  Deployment default/15 already labeled private
+2025/10/27 22:27:45 ⚠️  Deployment default/82 already labeled private
+2025/10/27 22:27:46 ⚠️  Deployment default/49 already labeled private
+2025/10/27 22:27:46 ⚠️  Deployment default/53 already labeled private
+2025/10/27 22:27:46 🔄 Deployment default/86 updated to public
+2025/10/27 22:27:46 🔄 Deployment default/33 updated to public
+2025/10/27 22:27:47 🔄 Deployment default/98 updated to public
+2025/10/27 22:27:47 🔄 Deployment default/38 updated to public
+2025/10/27 22:27:48 🔄 Deployment default/1 updated to public
+2025/10/27 22:27:48 ⚠️  Deployment default/40 already labeled public
+2025/10/27 22:27:48 ⚠️  Deployment default/0 already labeled public
+2025/10/27 22:27:48 ⚠️  Deployment default/47 already labeled public
+2025/10/27 22:27:48 ⚠️  Deployment default/62 already labeled public
+2025/10/27 22:27:49 ⚠️  Deployment default/7 already labeled public
+2025/10/27 22:27:49 ⚠️  Deployment default/85 already labeled public
+2025/10/27 22:27:49 ⚠️  Deployment default/2 already labeled public
+2025/10/27 22:27:49 ⚠️  Deployment default/93 already labeled public
+2025/10/27 22:27:50 ⚠️  Deployment default/91 already labeled public
+[GIN] 2025/10/27 - 22:27:50 | 200 | 10.657635595s |       127.0.0.1 | POST     "/apply"
+2025/10/27 22:27:50 ⚠️  Deployment default/83 already labeled public
+2025/10/27 22:27:50 📊 Migration Summary - Execution: 1 | Label type: both | Total migrated pods: 78 | To Private: 18 pods | To Public: 60 pods
+> INFO: 2025/10/27 22:33:03 Request received: [{ID:default/22 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/77 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/31 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/76 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/18 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/23 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/15 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/82 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/49 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/53 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/74 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/20 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/87 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/71 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/19 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/58 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/64 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/75 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/95 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/68 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/66 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/96 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/61 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/89 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/63 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/52 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/92 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/12 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/65 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/94 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/35 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/14 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/43 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/54 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/42 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/46 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/30 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/5 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/51 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/56 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/84 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/29 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/27 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/48 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/50 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/36 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/6 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/59 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/3 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/90 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/8 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/69 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/88 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/41 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/4 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/44 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/13 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/79 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/37 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/17 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/67 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/28 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/39 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/73 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/10 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/40 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/0 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/47 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/62 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/7 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/85 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/2 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/93 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/91 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/83 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/97 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/86 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/45 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/34 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/78 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/9 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/1 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/98 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/80 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/16 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/33 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/38 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/32 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/60 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/57 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/21 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/26 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/25 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/55 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/70 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/99 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/81 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/24 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/11 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/72 OriginCluster:1 DestinationCluster:1 Kind:deployment}]
+2025/10/27 22:33:03 ⚠️  Deployment default/22 already labeled private
+2025/10/27 22:33:03 ⚠️  Deployment default/77 already labeled private
+2025/10/27 22:33:03 🔄 Deployment default/31 updated to public
+2025/10/27 22:33:03 🔄 Deployment default/76 updated to public
+2025/10/27 22:33:03 🔄 Deployment default/18 updated to public
+2025/10/27 22:33:03 🔄 Deployment default/23 updated to public
+2025/10/27 22:33:03 🔄 Deployment default/15 updated to public
+2025/10/27 22:33:04 🔄 Deployment default/82 updated to public
+2025/10/27 22:33:04 🔄 Deployment default/49 updated to public
+2025/10/27 22:33:05 🔄 Deployment default/53 updated to public
+2025/10/27 22:33:05 🔄 Deployment default/74 updated to public
+2025/10/27 22:33:05 🔄 Deployment default/20 updated to public
+2025/10/27 22:33:06 🔄 Deployment default/87 updated to public
+2025/10/27 22:33:06 🔄 Deployment default/71 updated to public
+2025/10/27 22:33:07 🔄 Deployment default/19 updated to public
+2025/10/27 22:33:07 🔄 Deployment default/58 updated to public
+2025/10/27 22:33:07 🔄 Deployment default/64 updated to public
+2025/10/27 22:33:08 🔄 Deployment default/75 updated to public
+2025/10/27 22:33:08 🔄 Deployment default/95 updated to public
+2025/10/27 22:33:09 🔄 Deployment default/68 updated to public
+2025/10/27 22:33:09 🔄 Deployment default/66 updated to public
+2025/10/27 22:33:09 🔄 Deployment default/96 updated to public
+2025/10/27 22:33:10 🔄 Deployment default/61 updated to public
+2025/10/27 22:33:10 ⚠️  Deployment default/89 already labeled private
+2025/10/27 22:33:11 ⚠️  Deployment default/63 already labeled private
+2025/10/27 22:33:11 ⚠️  Deployment default/52 already labeled private
+2025/10/27 22:33:11 ⚠️  Deployment default/92 already labeled private
+2025/10/27 22:33:11 ⚠️  Deployment default/12 already labeled private
+2025/10/27 22:33:11 🔄 Deployment default/65 updated to private
+2025/10/27 22:33:12 🔄 Deployment default/94 updated to private
+2025/10/27 22:33:12 ⚠️  Deployment default/35 already labeled public
+2025/10/27 22:33:12 ⚠️  Deployment default/14 already labeled public
+2025/10/27 22:33:13 🔄 Deployment default/43 updated to private
+2025/10/27 22:33:13 🔄 Deployment default/54 updated to private
+2025/10/27 22:33:13 ⚠️  Deployment default/42 already labeled public
+2025/10/27 22:33:13 ⚠️  Deployment default/46 already labeled public
+2025/10/27 22:33:14 ⚠️  Deployment default/30 already labeled public
+2025/10/27 22:33:14 ⚠️  Deployment default/5 already labeled public
+2025/10/27 22:33:14 ⚠️  Deployment default/51 already labeled public
+2025/10/27 22:33:14 ⚠️  Deployment default/56 already labeled public
+2025/10/27 22:33:15 🔄 Deployment default/84 updated to public
+2025/10/27 22:33:15 🔄 Deployment default/29 updated to public
+2025/10/27 22:33:15 🔄 Deployment default/27 updated to public
+2025/10/27 22:33:16 🔄 Deployment default/48 updated to public
+2025/10/27 22:33:16 🔄 Deployment default/50 updated to public
+2025/10/27 22:33:17 🔄 Deployment default/36 updated to public
+2025/10/27 22:33:17 🔄 Deployment default/6 updated to public
+2025/10/27 22:33:17 🔄 Deployment default/59 updated to public
+2025/10/27 22:33:18 🔄 Deployment default/3 updated to public
+2025/10/27 22:33:18 🔄 Deployment default/90 updated to public
+2025/10/27 22:33:18 🔄 Deployment default/8 updated to public
+2025/10/27 22:33:19 🔄 Deployment default/69 updated to public
+2025/10/27 22:33:19 🔄 Deployment default/88 updated to public
+2025/10/27 22:33:20 🔄 Deployment default/41 updated to public
+2025/10/27 22:33:20 🔄 Deployment default/4 updated to public
+2025/10/27 22:33:20 🔄 Deployment default/44 updated to public
+2025/10/27 22:33:21 🔄 Deployment default/13 updated to public
+2025/10/27 22:33:21 🔄 Deployment default/79 updated to public
+2025/10/27 22:33:22 🔄 Deployment default/37 updated to public
+2025/10/27 22:33:22 🔄 Deployment default/17 updated to public
+2025/10/27 22:33:22 🔄 Deployment default/67 updated to private
+2025/10/27 22:33:23 🔄 Deployment default/28 updated to private
+2025/10/27 22:33:23 🔄 Deployment default/39 updated to private
+2025/10/27 22:33:24 ⚠️  Deployment default/73 already labeled public
+2025/10/27 22:33:24 ⚠️  Deployment default/10 already labeled public
+2025/10/27 22:33:24 ⚠️  Deployment default/40 already labeled public
+2025/10/27 22:33:24 ⚠️  Deployment default/0 already labeled public
+2025/10/27 22:33:24 ⚠️  Deployment default/47 already labeled public
+2025/10/27 22:33:25 ⚠️  Deployment default/62 already labeled public
+2025/10/27 22:33:25 ⚠️  Deployment default/7 already labeled public
+2025/10/27 22:33:25 ⚠️  Deployment default/85 already labeled public
+2025/10/27 22:33:25 ⚠️  Deployment default/2 already labeled public
+2025/10/27 22:33:25 ⚠️  Deployment default/93 already labeled public
+2025/10/27 22:33:26 ⚠️  Deployment default/91 already labeled public
+2025/10/27 22:33:26 ⚠️  Deployment default/83 already labeled public
+2025/10/27 22:33:26 ⚠️  Deployment default/97 already labeled public
+2025/10/27 22:33:26 ⚠️  Deployment default/86 already labeled public
+2025/10/27 22:33:26 ⚠️  Deployment default/45 already labeled public
+2025/10/27 22:33:27 ⚠️  Deployment default/34 already labeled public
+2025/10/27 22:33:27 ⚠️  Deployment default/78 already labeled public
+2025/10/27 22:33:27 ⚠️  Deployment default/9 already labeled public
+2025/10/27 22:33:27 ⚠️  Deployment default/1 already labeled public
+2025/10/27 22:33:27 ⚠️  Deployment default/98 already labeled public
+2025/10/27 22:33:28 ⚠️  Deployment default/80 already labeled public
+2025/10/27 22:33:28 ⚠️  Deployment default/16 already labeled public
+2025/10/27 22:33:28 ⚠️  Deployment default/33 already labeled public
+2025/10/27 22:33:28 ⚠️  Deployment default/38 already labeled public
+2025/10/27 22:33:28 ⚠️  Deployment default/32 already labeled public
+2025/10/27 22:33:29 ⚠️  Deployment default/60 already labeled public
+2025/10/27 22:33:29 ⚠️  Deployment default/57 already labeled public
+2025/10/27 22:33:29 ⚠️  Deployment default/21 already labeled public
+2025/10/27 22:33:29 ⚠️  Deployment default/26 already labeled public
+2025/10/27 22:33:29 ⚠️  Deployment default/25 already labeled public
+2025/10/27 22:33:30 ⚠️  Deployment default/55 already labeled public
+2025/10/27 22:33:30 ⚠️  Deployment default/70 already labeled public
+2025/10/27 22:33:30 ⚠️  Deployment default/99 already labeled public
+2025/10/27 22:33:30 ⚠️  Deployment default/81 already labeled public
+2025/10/27 22:33:30 ⚠️  Deployment default/24 already labeled public
+2025/10/27 22:33:31 ⚠️  Deployment default/11 already labeled public
+2025/10/27 22:33:31 ⚠️  Deployment default/72 already labeled public
+2025/10/27 22:33:31 📊 Migration Summary - Execution: 2 | Label type: both | Total migrated pods: 288 | To Private: 42 pods | To Public: 246 pods
+[GIN] 2025/10/27 - 22:33:31 | 200 | 27.604169152s |       127.0.0.1 | POST     "/apply"
+> INFO: 2025/10/27 22:38:46 Request received: [{ID:default/89 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/63 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/52 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/92 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/12 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/80 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/16 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/32 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/60 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/57 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/21 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/26 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/25 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/55 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/70 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/99 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/81 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/24 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/11 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/72 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/86 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/98 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/33 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/53 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/49 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/39 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/73 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/10 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/40 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/0 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/45 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/9 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/23 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/82 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/15 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/22 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/77 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/94 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/67 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/43 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/68 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/95 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/66 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/19 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/64 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/20 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/61 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/75 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/96 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/71 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/84 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/79 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/88 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/41 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/36 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/6 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/8 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/29 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/3 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/4 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/37 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/13 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/44 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/59 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/17 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/50 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/48 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/27 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/69 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/90 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/47 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/62 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/7 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/85 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/2 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/93 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/91 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/83 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/1 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/38 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/54 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/28 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/65 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/87 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/74 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/58 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/35 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/14 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/42 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/46 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/30 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/5 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/51 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/56 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/97 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/34 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/78 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/76 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/18 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/31 OriginCluster:1 DestinationCluster:1 Kind:deployment}]
+2025/10/27 22:38:46 🔄 Deployment default/89 updated to public
+2025/10/27 22:38:46 🔄 Deployment default/63 updated to public
+2025/10/27 22:38:46 🔄 Deployment default/52 updated to public
+2025/10/27 22:38:46 ⚠️  Deployment default/92 already labeled private
+2025/10/27 22:38:46 ⚠️  Deployment default/12 already labeled private
+2025/10/27 22:38:46 ⚠️  Deployment default/80 already labeled public
+2025/10/27 22:38:46 ⚠️  Deployment default/16 already labeled public
+2025/10/27 22:38:46 ⚠️  Deployment default/32 already labeled public
+2025/10/27 22:38:46 ⚠️  Deployment default/60 already labeled public
+2025/10/27 22:38:47 ⚠️  Deployment default/57 already labeled public
+2025/10/27 22:38:47 ⚠️  Deployment default/21 already labeled public
+2025/10/27 22:38:47 ⚠️  Deployment default/26 already labeled public
+2025/10/27 22:38:47 ⚠️  Deployment default/25 already labeled public
+2025/10/27 22:38:47 ⚠️  Deployment default/55 already labeled public
+2025/10/27 22:38:47 ⚠️  Deployment default/70 already labeled public
+2025/10/27 22:38:48 ⚠️  Deployment default/99 already labeled public
+2025/10/27 22:38:48 ⚠️  Deployment default/81 already labeled public
+2025/10/27 22:38:48 ⚠️  Deployment default/24 already labeled public
+2025/10/27 22:38:48 ⚠️  Deployment default/11 already labeled public
+2025/10/27 22:38:48 ⚠️  Deployment default/72 already labeled public
+> WARNING: 2025/10/27 22:38:49 Workload not found: default/86 - deployments.apps "86" not found
+> WARNING: 2025/10/27 22:38:49 Workload not found: default/98 - deployments.apps "98" not found
+> WARNING: 2025/10/27 22:38:49 Workload not found: default/33 - deployments.apps "33" not found
+> WARNING: 2025/10/27 22:38:49 Workload not found: default/53 - deployments.apps "53" not found
+> WARNING: 2025/10/27 22:38:49 Workload not found: default/49 - deployments.apps "49" not found
+> WARNING: 2025/10/27 22:38:50 Workload not found: default/39 - deployments.apps "39" not found
+> WARNING: 2025/10/27 22:38:50 Workload not found: default/73 - deployments.apps "73" not found
+> WARNING: 2025/10/27 22:38:50 Workload not found: default/10 - deployments.apps "10" not found
+> WARNING: 2025/10/27 22:38:50 Workload not found: default/40 - deployments.apps "40" not found
+> WARNING: 2025/10/27 22:38:50 Workload not found: default/0 - deployments.apps "0" not found
+> WARNING: 2025/10/27 22:38:51 Workload not found: default/45 - deployments.apps "45" not found
+> WARNING: 2025/10/27 22:38:51 Workload not found: default/9 - deployments.apps "9" not found
+> WARNING: 2025/10/27 22:38:51 Workload not found: default/23 - deployments.apps "23" not found
+> WARNING: 2025/10/27 22:38:51 Workload not found: default/82 - deployments.apps "82" not found
+> WARNING: 2025/10/27 22:38:51 Workload not found: default/15 - deployments.apps "15" not found
+> WARNING: 2025/10/27 22:38:52 Workload not found: default/22 - deployments.apps "22" not found
+> WARNING: 2025/10/27 22:38:52 Workload not found: default/77 - deployments.apps "77" not found
+> WARNING: 2025/10/27 22:38:52 Workload not found: default/94 - deployments.apps "94" not found
+> WARNING: 2025/10/27 22:38:52 Workload not found: default/67 - deployments.apps "67" not found
+> WARNING: 2025/10/27 22:38:52 Workload not found: default/43 - deployments.apps "43" not found
+2025/10/27 22:38:53 🔄 Deployment default/68 updated to private
+2025/10/27 22:38:53 🔄 Deployment default/95 updated to private
+2025/10/27 22:38:54 🔄 Deployment default/66 updated to private
+2025/10/27 22:38:54 ⚠️  Deployment default/19 already labeled public
+2025/10/27 22:38:54 ⚠️  Deployment default/64 already labeled public
+2025/10/27 22:38:54 ⚠️  Deployment default/20 already labeled public
+2025/10/27 22:38:55 ⚠️  Deployment default/61 already labeled public
+2025/10/27 22:38:55 ⚠️  Deployment default/75 already labeled public
+2025/10/27 22:38:55 ⚠️  Deployment default/96 already labeled public
+2025/10/27 22:38:55 ⚠️  Deployment default/71 already labeled public
+2025/10/27 22:38:55 ⚠️  Deployment default/84 already labeled public
+2025/10/27 22:38:55 ⚠️  Deployment default/79 already labeled public
+2025/10/27 22:38:56 ⚠️  Deployment default/88 already labeled public
+2025/10/27 22:38:56 ⚠️  Deployment default/41 already labeled public
+2025/10/27 22:38:56 ⚠️  Deployment default/36 already labeled public
+2025/10/27 22:38:56 ⚠️  Deployment default/6 already labeled public
+2025/10/27 22:38:56 ⚠️  Deployment default/8 already labeled public
+2025/10/27 22:38:57 ⚠️  Deployment default/29 already labeled public
+2025/10/27 22:38:57 ⚠️  Deployment default/3 already labeled public
+2025/10/27 22:38:57 ⚠️  Deployment default/4 already labeled public
+2025/10/27 22:38:57 🔄 Deployment default/37 updated to private
+2025/10/27 22:38:58 🔄 Deployment default/13 updated to private
+2025/10/27 22:38:58 🔄 Deployment default/44 updated to private
+2025/10/27 22:38:59 ⚠️  Deployment default/59 already labeled public
+2025/10/27 22:38:59 ⚠️  Deployment default/17 already labeled public
+2025/10/27 22:38:59 ⚠️  Deployment default/50 already labeled public
+2025/10/27 22:38:59 ⚠️  Deployment default/48 already labeled public
+2025/10/27 22:38:59 ⚠️  Deployment default/27 already labeled public
+2025/10/27 22:38:59 ⚠️  Deployment default/69 already labeled public
+2025/10/27 22:39:00 ⚠️  Deployment default/90 already labeled public
+> WARNING: 2025/10/27 22:39:00 Workload not found: default/47 - deployments.apps "47" not found
+> WARNING: 2025/10/27 22:39:00 Workload not found: default/62 - deployments.apps "62" not found
+> WARNING: 2025/10/27 22:39:00 Workload not found: default/7 - deployments.apps "7" not found
+> WARNING: 2025/10/27 22:39:01 Workload not found: default/85 - deployments.apps "85" not found
+> WARNING: 2025/10/27 22:39:01 Workload not found: default/2 - deployments.apps "2" not found
+> WARNING: 2025/10/27 22:39:01 Workload not found: default/93 - deployments.apps "93" not found
+> WARNING: 2025/10/27 22:39:01 Workload not found: default/91 - deployments.apps "91" not found
+> WARNING: 2025/10/27 22:39:01 Workload not found: default/83 - deployments.apps "83" not found
+> WARNING: 2025/10/27 22:39:02 Workload not found: default/1 - deployments.apps "1" not found
+> WARNING: 2025/10/27 22:39:02 Workload not found: default/38 - deployments.apps "38" not found
+> WARNING: 2025/10/27 22:39:02 Workload not found: default/54 - deployments.apps "54" not found
+> WARNING: 2025/10/27 22:39:02 Workload not found: default/28 - deployments.apps "28" not found
+> WARNING: 2025/10/27 22:39:02 Workload not found: default/65 - deployments.apps "65" not found
+> WARNING: 2025/10/27 22:39:02 Workload not found: default/87 - deployments.apps "87" not found
+> WARNING: 2025/10/27 22:39:03 Workload not found: default/74 - deployments.apps "74" not found
+> WARNING: 2025/10/27 22:39:03 Workload not found: default/58 - deployments.apps "58" not found
+> WARNING: 2025/10/27 22:39:03 Workload not found: default/35 - deployments.apps "35" not found
+> WARNING: 2025/10/27 22:39:03 Workload not found: default/14 - deployments.apps "14" not found
+> WARNING: 2025/10/27 22:39:03 Workload not found: default/42 - deployments.apps "42" not found
+> WARNING: 2025/10/27 22:39:04 Workload not found: default/46 - deployments.apps "46" not found
+> WARNING: 2025/10/27 22:39:04 Workload not found: default/30 - deployments.apps "30" not found
+> WARNING: 2025/10/27 22:39:04 Workload not found: default/5 - deployments.apps "5" not found
+> WARNING: 2025/10/27 22:39:04 Workload not found: default/51 - deployments.apps "51" not found
+> WARNING: 2025/10/27 22:39:04 Workload not found: default/56 - deployments.apps "56" not found
+> WARNING: 2025/10/27 22:39:05 Workload not found: default/97 - deployments.apps "97" not found
+> WARNING: 2025/10/27 22:39:05 Workload not found: default/34 - deployments.apps "34" not found
+> WARNING: 2025/10/27 22:39:05 Workload not found: default/78 - deployments.apps "78" not found
+> WARNING: 2025/10/27 22:39:05 Workload not found: default/76 - deployments.apps "76" not found
+> WARNING: 2025/10/27 22:39:05 Workload not found: default/18 - deployments.apps "18" not found
+2025/10/27 22:39:06 📊 Migration Summary - Execution: 3 | Label type: both | Total migrated pods: 54 | To Private: 36 pods | To Public: 18 pods
+> WARNING: 2025/10/27 22:39:06 Workload not found: default/31 - deployments.apps "31" not found
+[GIN] 2025/10/27 - 22:39:06 | 200 | 19.805430671s |       127.0.0.1 | POST     "/apply"
+> INFO: 2025/10/27 22:44:21 Request received: [{ID:default/60 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/57 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/61 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/96 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/79 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/88 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/41 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/6 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/8 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/3 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/4 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/59 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/17 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/69 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/90 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/95 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/68 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/80 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/16 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/19 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/21 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/26 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/25 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/55 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/70 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/99 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/81 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/24 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/11 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/72 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/92 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/12 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/89 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/52 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/63 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/44 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/13 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/37 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/66 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/32 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/86 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/98 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/33 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/53 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/49 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/39 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/73 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/10 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/40 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/0 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/45 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/9 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/23 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/82 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/15 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/22 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/77 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/94 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/67 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/43 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/64 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/20 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/75 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/71 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/84 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/36 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/29 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/50 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/48 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/27 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/47 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/62 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/7 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/85 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/2 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/93 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/91 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/83 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/1 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/38 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/54 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/28 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/65 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/87 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/74 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/58 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/35 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/14 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/42 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/46 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/30 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/5 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/51 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/56 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/97 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/34 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/78 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/76 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/18 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/31 OriginCluster:1 DestinationCluster:1 Kind:deployment}]
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/60 - deployments.apps "60" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/57 - deployments.apps "57" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/61 - deployments.apps "61" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/96 - deployments.apps "96" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/79 - deployments.apps "79" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/88 - deployments.apps "88" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/41 - deployments.apps "41" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/6 - deployments.apps "6" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/8 - deployments.apps "8" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/3 - deployments.apps "3" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/4 - deployments.apps "4" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/59 - deployments.apps "59" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/17 - deployments.apps "17" not found
+> WARNING: 2025/10/27 22:44:21 Workload not found: default/69 - deployments.apps "69" not found
+> WARNING: 2025/10/27 22:44:22 Workload not found: default/90 - deployments.apps "90" not found
+> WARNING: 2025/10/27 22:44:22 Workload not found: default/95 - deployments.apps "95" not found
+> WARNING: 2025/10/27 22:44:22 Workload not found: default/68 - deployments.apps "68" not found
+> WARNING: 2025/10/27 22:44:22 Workload not found: default/80 - deployments.apps "80" not found
+> WARNING: 2025/10/27 22:44:22 Workload not found: default/16 - deployments.apps "16" not found
+> WARNING: 2025/10/27 22:44:23 Workload not found: default/19 - deployments.apps "19" not found
+2025/10/27 22:44:23 ⚠️  Deployment default/21 already labeled public
+2025/10/27 22:44:23 ⚠️  Deployment default/26 already labeled public
+2025/10/27 22:44:23 ⚠️  Deployment default/25 already labeled public
+2025/10/27 22:44:23 ⚠️  Deployment default/55 already labeled public
+2025/10/27 22:44:24 ⚠️  Deployment default/70 already labeled public
+2025/10/27 22:44:24 ⚠️  Deployment default/99 already labeled public
+2025/10/27 22:44:24 ⚠️  Deployment default/81 already labeled public
+2025/10/27 22:44:24 ⚠️  Deployment default/24 already labeled public
+2025/10/27 22:44:24 ⚠️  Deployment default/11 already labeled public
+2025/10/27 22:44:25 🔄 Deployment default/72 updated to private
+> WARNING: 2025/10/27 22:44:25 Workload not found: default/92 - deployments.apps "92" not found
+> WARNING: 2025/10/27 22:44:25 Workload not found: default/12 - deployments.apps "12" not found
+> WARNING: 2025/10/27 22:44:25 Workload not found: default/89 - deployments.apps "89" not found
+> WARNING: 2025/10/27 22:44:26 Workload not found: default/52 - deployments.apps "52" not found
+> WARNING: 2025/10/27 22:44:26 Workload not found: default/63 - deployments.apps "63" not found
+> WARNING: 2025/10/27 22:44:26 Workload not found: default/44 - deployments.apps "44" not found
+> WARNING: 2025/10/27 22:44:26 Workload not found: default/13 - deployments.apps "13" not found
+> WARNING: 2025/10/27 22:44:26 Workload not found: default/37 - deployments.apps "37" not found
+> WARNING: 2025/10/27 22:44:27 Workload not found: default/66 - deployments.apps "66" not found
+> WARNING: 2025/10/27 22:44:27 Workload not found: default/32 - deployments.apps "32" not found
+> WARNING: 2025/10/27 22:44:27 Workload not found: default/86 - deployments.apps "86" not found
+> WARNING: 2025/10/27 22:44:27 Workload not found: default/98 - deployments.apps "98" not found
+> WARNING: 2025/10/27 22:44:27 Workload not found: default/33 - deployments.apps "33" not found
+> WARNING: 2025/10/27 22:44:28 Workload not found: default/53 - deployments.apps "53" not found
+> WARNING: 2025/10/27 22:44:28 Workload not found: default/49 - deployments.apps "49" not found
+> WARNING: 2025/10/27 22:44:28 Workload not found: default/39 - deployments.apps "39" not found
+> WARNING: 2025/10/27 22:44:28 Workload not found: default/73 - deployments.apps "73" not found
+> WARNING: 2025/10/27 22:44:28 Workload not found: default/10 - deployments.apps "10" not found
+> WARNING: 2025/10/27 22:44:29 Workload not found: default/40 - deployments.apps "40" not found
+> WARNING: 2025/10/27 22:44:29 Workload not found: default/0 - deployments.apps "0" not found
+> WARNING: 2025/10/27 22:44:29 Workload not found: default/45 - deployments.apps "45" not found
+> WARNING: 2025/10/27 22:44:29 Workload not found: default/9 - deployments.apps "9" not found
+> WARNING: 2025/10/27 22:44:29 Workload not found: default/23 - deployments.apps "23" not found
+> WARNING: 2025/10/27 22:44:30 Workload not found: default/82 - deployments.apps "82" not found
+> WARNING: 2025/10/27 22:44:30 Workload not found: default/15 - deployments.apps "15" not found
+> WARNING: 2025/10/27 22:44:30 Workload not found: default/22 - deployments.apps "22" not found
+> WARNING: 2025/10/27 22:44:30 Workload not found: default/77 - deployments.apps "77" not found
+> WARNING: 2025/10/27 22:44:30 Workload not found: default/94 - deployments.apps "94" not found
+> WARNING: 2025/10/27 22:44:31 Workload not found: default/67 - deployments.apps "67" not found
+> WARNING: 2025/10/27 22:44:31 Workload not found: default/43 - deployments.apps "43" not found
+> WARNING: 2025/10/27 22:44:31 Workload not found: default/64 - deployments.apps "64" not found
+> WARNING: 2025/10/27 22:44:31 Workload not found: default/20 - deployments.apps "20" not found
+> WARNING: 2025/10/27 22:44:31 Workload not found: default/75 - deployments.apps "75" not found
+> WARNING: 2025/10/27 22:44:32 Workload not found: default/71 - deployments.apps "71" not found
+> WARNING: 2025/10/27 22:44:32 Workload not found: default/84 - deployments.apps "84" not found
+> WARNING: 2025/10/27 22:44:32 Workload not found: default/36 - deployments.apps "36" not found
+> WARNING: 2025/10/27 22:44:32 Workload not found: default/29 - deployments.apps "29" not found
+> WARNING: 2025/10/27 22:44:32 Workload not found: default/50 - deployments.apps "50" not found
+> WARNING: 2025/10/27 22:44:33 Workload not found: default/48 - deployments.apps "48" not found
+> WARNING: 2025/10/27 22:44:33 Workload not found: default/27 - deployments.apps "27" not found
+> WARNING: 2025/10/27 22:44:33 Workload not found: default/47 - deployments.apps "47" not found
+> WARNING: 2025/10/27 22:44:33 Workload not found: default/62 - deployments.apps "62" not found
+> WARNING: 2025/10/27 22:44:33 Workload not found: default/7 - deployments.apps "7" not found
+> WARNING: 2025/10/27 22:44:34 Workload not found: default/85 - deployments.apps "85" not found
+> WARNING: 2025/10/27 22:44:34 Workload not found: default/2 - deployments.apps "2" not found
+> WARNING: 2025/10/27 22:44:34 Workload not found: default/93 - deployments.apps "93" not found
+> WARNING: 2025/10/27 22:44:34 Workload not found: default/91 - deployments.apps "91" not found
+> WARNING: 2025/10/27 22:44:34 Workload not found: default/83 - deployments.apps "83" not found
+> WARNING: 2025/10/27 22:44:35 Workload not found: default/1 - deployments.apps "1" not found
+> WARNING: 2025/10/27 22:44:35 Workload not found: default/38 - deployments.apps "38" not found
+> WARNING: 2025/10/27 22:44:35 Workload not found: default/54 - deployments.apps "54" not found
+> WARNING: 2025/10/27 22:44:35 Workload not found: default/28 - deployments.apps "28" not found
+> WARNING: 2025/10/27 22:44:35 Workload not found: default/65 - deployments.apps "65" not found
+> WARNING: 2025/10/27 22:44:36 Workload not found: default/87 - deployments.apps "87" not found
+> WARNING: 2025/10/27 22:44:36 Workload not found: default/74 - deployments.apps "74" not found
+> WARNING: 2025/10/27 22:44:36 Workload not found: default/58 - deployments.apps "58" not found
+> WARNING: 2025/10/27 22:44:36 Workload not found: default/35 - deployments.apps "35" not found
+> WARNING: 2025/10/27 22:44:36 Workload not found: default/14 - deployments.apps "14" not found
+> WARNING: 2025/10/27 22:44:37 Workload not found: default/42 - deployments.apps "42" not found
+> WARNING: 2025/10/27 22:44:37 Workload not found: default/46 - deployments.apps "46" not found
+> WARNING: 2025/10/27 22:44:37 Workload not found: default/30 - deployments.apps "30" not found
+> WARNING: 2025/10/27 22:44:37 Workload not found: default/5 - deployments.apps "5" not found
+> WARNING: 2025/10/27 22:44:37 Workload not found: default/51 - deployments.apps "51" not found
+> WARNING: 2025/10/27 22:44:38 Workload not found: default/56 - deployments.apps "56" not found
+> WARNING: 2025/10/27 22:44:38 Workload not found: default/97 - deployments.apps "97" not found
+> WARNING: 2025/10/27 22:44:38 Workload not found: default/34 - deployments.apps "34" not found
+> WARNING: 2025/10/27 22:44:38 Workload not found: default/78 - deployments.apps "78" not found
+> WARNING: 2025/10/27 22:44:38 Workload not found: default/76 - deployments.apps "76" not found
+> WARNING: 2025/10/27 22:44:39 Workload not found: default/18 - deployments.apps "18" not found
+> WARNING: 2025/10/27 22:44:39 Workload not found: default/31 - deployments.apps "31" not found
+[GIN] 2025/10/27 - 22:44:39 | 200 | 18.205761044s |       127.0.0.1 | POST     "/apply"
+2025/10/27 22:44:39 📊 Migration Summary - Execution: 4 | Label type: private | Total migrated pods: 6 | To Private: 6 pods | To Public: 0 pods
+> INFO: 2025/10/27 22:49:51 Request received: [{ID:default/72 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/76-5723 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/43-1914 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/78-5471 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/18-8885 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/31-753 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/77-838 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/46-1345 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/28-2005 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/15-2948 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/97-8572 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/54-9854 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/5-2859 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/14-4369 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/35-939 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/34-9749 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/51-4343 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/56-8865 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/67-2928 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/82-1907 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/64 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/20 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/75 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/71 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/84 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/36 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/29 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/50 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/48 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/27 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/91-8753 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/16-4986 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/19-2780 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/10-371 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/53-2898 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/1-8847 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/71-2030 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/93-2047 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/83-2909 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/49-3458 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/92 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/12 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/89 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/52 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/63 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/44 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/13 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/37 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/66 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/32 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/60 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/57 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/61 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/96 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/79 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/88 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/41 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/6 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/8 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/3 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/4 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/59 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/17 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/69 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/90 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/95 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/68 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/80 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/16 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/19 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/55 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/70 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/99 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/81 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/24 OriginCluster:1 DestinationCluster:0 Kind:deployment} {ID:default/11 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/80-4540 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/40-2906 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/2-6520 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/47-1682 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/38-8427 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/20-287 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/73-2603 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/64-9897 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/0-5460 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/7-3190 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/95-8680 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/62-6412 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/75-3846 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/85-2628 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/42-5644 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/45-601 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/9-2051 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/65-6300 OriginCluster:0 DestinationCluster:0 Kind:deployment} {ID:default/30-8896 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/58-3371 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/87-9030 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/94-741 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/22-3352 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/74-6956 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/23-6594 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/86-4949 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/33-138 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/84-8775 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/98-4432 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/39-3850 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/68-6726 OriginCluster:0 DestinationCluster:1 Kind:deployment} {ID:default/21 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/26 OriginCluster:1 DestinationCluster:1 Kind:deployment} {ID:default/25 OriginCluster:1 DestinationCluster:1 Kind:deployment}]
+2025/10/27 22:49:51 ⚠️  Deployment default/72 already labeled private
+2025/10/27 22:49:51 🔄 Deployment default/76-5723 updated to public
+2025/10/27 22:49:51 🔄 Deployment default/43-1914 updated to public
+2025/10/27 22:49:51 🔄 Deployment default/78-5471 updated to public
+2025/10/27 22:49:51 🔄 Deployment default/18-8885 updated to public
+2025/10/27 22:49:51 🔄 Deployment default/31-753 updated to public
+2025/10/27 22:49:52 🔄 Deployment default/77-838 updated to public
+2025/10/27 22:49:52 🔄 Deployment default/46-1345 updated to public
+2025/10/27 22:49:53 🔄 Deployment default/28-2005 updated to public
+2025/10/27 22:49:53 🔄 Deployment default/15-2948 updated to public
+2025/10/27 22:49:53 🔄 Deployment default/97-8572 updated to public
+2025/10/27 22:49:54 🔄 Deployment default/54-9854 updated to public
+2025/10/27 22:49:54 🔄 Deployment default/5-2859 updated to public
+2025/10/27 22:49:54 🔄 Deployment default/14-4369 updated to public
+2025/10/27 22:49:55 🔄 Deployment default/35-939 updated to public
+2025/10/27 22:49:55 🔄 Deployment default/34-9749 updated to public
+2025/10/27 22:49:56 🔄 Deployment default/51-4343 updated to public
+2025/10/27 22:49:56 🔄 Deployment default/56-8865 updated to public
+2025/10/27 22:49:56 🔄 Deployment default/67-2928 updated to public
+2025/10/27 22:49:57 🔄 Deployment default/82-1907 updated to public
+> WARNING: 2025/10/27 22:49:57 Workload not found: default/64 - deployments.apps "64" not found
+> WARNING: 2025/10/27 22:49:57 Workload not found: default/20 - deployments.apps "20" not found
+> WARNING: 2025/10/27 22:49:58 Workload not found: default/75 - deployments.apps "75" not found
+> WARNING: 2025/10/27 22:49:58 Workload not found: default/71 - deployments.apps "71" not found
+> WARNING: 2025/10/27 22:49:58 Workload not found: default/84 - deployments.apps "84" not found
+> WARNING: 2025/10/27 22:49:58 Workload not found: default/36 - deployments.apps "36" not found
+> WARNING: 2025/10/27 22:49:58 Workload not found: default/29 - deployments.apps "29" not found
+> WARNING: 2025/10/27 22:49:59 Workload not found: default/50 - deployments.apps "50" not found
+> WARNING: 2025/10/27 22:49:59 Workload not found: default/48 - deployments.apps "48" not found
+> WARNING: 2025/10/27 22:49:59 Workload not found: default/27 - deployments.apps "27" not found
+2025/10/27 22:49:59 ⚠️  Deployment default/91-8753 already labeled public
+2025/10/27 22:49:59 ⚠️  Deployment default/16-4986 already labeled public
+2025/10/27 22:50:00 ⚠️  Deployment default/19-2780 already labeled public
+2025/10/27 22:50:00 ⚠️  Deployment default/10-371 already labeled public
+2025/10/27 22:50:00 ⚠️  Deployment default/53-2898 already labeled public
+2025/10/27 22:50:00 ⚠️  Deployment default/1-8847 already labeled public
+2025/10/27 22:50:00 ⚠️  Deployment default/71-2030 already labeled public
+2025/10/27 22:50:01 ⚠️  Deployment default/93-2047 already labeled public
+2025/10/27 22:50:01 ⚠️  Deployment default/83-2909 already labeled public
+2025/10/27 22:50:01 ⚠️  Deployment default/49-3458 already labeled public
+> WARNING: 2025/10/27 22:50:01 Workload not found: default/92 - deployments.apps "92" not found
+> WARNING: 2025/10/27 22:50:01 Workload not found: default/12 - deployments.apps "12" not found
+> WARNING: 2025/10/27 22:50:02 Workload not found: default/89 - deployments.apps "89" not found
+> WARNING: 2025/10/27 22:50:02 Workload not found: default/52 - deployments.apps "52" not found
+> WARNING: 2025/10/27 22:50:02 Workload not found: default/63 - deployments.apps "63" not found
+> WARNING: 2025/10/27 22:50:02 Workload not found: default/44 - deployments.apps "44" not found
+> WARNING: 2025/10/27 22:50:02 Workload not found: default/13 - deployments.apps "13" not found
+> WARNING: 2025/10/27 22:50:03 Workload not found: default/37 - deployments.apps "37" not found
+> WARNING: 2025/10/27 22:50:03 Workload not found: default/66 - deployments.apps "66" not found
+> WARNING: 2025/10/27 22:50:03 Workload not found: default/32 - deployments.apps "32" not found
+> WARNING: 2025/10/27 22:50:03 Workload not found: default/60 - deployments.apps "60" not found
+> WARNING: 2025/10/27 22:50:03 Workload not found: default/57 - deployments.apps "57" not found
+> WARNING: 2025/10/27 22:50:04 Workload not found: default/61 - deployments.apps "61" not found
+> WARNING: 2025/10/27 22:50:04 Workload not found: default/96 - deployments.apps "96" not found
+> WARNING: 2025/10/27 22:50:04 Workload not found: default/79 - deployments.apps "79" not found
+> WARNING: 2025/10/27 22:50:04 Workload not found: default/88 - deployments.apps "88" not found
+> WARNING: 2025/10/27 22:50:04 Workload not found: default/41 - deployments.apps "41" not found
+> WARNING: 2025/10/27 22:50:05 Workload not found: default/6 - deployments.apps "6" not found
+> WARNING: 2025/10/27 22:50:05 Workload not found: default/8 - deployments.apps "8" not found
+> WARNING: 2025/10/27 22:50:05 Workload not found: default/3 - deployments.apps "3" not found
+> WARNING: 2025/10/27 22:50:05 Workload not found: default/4 - deployments.apps "4" not found
+> WARNING: 2025/10/27 22:50:05 Workload not found: default/59 - deployments.apps "59" not found
+> WARNING: 2025/10/27 22:50:06 Workload not found: default/17 - deployments.apps "17" not found
+> WARNING: 2025/10/27 22:50:06 Workload not found: default/69 - deployments.apps "69" not found
+> WARNING: 2025/10/27 22:50:06 Workload not found: default/90 - deployments.apps "90" not found
+> WARNING: 2025/10/27 22:50:06 Workload not found: default/95 - deployments.apps "95" not found
+> WARNING: 2025/10/27 22:50:06 Workload not found: default/68 - deployments.apps "68" not found
+> WARNING: 2025/10/27 22:50:07 Workload not found: default/80 - deployments.apps "80" not found
+> WARNING: 2025/10/27 22:50:07 Workload not found: default/16 - deployments.apps "16" not found
+> WARNING: 2025/10/27 22:50:07 Workload not found: default/19 - deployments.apps "19" not found
+2025/10/27 22:50:07 🔄 Deployment default/55 updated to private
+2025/10/27 22:50:08 🔄 Deployment default/70 updated to private
+2025/10/27 22:50:08 🔄 Deployment default/99 updated to private
+2025/10/27 22:50:08 ⚠️  Deployment default/81 already labeled public
+2025/10/27 22:50:09 🔄 Deployment default/24 updated to private
+2025/10/27 22:50:09 ⚠️  Deployment default/11 already labeled public
+2025/10/27 22:50:09 ⚠️  Deployment default/80-4540 already labeled public
+2025/10/27 22:50:09 ⚠️  Deployment default/40-2906 already labeled public
+2025/10/27 22:50:10 ⚠️  Deployment default/2-6520 already labeled public
+2025/10/27 22:50:10 ⚠️  Deployment default/47-1682 already labeled public
+2025/10/27 22:50:10 ⚠️  Deployment default/38-8427 already labeled public
+2025/10/27 22:50:10 ⚠️  Deployment default/20-287 already labeled public
+2025/10/27 22:50:10 ⚠️  Deployment default/73-2603 already labeled public
+2025/10/27 22:50:11 ⚠️  Deployment default/64-9897 already labeled public
+2025/10/27 22:50:11 ⚠️  Deployment default/0-5460 already labeled public
+2025/10/27 22:50:11 ⚠️  Deployment default/7-3190 already labeled public
+2025/10/27 22:50:11 ⚠️  Deployment default/95-8680 already labeled public
+2025/10/27 22:50:11 ⚠️  Deployment default/62-6412 already labeled public
+2025/10/27 22:50:12 ⚠️  Deployment default/75-3846 already labeled public
+2025/10/27 22:50:12 ⚠️  Deployment default/85-2628 already labeled public
+2025/10/27 22:50:12 🔄 Deployment default/42-5644 updated to public
+2025/10/27 22:50:13 🔄 Deployment default/45-601 updated to public
+2025/10/27 22:50:13 🔄 Deployment default/9-2051 updated to public
+2025/10/27 22:50:13 ⚠️  Deployment default/65-6300 already labeled private
+2025/10/27 22:50:13 🔄 Deployment default/30-8896 updated to public
+2025/10/27 22:50:14 🔄 Deployment default/58-3371 updated to public
+2025/10/27 22:50:14 🔄 Deployment default/87-9030 updated to public
+2025/10/27 22:50:15 🔄 Deployment default/94-741 updated to public
+2025/10/27 22:50:15 🔄 Deployment default/22-3352 updated to public
+2025/10/27 22:50:15 🔄 Deployment default/74-6956 updated to public
+2025/10/27 22:50:16 🔄 Deployment default/23-6594 updated to public
+2025/10/27 22:50:16 🔄 Deployment default/86-4949 updated to public
+2025/10/27 22:50:17 🔄 Deployment default/33-138 updated to public
+2025/10/27 22:50:17 🔄 Deployment default/84-8775 updated to public
+2025/10/27 22:50:17 🔄 Deployment default/98-4432 updated to public
+2025/10/27 22:50:18 🔄 Deployment default/39-3850 updated to public
+2025/10/27 22:50:18 🔄 Deployment default/68-6726 updated to public
+2025/10/27 22:50:19 ⚠️  Deployment default/21 already labeled public
+2025/10/27 22:50:19 ⚠️  Deployment default/26 already labeled public
+2025/10/27 22:50:19 ⚠️  Deployment default/25 already labeled public
+2025/10/27 22:50:19 📊 Migration Summary - Execution: 5 | Label type: both | Total migrated pods: 234 | To Private: 24 pods | To Public: 210 pods
+[GIN] 2025/10/27 - 22:50:19 | 200 | 27.827382887s |       127.0.0.1 | POST     "/apply"

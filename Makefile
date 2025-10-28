@@ -28,6 +28,24 @@ setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-
 start:
 	@(cd simulator/cmd && go run main.go)
 
+# Switches to KWOK mode and starts the simulator
+start-kwok:
+	@echo -e "\\e[36mSwitching to KWOK mode...\\e[0m"
+	@cd scripts && ./setup-mode.sh kwok
+	@echo -e "\\e[36mSetting up infrastructure (KWOK)...\\e[0m"
+	@$(MAKE) setup
+	@echo -e "\\e[36mStarting simulator in KWOK mode...\\e[0m"
+	@$(MAKE) start
+
+# Switches to Real mode and starts the simulator
+start-real:
+	@echo -e "\\e[36mSwitching to Real mode...\\e[0m"
+	@cd scripts && ./setup-mode.sh real
+	@echo -e "\\e[36mSetting up infrastructure (Real)...\\e[0m"
+	@$(MAKE) setup
+	@echo -e "\\e[36mStarting simulator in Real mode...\\e[0m"
+	@$(MAKE) start
+
 # Sets up the complete infrastructure and runs the simulator
 setup-and-start: setup start
 
@@ -90,6 +108,8 @@ help:
 	@echo "  all                      : Alias for 'setup-and-start'."
 	@echo "  setup-and-start          : Sets up infrastructure, starts all containers and runs the simulator."
 	@echo "  start                    : Starts ONLY the Go simulator (assumes infrastructure and containers are already running)."
+	@echo "  start-kwok               : Switches to KWOK mode, sets up infrastructure, starts containers, and runs simulator."
+	@echo "  start-real               : Switches to Real mode, sets up infrastructure, starts containers, and runs simulator."
 	@echo "  ---"
 	@echo "  Container Management:"
 	@echo "    run-all-containers     : Starts all required containers via docker-compose."
