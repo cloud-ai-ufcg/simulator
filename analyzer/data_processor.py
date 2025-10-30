@@ -1,6 +1,11 @@
 import pandas as pd
 from typing import Dict, Any, List
 from utils import parse_resource_value
+from pricing_utils import (
+    calculate_infrastructure_cost,
+    parse_millicores_to_cores,
+    parse_mebibytes_to_gb
+)
 
 # Functions from process_json.py
 def calculate_total_percent_pending(workloads: List[Dict[str, Any]]) -> float:
@@ -181,9 +186,30 @@ def melt_df_with_cluster_and_cap(df, value_vars, cluster_vars, cap_vars, var_nam
     return melted, cluster_df, cap_df
 
 def process_pricing_data(data):
-    """Process pricing data for each cluster over time."""
+    """
+    Process pricing data for each cluster over time.
+    Calculates infrastructure costs using the same logic as the AI Engine.
+    """
     timestamps = sorted([int(ts) for ts in data.keys()])
-    pricing_data = {'public': [], 'private': []}
+    pricing_data = {
+        'public': [],
+        'private': [],
+        'public_hourly': [],
+        'private_hourly': [],
+        'total_cost': []
+    }
+    
+    # Get interval duration (assume 30s if not specified)
+    first_ts = str(timestamps[0]) if timestamps else None
+    interval_duration = None
+    if first_ts and 'interval_duration' in data.get(first_ts, {}):
+        interval_str = data[first_ts].get('interval_duration', '30s')
+        try:
+            interval_duration = int(str(interval_str).rstrip('s'))
+        except Exception:
+            interval_duration = 30
+    else:
+        interval_duration = 30
     
     for ts in timestamps:
         ts_str = str(ts)
@@ -191,31 +217,81 @@ def process_pricing_data(data):
         
         # Initialize costs to 0 for this timestamp
         costs_for_ts = {'public': 0.0, 'private': 0.0}
+        hourly_costs_for_ts = {'public': 0.0, 'private': 0.0}
         
         for cluster in cluster_info:
             cluster_label = cluster.get('cluster_label')
-            pricing_info = cluster.get('pricing', {})
-            interval_cost = pricing_info.get('interval_cost', 0.0)
+            if cluster_label not in ['public', 'private']:
+                continue
+            
+            # Get node information
+            node_info = cluster.get('node_info', {})
+            node_cpu = node_info.get('cpu', 0)
+            node_memory = node_info.get('memory', 0)  # Assume GB
+            node_quantity = int(node_info.get('quantity', 1) or 1)
+            
+            # If node_info is not available, try to estimate from cluster capacity
+            if node_cpu == 0 or node_memory == 0:
+                # Try to extract from cluster capacity
+                cpu_cap_str = cluster.get('cluster_cpu_capacity', '0m')
+                mem_cap_str = cluster.get('cluster_memory_capacity', '0Mi')
+                
+                # Parse capacity
+                total_cpu = parse_millicores_to_cores(cpu_cap_str)
+                total_memory = parse_mebibytes_to_gb(mem_cap_str)
+                
+                # If we have capacity but no node info, estimate node size
+                # Assume homogeneous nodes: divide total capacity by node quantity
+                if node_quantity > 0 and total_cpu > 0 and total_memory > 0:
+                    # Estimate per-node CPU and memory
+                    node_cpu = int(total_cpu / node_quantity)
+                    node_memory = int(total_memory / node_quantity)
+                else:
+                    # If we still can't estimate, skip this cluster for this timestamp
+                    continue
+            
+            # Calculate infrastructure cost
+            cost_info = calculate_infrastructure_cost(
+                node_cpu=int(node_cpu),
+                node_memory=int(node_memory),
+                node_quantity=node_quantity,
+                interval_seconds=interval_duration
+            )
             
             if cluster_label in costs_for_ts:
-                costs_for_ts[cluster_label] = interval_cost
+                costs_for_ts[cluster_label] = cost_info['cost_per_interval']
+                hourly_costs_for_ts[cluster_label] = cost_info['hourly_cost']
         
         pricing_data['public'].append(costs_for_ts['public'])
         pricing_data['private'].append(costs_for_ts['private'])
+        pricing_data['public_hourly'].append(hourly_costs_for_ts['public'])
+        pricing_data['private_hourly'].append(hourly_costs_for_ts['private'])
+        pricing_data['total_cost'].append(costs_for_ts['public'] + costs_for_ts['private'])
     
     return timestamps, pricing_data
 
 def build_pricing_dataframe(timestamps, pricing_data):
-    """Build a pandas DataFrame for pricing data."""
+    """
+    Build a pandas DataFrame for pricing data.
+    Includes costs per interval, hourly costs, and cumulative costs.
+    """
     index = pd.to_datetime(timestamps, unit='s')
     df = pd.DataFrame({
         'timestamp': index,
         'cost_public': pricing_data['public'],
         'cost_private': pricing_data['private'],
+        'cost_total': pricing_data['total_cost'],
+        'cost_public_hourly': pricing_data['public_hourly'],
+        'cost_private_hourly': pricing_data['private_hourly'],
     })
     
     # Add time_seconds column for plotting
     start_time = df['timestamp'].min()
     df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
+    
+    # Calculate cumulative costs
+    df['cumulative_cost_public'] = df['cost_public'].cumsum()
+    df['cumulative_cost_private'] = df['cost_private'].cumsum()
+    df['cumulative_cost_total'] = df['cost_total'].cumsum()
     
     return df

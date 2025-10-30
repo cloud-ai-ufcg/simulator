@@ -266,18 +266,16 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
 
 def plot_pricing(df, output_dir, migration_data=None):
     """
-    Plot pricing data for both clusters in a 2-panel layout with migration events overlay.
+    Plot pricing data for both clusters showing cost per interval and cumulative costs.
+    Creates a 4-panel layout: cost per interval (2 panels) and cumulative costs (2 panels).
     
     Args:
-        df: DataFrame containing pricing data with columns 'time_seconds', 'cost_public', 'cost_private'
+        df: DataFrame containing pricing data with columns:
+            'time_seconds', 'cost_public', 'cost_private', 'cost_total',
+            'cumulative_cost_public', 'cumulative_cost_private', 'cumulative_cost_total'
         output_dir: Directory to save the plot
         migration_data: DataFrame containing migration events (optional)
     """
-    # Prepare data for plotting
-    plot_df = df.melt(id_vars=['time_seconds'], value_vars=['cost_public', 'cost_private'],
-                      var_name='cluster', value_name='cost')
-    plot_df['cluster'] = plot_df['cluster'].map({'cost_public': 'Public', 'cost_private': 'Private'})
-    
     # Calculate X-axis intervals
     max_time = df['time_seconds'].max() if not df.empty else 0
     x_breaks = list(range(0, int(max_time) + 120, 120))
@@ -286,25 +284,65 @@ def plot_pricing(df, output_dir, migration_data=None):
     elif len(x_breaks) < 4:
         x_breaks = list(range(0, int(max_time) + 15, 15))
 
-    # Color mapping for clusters
-    cluster_colors = {'Public': '#d62728', 'Private': '#d62728'}  # Both clusters in red
+    # Prepare data for cost per interval plot
+    plot_df_interval = df.melt(id_vars=['time_seconds'], 
+                               value_vars=['cost_public', 'cost_private'],
+                               var_name='cluster', value_name='cost')
+    plot_df_interval['cluster'] = plot_df_interval['cluster'].map({
+        'cost_public': 'Public', 'cost_private': 'Private'
+    })
+    plot_df_interval['type'] = 'Cost per Interval'
+    plot_df_interval['plot_group'] = plot_df_interval['cluster'].apply(
+        lambda x: f'{x} Cluster - Cost per Interval'
+    )
 
-    # Create the base plot - removed scales='free_y' to have consistent y-axis
+    # Prepare data for cumulative cost plot
+    plot_df_cumulative = df.melt(id_vars=['time_seconds'],
+                                value_vars=['cumulative_cost_public', 'cumulative_cost_private'],
+                                var_name='cluster', value_name='cost')
+    plot_df_cumulative['cluster'] = plot_df_cumulative['cluster'].map({
+        'cumulative_cost_public': 'Public', 'cumulative_cost_private': 'Private'
+    })
+    plot_df_cumulative['type'] = 'Cumulative Cost'
+    plot_df_cumulative['plot_group'] = plot_df_cumulative['cluster'].apply(
+        lambda x: f'{x} Cluster - Cumulative Cost'
+    )
+
+    # Combine dataframes
+    plot_df = pd.concat([plot_df_interval, plot_df_cumulative], ignore_index=True)
+    
+    # Set plot order
+    plot_order = [
+        'Private Cluster - Cost per Interval',
+        'Public Cluster - Cost per Interval',
+        'Private Cluster - Cumulative Cost',
+        'Public Cluster - Cumulative Cost'
+    ]
+    plot_df['plot_group'] = pd.Categorical(plot_df['plot_group'], 
+                                          categories=plot_order, ordered=True)
+
+    # Color mapping
+    color_map = {
+        'Public': '#d62728',  # Red
+        'Private': '#1f77b4',  # Blue
+        'Migration to Private': '#9467bd',
+        'Migration to Public': '#ff7f0e',
+        'Both Migrations': '#2ca02c',
+        'No Migration': '#5f615f'
+    }
+
+    # Create the base plot
     g = (
         ggplot(plot_df, aes(x='time_seconds', y='cost', color='cluster'))
         + geom_step(size=1.5)
-        + facet_wrap('~cluster', ncol=1)  # Removed scales='free_y'
-        + labs(title="Cluster Pricing Over Time", y="Cost per Interval", x="Time (seconds)")
+        + facet_wrap('~plot_group', ncol=1, scales='free_y')
+        + labs(title="Cluster Pricing Analysis", y="Cost (USD)", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
-        + scale_color_manual(values=cluster_colors)
-    + theme_bw()
-    + theme(legend_key=element_blank())
-    + theme(legend_position='none')
+        + scale_color_manual(name='Cluster', values=color_map)
+        + scale_y_continuous(limits=(0, None))
+        + theme_bw()
+        + theme(legend_key=element_blank())
     )
-
-    # Force y-axis to start at 0 for both panels
-    from plotnine import scale_y_continuous
-    g += scale_y_continuous(limits=(0, None))
 
     # Add migration events overlay if available
     if migration_data is not None and not migration_data.empty and 'timestamp' in df.columns:
@@ -335,13 +373,6 @@ def plot_pricing(df, output_dir, migration_data=None):
         ]
 
         if not migration_data_filtered.empty:
-            # Color and linetype mapping for migration events
-            migration_color_map = {
-                'Migration to Private': '#9467bd',
-                'Migration to Public': '#ff7f0e',
-                'Both Migrations': '#2ca02c',
-                'No Migration': '#5f615f'
-            }
             migration_linetype_map = {
                 'Migration to Private': 'dotted',
                 'Migration to Public': 'dotted',
@@ -360,13 +391,10 @@ def plot_pricing(df, output_dir, migration_data=None):
                 show_legend=False
             )
             
-            # Combine cluster and migration colors
-            combined_colors = {**cluster_colors, **migration_color_map}
-            g += scale_color_manual(name='Legend', values=combined_colors)
             g += scale_linetype_manual(name='Migration Events', values=migration_linetype_map)
 
     # Save the plot
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     filename_with_timestamp = f"pricing_{timestamp}.png"
     output_path = os.path.join(output_dir, filename_with_timestamp)
-    g.save(output_path, width=12, height=8, dpi=300)
+    g.save(output_path, width=12, height=14, dpi=300)  # Increased height for 4 panels
