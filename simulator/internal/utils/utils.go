@@ -42,9 +42,15 @@ func SaveContainerLogs() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading actuator log for dataplots: %v\n", err)
 	} else {
-		err = os.WriteFile(actuatorLogDst, logData, 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving actuator log to dataplots: %v\n", err)
+		// Create dataplots directory if it doesn't exist
+		dataplotsDir := constants.DataplotsDir
+		if err := os.MkdirAll(dataplotsDir, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating dataplots directory: %v\n", err)
+		} else {
+			err = os.WriteFile(actuatorLogDst, logData, 0644)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving actuator log to dataplots: %v\n", err)
+			}
 		}
 	}
 
