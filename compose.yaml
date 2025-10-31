@@ -4,6 +4,7 @@ services:
         build:
             context: ./broker
             dockerfile: Dockerfile.api
+        restart: unless-stopped
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -12,24 +13,46 @@ services:
               source: ~/.kube/members.config
               target: /root/.kube/members.config
         network_mode: "host"
+        depends_on:
+            - mongo
 
     monitor:
         container_name: monitor
         build:
             context: ./monitor
             dockerfile: Dockerfile
+        restart: unless-stopped
+        environment:
+            - SIMULATOR_CONFIG=/app/simulator_config.yaml
+        volumes:
+            - type: bind
+              source: /home/anandavidal/Documentos/simulator/simulator/data/config.yaml
+              target: /app/simulator_config.yaml
         network_mode: host
     ai-engine:
         container_name: ai-engine
         build:
             context: ./ai-engine
             dockerfile: Dockerfile.api
+        restart: unless-stopped
+        environment:
+            - SIMULATOR_CONFIG=/app/simulator_config.yaml
+        volumes:
+            - type: bind
+              source: /home/anandavidal/Documentos/simulator/simulator/data/config.yaml
+              target: /app/simulator_config.yaml
         network_mode: "host"
+        depends_on:
+            - monitor
+            - actuator
     actuator:
         container_name: actuator
         build:
             context: ./actuator
             dockerfile: Dockerfile.api
+        restart: unless-stopped
+        environment:
+            - SIMULATOR_CONFIG=/app/simulator_config.yaml
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -37,10 +60,16 @@ services:
             - type: bind
               source: ~/.kwok
               target: /root/.kwok
+            - type: bind
+              source: /home/anandavidal/Documentos/simulator/simulator/data/config.yaml
+              target: /app/simulator_config.yaml
         network_mode: "host"
+        depends_on:
+            - mongo
     mongo:
         container_name: mongo
         image: mongo:latest
+        restart: unless-stopped
         ports:
             - "27017:27017"
         volumes:
