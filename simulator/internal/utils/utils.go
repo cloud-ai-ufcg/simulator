@@ -9,18 +9,32 @@ import (
 	"time"
 )
 
+var currentRunTimestamp string
+
+// GetOrCreateRunTimestamp returns the current run timestamp, creating it if it doesn't exist
+func GetOrCreateRunTimestamp() string {
+	if currentRunTimestamp == "" {
+		currentRunTimestamp = GetTimestamp()
+	}
+	return currentRunTimestamp
+}
+
 // SaveContainerLogs creates the logs directory and saves logs from all relevant containers.
-func SaveContainerLogs() {
-	logsDir := constants.LogsDir
+func SaveContainerLogs() string {
+	timestamp := GetOrCreateRunTimestamp()
+	runDir := filepath.Join(constants.OutputDir, timestamp)
+	logsDir := filepath.Join(runDir, "logs")
+
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating logs directory: %v\n", err)
+		return ""
 	}
-	timestamp := GetTimestamp()
+
 	containerLogs := map[string]string{
-		constants.ContainerActuator: filepath.Join(logsDir, fmt.Sprintf("actuator_%s.log", timestamp)),
-		constants.ContainerBroker:   filepath.Join(logsDir, fmt.Sprintf("broker_%s.log", timestamp)),
-		constants.ContainerMonitor:  filepath.Join(logsDir, fmt.Sprintf("monitor_%s.log", timestamp)),
-		constants.ContainerAIEngine: filepath.Join(logsDir, fmt.Sprintf("ai-engine_%s.log", timestamp)),
+		constants.ContainerActuator: filepath.Join(logsDir, "actuator.log"),
+		constants.ContainerBroker:   filepath.Join(logsDir, "broker.log"),
+		constants.ContainerMonitor:  filepath.Join(logsDir, "monitor.log"),
+		constants.ContainerAIEngine: filepath.Join(logsDir, "ai-engine.log"),
 	}
 	for container, logFile := range containerLogs {
 		cmd := exec.Command("docker", "logs", container)
@@ -35,26 +49,7 @@ func SaveContainerLogs() {
 		}
 	}
 
-	// Save actuator log without timestamp in dataplots
-	actuatorLogSrc := filepath.Join(logsDir, fmt.Sprintf("actuator_%s.log", timestamp))
-	actuatorLogDst := filepath.Join(constants.DataplotsDir, "actuator.log")
-	logData, err := os.ReadFile(actuatorLogSrc)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading actuator log for dataplots: %v\n", err)
-	} else {
-		// Create dataplots directory if it doesn't exist
-		dataplotsDir := constants.DataplotsDir
-		if err := os.MkdirAll(dataplotsDir, 0755); err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating dataplots directory: %v\n", err)
-		} else {
-			err = os.WriteFile(actuatorLogDst, logData, 0644)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error saving actuator log to dataplots: %v\n", err)
-			}
-		}
-	}
-
-	kubectlLogFile := filepath.Join(logsDir, fmt.Sprintf("kubectl_%s.log", timestamp))
+	kubectlLogFile := filepath.Join(logsDir, "kubectl.log")
 	kubeconfigPath := filepath.Join(os.Getenv("HOME"), ".kube/members.config")
 	kubectlCmd := exec.Command("kubectl", "get", "nodes", "--namespace=default", "--context=member2", "--kubeconfig="+kubeconfigPath)
 	kubectlLogData, err := kubectlCmd.CombinedOutput()
@@ -66,6 +61,8 @@ func SaveContainerLogs() {
 			fmt.Fprintf(os.Stderr, "Error saving kubectl logs to %s: %v\n", kubectlLogFile, err)
 		}
 	}
+
+	return runDir
 }
 
 // GetTimestamp returns a string with the current date and time in YYYYMMDD_HHMMSS format
