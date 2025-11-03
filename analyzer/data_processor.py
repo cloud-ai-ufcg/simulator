@@ -196,7 +196,8 @@ def process_pricing_data(data):
         'private': [],
         'public_hourly': [],
         'private_hourly': [],
-        'total_cost': []
+        'total_cost': [],
+        'instance_types': {}  # Store instance types used
     }
     
     # Get interval duration (assume 30s if not specified)
@@ -261,6 +262,9 @@ def process_pricing_data(data):
             if cluster_label in costs_for_ts:
                 costs_for_ts[cluster_label] = cost_info['cost_per_interval']
                 hourly_costs_for_ts[cluster_label] = cost_info['hourly_cost']
+                # Store instance type info (keep the first one found for each cluster)
+                if cluster_label not in pricing_data['instance_types'] and cost_info.get('instance_type'):
+                    pricing_data['instance_types'][cluster_label] = cost_info['instance_type']
         
         pricing_data['public'].append(costs_for_ts['public'])
         pricing_data['private'].append(costs_for_ts['private'])
@@ -274,6 +278,9 @@ def build_pricing_dataframe(timestamps, pricing_data):
     """
     Build a pandas DataFrame for pricing data.
     Includes costs per interval, hourly costs, and cumulative costs.
+    
+    Returns:
+        tuple: (DataFrame, dict of instance_types)
     """
     index = pd.to_datetime(timestamps, unit='s')
     df = pd.DataFrame({
@@ -294,4 +301,4 @@ def build_pricing_dataframe(timestamps, pricing_data):
     df['cumulative_cost_private'] = df['cost_private'].cumsum()
     df['cumulative_cost_total'] = df['cost_total'].cumsum()
     
-    return df
+    return df, pricing_data.get('instance_types', {})

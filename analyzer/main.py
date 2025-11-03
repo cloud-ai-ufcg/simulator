@@ -80,8 +80,8 @@ def main():
 
         # Process and plot pricing data
         pricing_timestamps, pricing_data = process_pricing_data(raw_data)
-        df_pricing = build_pricing_dataframe(pricing_timestamps, pricing_data)
-        plot_pricing(df_pricing, plots_dir, migration_data)
+        df_pricing, instance_types = build_pricing_dataframe(pricing_timestamps, pricing_data)
+        plot_pricing(df_pricing, plots_dir, migration_data, instance_types)
 
         processed_data_for_summary = process_json_data(raw_data)
         records = []

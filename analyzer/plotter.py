@@ -264,7 +264,7 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     filename_with_timestamp = os.path.splitext(filename)[0] + '_' + timestamp + os.path.splitext(filename)[1]
     g.save(filename_with_timestamp, width=16, height=12, dpi=300)
 
-def plot_pricing(df, output_dir, migration_data=None):
+def plot_pricing(df, output_dir, migration_data=None, instance_types=None):
     """
     Plot pricing data for both clusters showing cost per interval and cumulative costs.
     Creates a 4-panel layout: cost per interval (2 panels) and cumulative costs (2 panels).
@@ -275,6 +275,7 @@ def plot_pricing(df, output_dir, migration_data=None):
             'cumulative_cost_public', 'cumulative_cost_private', 'cumulative_cost_total'
         output_dir: Directory to save the plot
         migration_data: DataFrame containing migration events (optional)
+        instance_types: Dict with 'public' and 'private' instance type names (optional)
     """
     # Calculate X-axis intervals
     max_time = df['time_seconds'].max() if not df.empty else 0
@@ -330,13 +331,24 @@ def plot_pricing(df, output_dir, migration_data=None):
         'Both Migrations': '#2ca02c',
         'No Migration': '#5f615f'
     }
+    
+    # Build title with instance types
+    title = "Cluster Pricing Analysis"
+    if instance_types:
+        instance_parts = []
+        if 'private' in instance_types:
+            instance_parts.append(f"Private: {instance_types['private']}")
+        if 'public' in instance_types:
+            instance_parts.append(f"Public: {instance_types['public']}")
+        if instance_parts:
+            title += f" ({', '.join(instance_parts)})"
 
     # Create the base plot
     g = (
         ggplot(plot_df, aes(x='time_seconds', y='cost', color='cluster'))
         + geom_step(size=1.5)
         + facet_wrap('~plot_group', ncol=1, scales='free_y')
-        + labs(title="Cluster Pricing Analysis", y="Cost (USD)", x="Time (seconds)")
+        + labs(title=title, y="Cost (USD)", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
         + scale_color_manual(name='Cluster', values=color_map)
         + scale_y_continuous(limits=(0, None))

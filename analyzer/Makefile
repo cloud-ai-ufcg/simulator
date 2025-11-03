@@ -28,14 +28,22 @@ help:
 
 # Setup Python virtual environment and install dependencies
 setup:
-	@echo "Setting up Python environment for analyzer..."
-	@if [ ! -d "venv" ]; then \
-		python3 -m venv venv; \
-		echo "Virtual environment created."; \
+	@echo "Checking Python environment for analyzer..."
+	@if [ -d "../venv" ]; then \
+		echo "Using project venv at ../venv"; \
+		echo "Installing analyzer dependencies..."; \
+		../venv/bin/pip install -r requirements.txt; \
+	elif [ -d "venv" ]; then \
+		echo "Using local venv at ./venv"; \
+		echo "Installing dependencies..."; \
+		./venv/bin/pip install -r requirements.txt; \
+	else \
+		echo "No virtual environment found."; \
+		echo "Please run 'make setup' from the project root first, or create a local venv:"; \
+		echo "  python3 -m venv venv"; \
+		echo "  ./venv/bin/pip install -r requirements.txt"; \
+		exit 1; \
 	fi
-	@echo "Installing dependencies..."
-	@./venv/bin/pip install --upgrade pip
-	@./venv/bin/pip install -r requirements.txt
 	@echo "Setup complete!"
 
 # Run the analyzer
@@ -86,10 +94,14 @@ run:
 		exit 1; \
 	fi; \
 	echo "Running analyzer with $$RUN_PATH..."; \
-	if [ -f "./venv/bin/python" ]; then \
+	if [ -d "../venv" ]; then \
+		../venv/bin/python main.py "$$RUN_PATH"; \
+	elif [ -d "venv" ]; then \
 		./venv/bin/python main.py "$$RUN_PATH"; \
 	else \
-		python3 main.py "$$RUN_PATH"; \
+		echo "Error: No Python virtual environment found"; \
+		echo "Please run 'make setup' first"; \
+		exit 1; \
 	fi
 
 # Alias for generate-plots (same as run)
