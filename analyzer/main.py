@@ -18,24 +18,52 @@ from plotter import plot_cpu_load, plot_memory_load, plot_total_percent_pending,
 def main():
     """Main function to run the analysis and generate plots."""
     if len(sys.argv) != 2:
-        print("Usage: python main.py <input_json_file>")
+        print("Usage: python main.py <run_directory>")
+        print("")
+        print("The run directory should contain:")
+        print("  - metrics.json (required)")
+        print("  - logs/actuator.log (optional, for migration tracking)")
         sys.exit(1)
 
-    json_path = sys.argv[1]
-    base_dir = os.path.dirname(json_path)
-    project_root = os.path.dirname(os.path.dirname(base_dir))  
-    plots_dir = os.path.join(project_root, "simulator", "data", "output", "plots")
-    summary_dir = os.path.join(project_root, "simulator", "data", "output", "summary")
+    run_dir = sys.argv[1]
+    
+    # Verify run directory exists
+    if not os.path.isdir(run_dir):
+        print(f"Error: Directory '{run_dir}' not found.")
+        sys.exit(1)
+    
+    # Get paths
+    json_path = os.path.join(run_dir, "metrics.json")
+    actuator_log_path = os.path.join(run_dir, "logs", "actuator.log")
+    
+    # Verify metrics.json exists
+    if not os.path.exists(json_path):
+        print(f"Error: metrics.json not found in '{run_dir}'")
+        sys.exit(1)
+    
+    # Extract timestamp from run directory name
+    run_name = os.path.basename(os.path.normpath(run_dir))
+    
+    # Get the analyzer directory (where this script is located)
+    analyzer_dir = os.path.dirname(os.path.abspath(__file__))
+    plots_dir = os.path.join(analyzer_dir, "output", run_name, "plots")
+    summary_dir = os.path.join(analyzer_dir, "output", run_name, "summary")
     
     if not os.path.exists(plots_dir):
         os.makedirs(plots_dir)
     
     if not os.path.exists(summary_dir):
         os.makedirs(summary_dir)
-
     try:
         raw_data = load_json_data(json_path)
-        migration_data = parse_migration_logs(os.path.join(base_dir, 'actuator.log'))
+        
+        # Try to load migration data if actuator.log exists
+        migration_data = []
+        if os.path.exists(actuator_log_path):
+            migration_data = parse_migration_logs(actuator_log_path)
+            print(f"Loaded migration data from {actuator_log_path}")
+        else:
+            print(f"Warning: actuator.log not found at {actuator_log_path}, continuing without migration data")
 
         timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods = process_resources(raw_data)
         
@@ -52,8 +80,8 @@ def main():
 
         # Process and plot pricing data
         pricing_timestamps, pricing_data = process_pricing_data(raw_data)
-        df_pricing = build_pricing_dataframe(pricing_timestamps, pricing_data)
-        plot_pricing(df_pricing, plots_dir, migration_data)
+        df_pricing, instance_types = build_pricing_dataframe(pricing_timestamps, pricing_data)
+        plot_pricing(df_pricing, plots_dir, migration_data, instance_types)
 
         processed_data_for_summary = process_json_data(raw_data)
         records = []
@@ -83,15 +111,21 @@ def main():
         plot_memory_load(df_summary, plots_dir)
         plot_total_percent_pending(df_summary, plots_dir)
         summarize(raw_data, summary_dir, migration_data)
+        
+        print(f"\n✅ Analysis complete!")
+        print(f"📊 Plots saved to: {plots_dir}")
+        print(f"📈 Summary saved to: {summary_dir}")
 
-    except FileNotFoundError:
-        print(f"Error: File '{json_path}' not found.")
+    except FileNotFoundError as e:
+        print(f"Error: File not found: {e}")
         sys.exit(1)
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON format in '{json_path}': {e}")
         sys.exit(1)
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":

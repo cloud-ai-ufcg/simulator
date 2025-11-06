@@ -46,8 +46,7 @@ const (
 	PythonExecutable = "../../venv/bin/python3"
 
 	// Output directories
-	OutputDir    = "../../simulator/data/output/plots"
-	LogsDir      = "../../simulator/data/output/logs"
+	OutputDir    = "../../simulator/data/output"
 	DataplotsDir = "../../analyzer/dataplots"
 )
 

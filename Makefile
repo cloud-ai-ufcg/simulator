@@ -83,12 +83,6 @@ stop-all-containers:
 	done
 	@echo "Cleanup process completed."
 
-generate-plots:
-	@if [ -z "$(METRICS)" ]; then \
-		METRICS=analyzer/dataplots/metrics.json; \
-	fi; \
-	venv/bin/python3 analyzer/main.py $$METRICS
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Important Notes
 # - You must export the KUBECONFIG variable with the correct files
