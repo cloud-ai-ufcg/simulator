@@ -21,11 +21,9 @@ prometheus:
 # engine config
 ai-engine:
   enabled: true
-  scheduler_interval: 300
-  timestamp_lookback_seconds: 600
+  scheduler_interval: 300  # Interval between scheduler runs (seconds)
+  timestamp_lookback_seconds: 600  # Seconds to look back when processing metrics
   workloads_shard_size: 20
-  monitored_duration_sec: 600
-  fetch_metrics_immediately: true
 
   data:
     input_json: monitor_outputs.json
@@ -33,9 +31,6 @@ ai-engine:
   ai:
     selected_model: anthropic/claude-3.5-sonnet
     multi_agent: false
-    scheduler_interval: 300
-    timestamp_lookback_seconds: 600
-    workloads_shard_size: 20
     fetch_metrics_immediately: true
     default_config:
       provider: openrouter
@@ -86,7 +81,6 @@ ai-engine:
   monitor:
     host: 0.0.0.0
     port: 8082
-    interval: 600
     route: metrics
 
   actuator:
@@ -102,12 +96,10 @@ ai-engine:
 # monitor config
 monitor:
   mode: "api"
-  collection_interval: 30
+  collection_interval: 30  # Applied to both API and CLI modes (can be overridden per mode)
   api:
     port: 8082
-    collection_interval: 30
   cli:
-    collection_interval: 30
     output_path: "monitor_outputs.json"
 
 # actuator config
