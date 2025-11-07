@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"simulator/internal/aiengine"
 	"simulator/internal/analyzer"
 	"simulator/internal/broker"
@@ -57,9 +58,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	utils.SaveContainerLogs()
+	// Save container logs and metrics (this creates the run directory)
+	runDir := utils.SaveContainerLogs()
+	if runDir == "" {
+		log.Errorf("Failed to save container logs")
+		os.Exit(1)
+	}
 
-	analyzer.CallAnalyzerAndProcess()
+	// Save metrics to the run directory
+	if err := analyzer.SaveMetrics(runDir); err != nil {
+		log.Errorf("Failed to save metrics: %v", err)
+		os.Exit(1)
+	}
+
+	// Convert to absolute path for display
+	absRunDir, err := filepath.Abs(runDir)
+	if err != nil {
+		absRunDir = runDir
+	}
+
+	// Extract timestamp from run directory
+	timestamp := filepath.Base(runDir)
 
 	log.Infof("Sequential execution cycle finished.")
+	log.Infof("Simulation data saved to: %s", absRunDir)
+	log.Infof("")
+	log.Infof("To generate plots and analysis, run:")
+	log.Infof("  cd analyzer && make generate-plots %s", timestamp)
 }
