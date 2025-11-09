@@ -16,13 +16,16 @@ set -euo pipefail
 trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
 # -----------------------------------------------------------------------------
-# Load execution mode configuration
+# Parse execution mode from argument
 # -----------------------------------------------------------------------------
-if [ -f "mode.env" ]; then
-    source mode.env
-else
-    # Default to KWOK mode if mode.env doesn't exist
-    EXECUTION_MODE="kwok"
+EXECUTION_MODE="${1:-kwok}"  # Default to kwok if no argument
+
+# Validate mode
+if [[ "$EXECUTION_MODE" != "kwok" ]] && [[ "$EXECUTION_MODE" != "real" ]]; then
+    echo -e "${COLOR}❌ Error: Invalid mode '${EXECUTION_MODE}'${RESET}"
+    echo -e "${COLOR}   Usage: ./main.sh [kwok|real]${RESET}"
+    echo -e "${COLOR}   Defaults to 'kwok' if not specified${RESET}"
+    exit 1
 fi
 
 echo -e "${COLOR}🎯 Execution Mode: ${EXECUTION_MODE}${RESET}"

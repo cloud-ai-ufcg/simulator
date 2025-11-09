@@ -1,53 +1,103 @@
 SHELL := /bin/bash
 
-.PHONY: all setup-and-start start setup-kubernetes-infra stop-all-containers restart-all-containers help
+.PHONY: all setup start setup-and-start setup-kubernetes-infra stop-all-containers restart-all-containers help
 
-# Default target: sets up infrastructure and runs the simulator
-all: setup-and-start
+# Default target: shows help
+all: help
 
-# Sets up Kubernetes infrastructure
+# Sets up Kubernetes infrastructure (receives mode as parameter)
 setup-kubernetes-infra:
-	@echo -e "\\e[35mStarting Kubernetes infrastructure setup (scripts/main.sh)...\\e[0m"
+	@echo -e "\\e[35mStarting Kubernetes infrastructure setup...\\e[0m"
 	@( \
-		cd scripts && ./main.sh; \
+		cd scripts && chmod +x main.sh && ./main.sh $(MODE); \
 	)
 	@echo -e "\\e[35mKubernetes infrastructure setup completed.\\e[0m"
 
-# Starts all required containers via docker-compose
+# Starts all required containers via docker-compose (after updating KWOK_MODE)
 run-all-containers:
-	@echo "Updating compose.yaml paths with the user's HOME..."
-	@echo scripts/replace_paths_in_compose.sh
+	@echo "Updating compose.yaml with KWOK_MODE=$(MODE)..."
+	@cd scripts && chmod +x update-compose-mode.sh && ./update-compose-mode.sh $(MODE)
 	@echo "Starting all necessary containers via docker-compose..."
 	@docker-compose -f compose.yaml up --build -d
 	@echo "All containers started successfully."
 
-# Sets up the complete infrastructure
-setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
+# Sets up the complete infrastructure (KWOK mode)
+setup-kwok:
+	@echo -e "\\e[36m🎭 Setting up KWOK mode infrastructure...\\e[0m"
+	@$(MAKE) stop-kubernetes-infra stop-all-containers
+	@$(MAKE) setup-kubernetes-infra MODE=kwok
+	@$(MAKE) run-all-containers MODE=kwok
+	@echo -e "\\e[32m✓ KWOK mode infrastructure ready!\\e[0m"
+
+# Sets up the complete infrastructure (Real mode)
+setup-real:
+	@echo -e "\\e[36m🌐 Setting up Real mode infrastructure...\\e[0m"
+	@$(MAKE) stop-kubernetes-infra stop-all-containers
+	@$(MAKE) setup-kubernetes-infra MODE=real
+	@$(MAKE) run-all-containers MODE=real
+	@echo -e "\\e[32m✓ Real mode infrastructure ready!\\e[0m"
+
+# Generic setup target (requires mode parameter)
+setup:
+	@if [ "$(filter kwok real,$(MAKECMDGOALS))" ]; then \
+		MODE=$$(echo "$(MAKECMDGOALS)" | grep -o -E 'kwok|real'); \
+		$(MAKE) setup-$$MODE; \
+	else \
+		echo "Usage: make setup {kwok|real}"; \
+		exit 1; \
+	fi
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
-start:
+start-simulator:
 	@(cd simulator/cmd && go run main.go)
 
-# Switches to KWOK mode and starts the simulator
+# Starts simulator in KWOK mode (assumes setup already done)
 start-kwok:
-	@echo -e "\\e[36mSwitching to KWOK mode...\\e[0m"
-	@cd scripts && ./setup-mode.sh kwok
-	@echo -e "\\e[36mSetting up infrastructure (KWOK)...\\e[0m"
-	@$(MAKE) setup
-	@echo -e "\\e[36mStarting simulator in KWOK mode...\\e[0m"
-	@$(MAKE) start
+	@echo -e "\\e[36m🎭 Starting simulator in KWOK mode...\\e[0m"
+	@$(MAKE) start-simulator
 
-# Switches to Real mode and starts the simulator
+# Starts simulator in Real mode (assumes setup already done)
 start-real:
-	@echo -e "\\e[36mSwitching to Real mode...\\e[0m"
-	@cd scripts && ./setup-mode.sh real
-	@echo -e "\\e[36mSetting up infrastructure (Real)...\\e[0m"
-	@$(MAKE) setup
-	@echo -e "\\e[36mStarting simulator in Real mode...\\e[0m"
-	@$(MAKE) start
+	@echo -e "\\e[36m🌐 Starting simulator in Real mode...\\e[0m"
+	@$(MAKE) start-simulator
 
-# Sets up the complete infrastructure and runs the simulator
-setup-and-start: setup start
+# Generic start target (requires mode parameter)
+start:
+	@if [ "$(filter kwok real,$(MAKECMDGOALS))" ]; then \
+		MODE=$$(echo "$(MAKECMDGOALS)" | grep -o -E 'kwok|real'); \
+		$(MAKE) start-$$MODE; \
+	else \
+		echo "Usage: make start {kwok|real}"; \
+		exit 1; \
+	fi
+
+# Sets up infrastructure and starts simulator (KWOK mode)
+setup-and-start-kwok:
+	@echo -e "\\e[36m🎭 Setting up and starting in KWOK mode...\\e[0m"
+	@$(MAKE) setup-kwok
+	@$(MAKE) start-kwok
+
+# Sets up infrastructure and starts simulator (Real mode)
+setup-and-start-real:
+	@echo -e "\\e[36m� Setting up and starting in Real mode...\\e[0m"
+	@$(MAKE) setup-real
+	@$(MAKE) start-real
+
+# Generic setup-and-start target (requires mode parameter)
+setup-and-start:
+	@if [ "$(filter kwok real,$(MAKECMDGOALS))" ]; then \
+		MODE=$$(echo "$(MAKECMDGOALS)" | grep -o -E 'kwok|real'); \
+		$(MAKE) setup-and-start-$$MODE; \
+	else \
+		echo "Usage: make setup-and-start {kwok|real}"; \
+		exit 1; \
+	fi
+
+# Dummy targets to avoid make errors
+kwok:
+	@:
+real:
+	@:
 
 # Cleans all documents from all collections in the mongo container
 clean-mongo-db:
@@ -98,22 +148,53 @@ stop-all-containers:
 # Help
 
 help:
-	@echo "Available targets:"
-	@echo "  all                      : Alias for 'setup-and-start'."
-	@echo "  setup-and-start          : Sets up infrastructure, starts all containers and runs the simulator."
-	@echo "  start                    : Starts ONLY the Go simulator (assumes infrastructure and containers are already running)."
-	@echo "  start-kwok               : Switches to KWOK mode, sets up infrastructure, starts containers, and runs simulator."
-	@echo "  start-real               : Switches to Real mode, sets up infrastructure, starts containers, and runs simulator."
-	@echo "  ---"
-	@echo "  Container Management:"
-	@echo "    run-all-containers     : Starts all required containers via docker-compose."
-	@echo "    restart-all-containers : Stops, removes, and recreates all containers, volumes, and images."
-	@echo "    stop-all-containers    : Stops and removes all simulator containers, volumes and images via docker-compose."
-	@echo "  ---"
-	@echo "  Database:"
-	@echo "    clean-mongo-db         : Stops the mongo container and removes its data volume."
-	@echo "  ---"
-	@echo "  Infrastructure:"
-	@echo "    setup-kubernetes-infra : Runs scripts/main.sh to set up Kubernetes infrastructure."
-	@echo "  ---"
-	@echo "  help                     : Shows this help message."
+	@echo "╔══════════════════════════════════════════════════════════════════╗"
+	@echo "║          Multi-Cloud Workload Migration Simulator               ║"
+	@echo "╚══════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🎯 Main Commands (Standardized Syntax):"
+	@echo ""
+	@echo "  make setup-and-start {kwok|real}  : Setup infrastructure + Start simulator"
+	@echo "  make setup {kwok|real}            : Setup infrastructure only"
+	@echo "  make start {kwok|real}            : Start simulator only (assumes setup done)"
+	@echo ""
+	@echo "📦 Examples:"
+	@echo "  make setup-and-start kwok         : 🎭 Full KWOK mode setup and start"
+	@echo "  make setup-and-start real         : 🌐 Full Real mode setup and start"
+	@echo "  make setup kwok                   : 🎭 Setup KWOK infrastructure"
+	@echo "  make setup real                   : 🌐 Setup Real infrastructure"
+	@echo "  make start kwok                   : 🎭 Start simulator (KWOK)"
+	@echo "  make start real                   : 🌐 Start simulator (Real)"
+	@echo ""
+	@echo "� Container Management:"
+	@echo "  run-all-containers                : Starts all required containers via docker-compose"
+	@echo "  restart-all-containers            : Stops, removes, and recreates all containers"
+	@echo "  stop-all-containers               : Stops and removes all simulator containers"
+	@echo ""
+	@echo "🗄️  Database:"
+	@echo "  clean-mongo-db                    : Cleans all documents from MongoDB collections"
+	@echo ""
+	@echo "☸️  Infrastructure:"
+	@echo "  setup-kubernetes-infra            : Runs scripts/main.sh to set up Kubernetes"
+	@echo "  stop-kubernetes-infra             : Removes KIND cluster containers"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🎭 KWOK Mode (Simulated):"
+	@echo "  • Fake nodes created by KWOK controller"
+	@echo "  • Busybox fake containers (no actual resource consumption)"
+	@echo "  • Metrics based on Kubernetes resource requests"
+	@echo "  • Fast simulation for testing and development"
+	@echo ""
+	@echo "🌐 Real Mode (KIND Clusters):"
+	@echo "  • Real KIND clusters (member1, member2) with worker nodes"
+	@echo "  • Real workload containers (7 types: cpu/memory/io/network/mixed/bursty/idle)"
+	@echo "  • Actual resource consumption tracked by cAdvisor"
+	@echo "  • Prometheus metrics from real containers"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "📝 Important Notes:"
+	@echo "  • Export KUBECONFIG before running simulator:"
+	@echo "    export KUBECONFIG=~/.kube/karmada.config"
+	@echo "  • Or to view multiple clusters:"
+	@echo "    export KUBECONFIG=~/.kube/karmada.config:~/.kube/members.config"
+	@echo ""
