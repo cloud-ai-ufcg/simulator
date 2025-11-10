@@ -199,6 +199,95 @@ echo -e "${GREEN}✅ Created clusters:${NC}"
 kind get clusters
 
 echo ""
+echo -e "${BLUE}🔧 Applying kubelet resource hack...${NC}"
+
+# Parse resources from config.yaml
+MEMBER1_CPU=$(yq '.clusters.member1.cpu' "$CONFIG_FILE" 2>/dev/null || echo "2")
+MEMBER1_MEM=$(yq '.clusters.member1.memory' "$CONFIG_FILE" 2>/dev/null || echo "4Gi")
+MEMBER2_CPU=$(yq '.clusters.member2.cpu' "$CONFIG_FILE" 2>/dev/null || echo "2")
+MEMBER2_MEM=$(yq '.clusters.member2.memory' "$CONFIG_FILE" 2>/dev/null || echo "4Gi")
+
+# Function to hack kubelet immediately after creation - ALL WORKERS
+hack_kubelet_worker() {
+    local cluster=$1
+    local cpu=$2
+    local memory=$3
+    
+    echo -e "${YELLOW}  Discovering worker nodes for cluster ${cluster}...${NC}"
+    
+    # Wait for cluster to be available
+    for i in {1..60}; do
+        if kubectl get nodes --context "${cluster}" &>/dev/null; then
+            break
+        fi
+        sleep 1
+    done
+    
+    # Get ALL worker nodes dynamically
+    local worker_nodes=$(kubectl get nodes --context "${cluster}" --no-headers 2>/dev/null | grep -E "worker[0-9]*" | awk '{print $1}')
+    
+    if [ -z "$worker_nodes" ]; then
+        echo -e "${RED}  ✗ No worker nodes found for ${cluster}${NC}"
+        return 1
+    fi
+    
+    # Hack EACH worker node
+    for worker_node in $worker_nodes; do
+        echo -e "${YELLOW}  Hacking kubelet on ${worker_node}...${NC}"
+        
+        # Wait for docker container to exist
+        for i in {1..60}; do
+            if docker ps | grep -q "${worker_node}"; then
+                break
+            fi
+            sleep 1
+        done
+        
+        # Modify kubelet config BEFORE it fully stabilizes
+        docker exec "${worker_node}" sed -i 's/nodeStatusReportFrequency: 0s/nodeStatusReportFrequency: 999999h/' /var/lib/kubelet/config.yaml 2>/dev/null || true
+        docker exec "${worker_node}" sed -i 's/nodeStatusUpdateFrequency: 0s/nodeStatusUpdateFrequency: 999999h/' /var/lib/kubelet/config.yaml 2>/dev/null || true
+        
+        # Kill kubelet to force restart with new config
+        docker exec "${worker_node}" pkill -9 kubelet 2>/dev/null || true
+        
+        # Wait for kubelet to restart and stabilize
+        echo -e "${YELLOW}    Waiting for kubelet to restart...${NC}"
+        sleep 10
+        
+        # Wait for node to be Ready in kubernetes
+        echo -e "${YELLOW}    Waiting for node to be Ready...${NC}"
+        for i in {1..30}; do
+            if kubectl get node "${worker_node}" --context "${cluster}" 2>/dev/null | grep -q "Ready"; then
+                break
+            fi
+            sleep 2
+        done
+        
+        # Apply resource patches
+        echo -e "${YELLOW}    Applying resource patches...${NC}"
+        kubectl patch node "${worker_node}" --type=merge --subresource=status --context "${cluster}" -p "{
+            \"status\": {
+                \"capacity\": {\"cpu\": \"${cpu}\", \"memory\": \"${memory}\"},
+                \"allocatable\": {\"cpu\": \"${cpu}\", \"memory\": \"${memory}\"}
+            }
+        }" 2>/dev/null && echo -e "${GREEN}    ✓ Resource patch applied${NC}" || echo -e "${YELLOW}    ⚠️  Patch may need retry${NC}"
+        
+        echo -e "${GREEN}  ✓ Kubelet config modified on ${worker_node}${NC}"
+    done
+}
+
+# Apply hack to both clusters if they were created
+if [ "$MEMBER1_NEEDS_CREATE" = true ]; then
+    hack_kubelet_worker "member1" "$MEMBER1_CPU" "$MEMBER1_MEM"
+fi
+
+if [ "$MEMBER2_NEEDS_CREATE" = true ]; then
+    hack_kubelet_worker "member2" "$MEMBER2_CPU" "$MEMBER2_MEM"
+fi
+
+echo -e "${GREEN}✅ Kubelet hack applied${NC}"
+
+echo ""
 echo -e "${BLUE}ℹ️  Note: If clusters were recreated, you may need to reconnect them:${NC}"
 echo -e "${YELLOW}   Run: make setup-kubernetes-infra${NC}"
 echo -e "${YELLOW}   This will reconnect the clusters to Karmada and reinstall Prometheus${NC}"

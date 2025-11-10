@@ -63,6 +63,82 @@ echo -e "${COLOR}  ✅ All clusters accessible${RESET}"
 echo -e "${COLOR}[3/9] Labeling nodes...${RESET}"
 ./create_real_nodes.sh
 
+# 3.5. Hack kubelet to COMPLETELY DISABLE node status updates and set correct resources
+echo -e "${COLOR}[3.5/9] DISABLING kubelet automatic resource updates...${RESET}"
+
+# Get config values
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/../simulator/data/config.yaml"
+MEMBER1_CPU=$(yq '.clusters.member1.cpu' "$CONFIG_FILE")
+MEMBER1_MEM=$(yq '.clusters.member1.memory' "$CONFIG_FILE")
+MEMBER2_CPU=$(yq '.clusters.member2.cpu' "$CONFIG_FILE")
+MEMBER2_MEM=$(yq '.clusters.member2.memory' "$CONFIG_FILE")
+
+# Function to hack ALL workers in a cluster
+hack_cluster_workers() {
+    local cluster=$1
+    local cpu=$2
+    local memory=$3
+    
+    echo -e "${COLOR}  Processing cluster ${cluster}...${RESET}"
+    
+    # Get ALL worker nodes dynamically
+    local worker_nodes=$(kubectl get nodes --context "${cluster}" --no-headers 2>/dev/null | grep -E "worker[0-9]*" | awk '{print $1}')
+    
+    if [ -z "$worker_nodes" ]; then
+        echo -e "${COLOR}  ⚠️  No worker nodes found for ${cluster}${RESET}"
+        return 1
+    fi
+    
+    for worker_node in $worker_nodes; do
+        echo -e "${COLOR}    Checking ${worker_node}...${RESET}"
+        
+        # Check if hack was already applied
+        ALREADY_HACKED=$(docker exec "${worker_node}" cat /var/lib/kubelet/config.yaml 2>/dev/null | grep "nodeStatusUpdateFrequency: 999999h" || echo "")
+        
+        if [ -n "$ALREADY_HACKED" ]; then
+            echo -e "${COLOR}      ✓ Kubelet already configured (999999h) - skipping restart${RESET}"
+        else
+            echo -e "${COLOR}      DISABLING kubelet updates (999999h)...${RESET}"
+            
+            # COMPLETELY disable kubelet node status updates (set to 999999h = never)
+            docker exec "${worker_node}" sed -i 's/nodeStatusReportFrequency: 0s/nodeStatusReportFrequency: 999999h/' /var/lib/kubelet/config.yaml 2>/dev/null || true
+            docker exec "${worker_node}" sed -i 's/nodeStatusUpdateFrequency: [0-9]*[mhs]/nodeStatusUpdateFrequency: 999999h/' /var/lib/kubelet/config.yaml 2>/dev/null || true
+            
+            # Force restart kubelet to apply new config
+            echo -e "${COLOR}      Forcing kubelet restart...${RESET}"
+            docker exec "${worker_node}" pkill -9 kubelet 2>/dev/null || true
+            
+            # Wait for kubelet to reload config
+            sleep 5
+        fi
+        
+        # Apply resource patches (always, to ensure they're correct)
+        echo -e "${COLOR}      Applying resource patch...${RESET}"
+        
+        # Wait for node to be Ready before patching
+        for i in {1..30}; do
+            if kubectl get node "${worker_node}" --context "${cluster}" 2>/dev/null | grep -q "Ready"; then
+                break
+            fi
+            sleep 2
+        done
+        
+        kubectl patch node "${worker_node}" --type=merge --subresource=status --context "${cluster}" -p "{\"status\":{\"capacity\":{\"cpu\":\"${cpu}\",\"memory\":\"${memory}\"},\"allocatable\":{\"cpu\":\"${cpu}\",\"memory\":\"${memory}\"}}}" 2>/dev/null && echo -e "${COLOR}      ✓ ${worker_node} patched${RESET}" || echo -e "${COLOR}      ⚠️  ${worker_node} patch failed${RESET}"
+    done
+}
+
+# Set kubeconfig
+export KUBECONFIG=~/.kube/members.config
+
+# Hack all workers in both clusters
+hack_cluster_workers "member1" "$MEMBER1_CPU" "$MEMBER1_MEM"
+hack_cluster_workers "member2" "$MEMBER2_CPU" "$MEMBER2_MEM"
+
+echo -e "${COLOR}  ✅ Kubelet hack applied to all workers${RESET}"
+
+echo -e "${COLOR}  ✅ Kubelet updates DISABLED - resources locked${RESET}"
+
 # 4. Get Docker network IPs for member clusters first
 echo -e "${COLOR}[4/9] Getting cluster IPs...${RESET}"
 MEMBER1_IP=$(docker inspect member1-control-plane 2>/dev/null | jq -r '.[0].NetworkSettings.Networks.kind.IPAddress' 2>/dev/null || echo "")

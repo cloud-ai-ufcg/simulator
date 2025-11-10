@@ -117,6 +117,87 @@ fi
 echo -e "${COLOR}[8/10] ✅ Mode setup completed${RESET}"
 
 # -----------------------------------------------------------------------------
-# 5. Final message
+# 5. Final verification (for Real mode only)
+# -----------------------------------------------------------------------------
+if [[ "$EXECUTION_MODE" == "real" ]]; then
+    echo -e "${COLOR}[9/10] 🔍 Final verification of node resources...${RESET}"
+    
+    export KUBECONFIG=~/.kube/members.config
+    
+    # Function to verify node resources for ALL workers
+    verify_cluster_resources() {
+        local cluster=$1
+        local expected_cpu=$2
+        local expected_mem=$3
+        
+        echo -e "${COLOR}  Checking all workers in ${cluster}...${RESET}"
+        
+        # Get ALL worker nodes dynamically
+        local worker_nodes=$(kubectl get nodes --context "${cluster}" --no-headers 2>/dev/null | grep -E "worker[0-9]*" | awk '{print $1}')
+        
+        if [ -z "$worker_nodes" ]; then
+            echo -e "${COLOR}    ⚠️  No worker nodes found for ${cluster}${RESET}"
+            return 1
+        fi
+        
+        local all_ok=0
+        
+        for node in $worker_nodes; do
+            echo -e "${COLOR}    Checking ${node}...${RESET}"
+            
+            # Get actual values
+            ACTUAL_CPU=$(kubectl get node "$node" --context "$cluster" -o jsonpath='{.status.capacity.cpu}' 2>/dev/null || echo "ERROR")
+            ACTUAL_MEM=$(kubectl get node "$node" --context "$cluster" -o jsonpath='{.status.capacity.memory}' 2>/dev/null || echo "ERROR")
+            
+            if [ "$ACTUAL_CPU" = "$expected_cpu" ] && [ "$ACTUAL_MEM" = "$expected_mem" ]; then
+                echo -e "${COLOR}      ✅ ${node}: ${ACTUAL_CPU} cores, ${ACTUAL_MEM} (CORRECT)${RESET}"
+            else
+                echo -e "${COLOR}      ⚠️  ${node}: ${ACTUAL_CPU} cores, ${ACTUAL_MEM} (Expected: ${expected_cpu} cores, ${expected_mem})${RESET}"
+                echo -e "${COLOR}      🔧 Reapplying patches...${RESET}"
+                
+                # Reapply patch
+                kubectl patch node "$node" --type=merge --subresource=status --context "$cluster" -p "{
+                    \"status\": {
+                        \"capacity\": {\"cpu\": \"${expected_cpu}\", \"memory\": \"${expected_mem}\"},
+                        \"allocatable\": {\"cpu\": \"${expected_cpu}\", \"memory\": \"${expected_mem}\"}
+                    }
+                }" 2>/dev/null
+                
+                # Verify again
+                sleep 2
+                ACTUAL_CPU=$(kubectl get node "$node" --context "$cluster" -o jsonpath='{.status.capacity.cpu}' 2>/dev/null)
+                ACTUAL_MEM=$(kubectl get node "$node" --context "$cluster" -o jsonpath='{.status.capacity.memory}' 2>/dev/null)
+                
+                if [ "$ACTUAL_CPU" = "$expected_cpu" ] && [ "$ACTUAL_MEM" = "$expected_mem" ]; then
+                    echo -e "${COLOR}      ✅ Patch successful: ${ACTUAL_CPU} cores, ${ACTUAL_MEM}${RESET}"
+                else
+                    echo -e "${COLOR}      ❌ Patch failed: ${ACTUAL_CPU} cores, ${ACTUAL_MEM}${RESET}"
+                    all_ok=1
+                fi
+            fi
+        done
+        
+        return $all_ok
+    }
+    
+    # Verify both clusters
+    verify_cluster_resources "member1" "$MEMBER1_CPU" "$MEMBER1_MEM"
+    MEMBER1_STATUS=$?
+    
+    verify_cluster_resources "member2" "$MEMBER2_CPU" "$MEMBER2_MEM"
+    MEMBER2_STATUS=$?
+    
+    if [ $MEMBER1_STATUS -eq 0 ] && [ $MEMBER2_STATUS -eq 0 ]; then
+        echo -e "${COLOR}  ✅ All node resources verified and correct${RESET}"
+    else
+        echo -e "${COLOR}  ⚠️  Some nodes have incorrect resources${RESET}"
+        echo -e "${COLOR}  ℹ️  You can manually fix with: ./scripts/hack_kubelet.sh${RESET}"
+    fi
+else
+    echo -e "${COLOR}[9/10] Skipping resource verification (KWOK mode)${RESET}"
+fi
+
+# -----------------------------------------------------------------------------
+# 6. Final message
 # -----------------------------------------------------------------------------
 echo -e "\n${COLOR}[🎉] Environment provisioned successfully!${RESET}"
