@@ -26,7 +26,7 @@ services:
             - SIMULATOR_CONFIG=/app/simulator_config.yaml
         volumes:
             - type: bind
-              source: /home/anandavidal/Documentos/simulator/simulator/data/config.yaml
+              source: ./simulator/data/config.yaml
               target: /app/simulator_config.yaml
         network_mode: host
     ai-engine:
@@ -42,7 +42,7 @@ services:
             - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
         volumes:
             - type: bind
-              source: /home/anandavidal/Documentos/simulator/simulator/data/config.yaml
+              source: ./simulator/data/config.yaml
               target: /app/simulator_config.yaml
         network_mode: "host"
         depends_on:
@@ -55,7 +55,7 @@ services:
             dockerfile: Dockerfile.api
         restart: unless-stopped
         environment:
-            - SIMULATOR_CONFIG=/app/simulator_config.yaml
+            - SIMULATOR_CONFIG=/simulator/data/config.yaml
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -64,8 +64,8 @@ services:
               source: ~/.kwok
               target: /root/.kwok
             - type: bind
-              source: /home/anandavidal/Documentos/simulator/simulator/data/config.yaml
-              target: /app/simulator_config.yaml
+              source: ./simulator/data/config.yaml
+              target: /simulator/data/config.yaml
         network_mode: "host"
         depends_on:
             - mongo
