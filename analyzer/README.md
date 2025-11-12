@@ -15,22 +15,39 @@ This module analyzes migration simulation data, processes metrics, and generates
 
 ```
 analyzer/
-├── main.py                    # Main entry point
-├── data_loader.py             # Load JSON and log data
-├── data_processor.py          # Process metrics data
-├── plotter.py                 # Generate visualizations
-├── metrics_summarizer.py      # Generate statistical summaries
-├── pricing_data.py            # Pricing data definitions
-├── pricing_utils.py           # Pricing calculations
-├── utils.py                   # Utility functions
-├── requirements.txt           # Python dependencies
-├── Makefile                   # Build and run automation
-├── dataplots/                 # Temporary data storage (legacy)
-└── output/                    # Generated outputs (by timestamp)
-    └── YYYYMMDD_HHMMSS/      # Each simulation run
-        ├── plots/             # Visualization plots (PNG)
-        └── summary/           # Statistical summaries (JSON)
+├── main.py                         # Main entry point (orchestrator)
+├── data_loader.py                  # Load JSON and log data
+├── data_models.py                  # Data structures (pure models)
+├── data_processor.py               # Process metrics data (business logic)
+├── plot_data_builder.py            # Prepare data for visualization
+├── plotter.py                      # Generate visualizations (pure plotting)
+├── metrics_summarizer.py           # Generate statistical summaries
+├── pricing_data.py                 # Pricing data definitions
+├── pricing_utils.py                # Pricing calculations
+├── utils.py                        # Utility functions
+├── requirements.txt                # Python dependencies
+├── Makefile                        # Build and run automation
+├── REFACTORING.md                  # Refactoring documentation
+├── ARCHITECTURE.md                 # Architecture diagrams
+└── output/                         # Generated outputs (by timestamp)
+    └── YYYYMMDD_HHMMSS/           # Each simulation run
+        ├── plots/                  # Visualization plots (PNG)
+        └── summary/                # Statistical summaries (CSV)
 ```
+
+## Architecture
+
+The analyzer follows a clean layered architecture with clear separation of concerns:
+
+1. **Load**: Read raw data from files (`data_loader.py`)
+2. **Process**: Convert raw data into structured models (`data_processor.py`, `data_models.py`)
+3. **Prepare**: Transform models into DataFrames for plotting (`plot_data_builder.py`)
+4. **Visualize**: Generate plots from formatted data (`plotter.py`)
+5. **Summarize**: Calculate statistics (`metrics_summarizer.py`)
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams and [REFACTORING.md](REFACTORING.md) for implementation details.
+
+````
 
 ## Installation
 
@@ -38,7 +55,7 @@ analyzer/
 
 ```bash
 make setup
-```
+````
 
 This will:
 
