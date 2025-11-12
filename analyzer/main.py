@@ -15,6 +15,7 @@ Pipeline:
 
 import os
 import sys
+import pandas as pd
 from data_loader import load_json_data, parse_migration_logs
 from data_processor import process_simulation_data
 from plot_data_builder import (
@@ -67,10 +68,12 @@ def main():
     analyzer_dir = os.path.dirname(os.path.abspath(__file__))
     plots_dir = os.path.join(analyzer_dir, "output", run_name, "plots")
     summary_dir = os.path.join(analyzer_dir, "output", run_name, "summary")
+    processed_data_dir = os.path.join(analyzer_dir, "output", run_name, "processed_data")
     
     # Create output directories
     os.makedirs(plots_dir, exist_ok=True)
     os.makedirs(summary_dir, exist_ok=True)
+    os.makedirs(processed_data_dir, exist_ok=True)
     
     try:
         print("📖 Loading data...")
@@ -101,6 +104,62 @@ def main():
         df_migrations = build_migration_dataframe(processed_data.migration_events)
         
         print(f"✓ Built DataFrames for visualization")
+        
+        # Save processed data to a single CSV
+        print("💾 Saving processed data to CSV...")
+        
+        # Merge all dataframes on timestamp and time_seconds
+        df_combined = df_resources.copy()
+        
+        # Merge load data (drop duplicate columns)
+        load_cols_to_merge = [col for col in df_load.columns if col not in ['timestamp', 'time_seconds']]
+        df_combined = df_combined.merge(
+            df_load[['timestamp'] + load_cols_to_merge], 
+            on='timestamp', 
+            how='left'
+        )
+        
+        # Merge pricing data (drop duplicate columns)
+        pricing_cols_to_merge = [col for col in df_pricing.columns if col not in ['timestamp', 'time_seconds']]
+        df_combined = df_combined.merge(
+            df_pricing[['timestamp'] + pricing_cols_to_merge], 
+            on='timestamp', 
+            how='left'
+        )
+        
+        # Merge migration data if exists
+        if not df_migrations.empty:
+            # Convert migration unix timestamp to datetime for merge
+            df_migrations_for_merge = df_migrations.copy()
+            df_migrations_for_merge['timestamp'] = pd.to_datetime(df_migrations_for_merge['timestamp'], unit='s')
+            
+            # Adjust timezone if needed (subtract 3 hours as done in plotter)
+            df_migrations_for_merge['timestamp'] = df_migrations_for_merge['timestamp'] - pd.Timedelta(hours=3)
+            
+            # Rename columns to avoid conflicts
+            df_migrations_for_merge = df_migrations_for_merge.rename(columns={
+                'execution': 'migration_execution',
+                'type': 'migration_type',
+                'total_migrated_pods': 'migration_total_pods',
+                'migrated_to_private': 'migration_to_private',
+                'migrated_to_public': 'migration_to_public'
+            })
+            
+            # Merge with left join (keep all timestamps, fill NaN for non-migration rows)
+            df_combined = df_combined.merge(
+                df_migrations_for_merge[['timestamp', 'migration_execution', 'migration_type', 
+                                         'migration_total_pods', 'migration_to_private', 'migration_to_public']], 
+                on='timestamp', 
+                how='left'
+            )
+            
+            print(f"✓ Merged {len(df_migrations)} migration events into combined data")
+        
+        # Save combined data
+        combined_csv_path = os.path.join(processed_data_dir, 'processed_data.csv')
+        df_combined.to_csv(combined_csv_path, index=False)
+        
+        print(f"✓ Saved processed data to: {combined_csv_path}")
         
         # Step 4: Generate visualizations
         print("🎨 Generating plots...")
@@ -176,6 +235,7 @@ def main():
         print(f"\n✅ Analysis complete!")
         print(f"📊 Plots saved to: {plots_dir}")
         print(f"📈 Summary saved to: {summary_dir}")
+        print(f"💾 Processed data saved to: {processed_data_dir}")
         print(f"\n📌 Summary:")
         print(f"   - Timestamps processed: {len(processed_data.timestamps)}")
         print(f"   - Interval duration: {processed_data.interval_duration}s")
