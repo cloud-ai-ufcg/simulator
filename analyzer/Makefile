@@ -1,28 +1,37 @@
-.PHONY: help setup clean run generate-plots list-runs
+.PHONY: help setup clean run generate-plots list-runs kwok real generate-plots-kwok generate-plots-real
 
 # Default target
 help:
-	@echo "Analyzer Makefile"
+	@echo "╔══════════════════════════════════════════════════════════════════╗"
+	@echo "║          Multi-Cloud Workload Migration Analyzer                ║"
+	@echo "╚══════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "Available targets:"
-	@echo "  setup           - Install Python dependencies"
-	@echo "  run             - Run the analyzer"
-	@echo "  generate-plots  - Generate plots from simulation data"
-	@echo "  list-runs       - List available simulation runs"
-	@echo "  clean           - Remove output files and __pycache__"
-	@echo "  clean-all       - Remove output files, __pycache__, and venv"
+	@echo "🎯 Main Commands:"
 	@echo ""
-	@echo "Usage examples:"
-	@echo "  make setup"
-	@echo "  make list-runs"
-	@echo "  make generate-plots 20251102_120000"
-	@echo "  make run 20251102_120000"
+	@echo "  make generate-plots {kwok|real} <timestamp>  : Generate plots and analysis"
+	@echo "  make setup                                    : Install Python dependencies"
+	@echo "  make list-runs                                : List available simulation runs"
+	@echo "  make clean                                    : Remove output files"
 	@echo ""
-	@echo "Alternative syntax (still supported):"
+	@echo "📦 Examples:"
+	@echo "  make generate-plots kwok 20251113_163427      : 🎭 Analyze KWOK mode data"
+	@echo "  make generate-plots real 20251113_163427      : 🌐 Analyze Real mode data"
+	@echo ""
+	@echo "📝 Alternative syntax (still supported):"
 	@echo "  make generate-plots TIMESTAMP=20251102_120000"
 	@echo "  make generate-plots RUN_DIR=../simulator/data/output/20251102_120000"
 	@echo ""
-	@echo "The run directory should contain:"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🎭 KWOK Mode (Simulated):"
+	@echo "  • Metrics are percentages (0-1) multiplied by capacity"
+	@echo "  • Fast simulation for testing and development"
+	@echo ""
+	@echo "🌐 Real Mode (Real Workloads):"
+	@echo "  • Metrics are absolute values (cores/GB) from cAdvisor"
+	@echo "  • Real resource consumption tracked"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "📁 The run directory should contain:"
 	@echo "  - metrics.json (required)"
 	@echo "  - logs/actuator.log (optional, for migration tracking)"
 
@@ -48,28 +57,55 @@ setup:
 
 # Run the analyzer
 run:
-	@# Check if RUN_DIR is provided (new style)
-	@if [ -n "$(RUN_DIR)" ]; then \
+	@FOUND_MODE=""; \
+	for arg in $(MAKECMDGOALS); do \
+		if [ "$$arg" = "kwok" ]; then \
+			FOUND_MODE="kwok"; \
+			break; \
+		elif [ "$$arg" = "real" ]; then \
+			FOUND_MODE="real"; \
+			break; \
+		fi; \
+	done; \
+	if [ -z "$$FOUND_MODE" ]; then \
+		echo "❌ Error: Execution mode is required!"; \
+		echo ""; \
+		echo "Usage:"; \
+		echo "  make generate-plots {kwok|real} <timestamp>"; \
+		echo ""; \
+		echo "Examples:"; \
+		echo "  make generate-plots kwok 20251113_163427"; \
+		echo "  make generate-plots real 20251113_163427"; \
+		echo ""; \
+		exit 1; \
+	fi; \
+	MODE="$$FOUND_MODE"; \
+	if [ -n "$(RUN_DIR)" ]; then \
 		RUN_PATH="$(RUN_DIR)"; \
 	elif [ -n "$(TIMESTAMP)" ]; then \
 		RUN_PATH="../simulator/data/output/$(TIMESTAMP)"; \
 	elif [ "$(words $(MAKECMDGOALS))" -gt 1 ]; then \
-		TIMESTAMP_ARG="$(word 2,$(MAKECMDGOALS))"; \
-		RUN_PATH="../simulator/data/output/$$TIMESTAMP_ARG"; \
+		for arg in $(MAKECMDGOALS); do \
+			if [ "$$arg" != "run" ] && [ "$$arg" != "generate-plots" ] && [ "$$arg" != "kwok" ] && [ "$$arg" != "real" ]; then \
+				TIMESTAMP_ARG="$$arg"; \
+				break; \
+			fi; \
+		done; \
+		if [ -n "$$TIMESTAMP_ARG" ]; then \
+			RUN_PATH="../simulator/data/output/$$TIMESTAMP_ARG"; \
+		fi; \
 	else \
 		RUN_PATH=""; \
 	fi; \
 	if [ -z "$$RUN_PATH" ]; then \
-		echo "Error: No run directory or timestamp specified."; \
+		echo "❌ Error: No timestamp specified."; \
 		echo ""; \
 		echo "Usage:"; \
-		echo "  make generate-plots <timestamp>"; \
-		echo "  make generate-plots TIMESTAMP=20251102_120000"; \
-		echo "  make generate-plots RUN_DIR=../simulator/data/output/20251102_120000"; \
+		echo "  make generate-plots {kwok|real} <timestamp>"; \
 		echo ""; \
 		echo "Examples:"; \
-		echo "  make generate-plots 20251102_120000"; \
-		echo "  make run 20251102_120000"; \
+		echo "  make generate-plots kwok 20251113_163427"; \
+		echo "  make generate-plots real 20251113_163427"; \
 		echo ""; \
 		if [ -d "../simulator/data/output" ]; then \
 			echo "Available simulation runs:"; \
@@ -93,11 +129,15 @@ run:
 		ls -la "$$RUN_PATH" 2>/dev/null || true; \
 		exit 1; \
 	fi; \
-	echo "Running analyzer with $$RUN_PATH..."; \
+	if [ "$$MODE" = "kwok" ]; then \
+		echo "🎭 Running analyzer in KWOK mode with $$RUN_PATH..."; \
+	elif [ "$$MODE" = "real" ]; then \
+		echo "🌐 Running analyzer in Real mode with $$RUN_PATH..."; \
+	fi; \
 	if [ -d "../venv" ]; then \
-		../venv/bin/python main.py "$$RUN_PATH"; \
+		../venv/bin/python main.py "$$RUN_PATH" --mode "$$MODE"; \
 	elif [ -d "venv" ]; then \
-		./venv/bin/python main.py "$$RUN_PATH"; \
+		./venv/bin/python main.py "$$RUN_PATH" --mode "$$MODE"; \
 	else \
 		echo "Error: No Python virtual environment found"; \
 		echo "Please run 'make setup' first"; \
@@ -106,6 +146,12 @@ run:
 
 # Alias for generate-plots (same as run)
 generate-plots: run
+
+# Dummy targets to avoid make errors
+kwok:
+	@:
+real:
+	@:
 
 # Catch-all target to handle timestamp as argument
 %:

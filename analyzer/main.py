@@ -9,6 +9,7 @@ and helps visualize cluster metrics and migration patterns.
 import os
 import sys
 import json
+import argparse
 import pandas as pd
 from metrics_summarizer import summarize
 from data_loader import load_json_data, parse_migration_logs
@@ -17,15 +18,30 @@ from plotter import plot_cpu_load, plot_memory_load, plot_total_percent_pending,
 
 def main():
     """Main function to run the analysis and generate plots."""
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <run_directory>")
-        print("")
-        print("The run directory should contain:")
-        print("  - metrics.json (required)")
-        print("  - logs/actuator.log (optional, for migration tracking)")
-        sys.exit(1)
-
-    run_dir = sys.argv[1]
+    # Setup argument parser
+    parser = argparse.ArgumentParser(
+        description='Multi-Cloud Workload Migration Analyzer',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python main.py ../simulator/data/output/20251113_163427 --mode kwok
+  python main.py ../simulator/data/output/20251113_163427 --mode real
+  
+Modes:
+  kwok  - KWOK mode: metrics are percentages (0-1)
+  real  - Real mode: metrics are absolute values from cAdvisor
+        """
+    )
+    parser.add_argument('run_directory', 
+                        help='Path to the simulation run directory containing metrics.json')
+    parser.add_argument('--mode', '-m',
+                        choices=['kwok', 'real'],
+                        required=True,
+                        help='Execution mode: kwok (simulated) or real (cAdvisor metrics)')
+    
+    args = parser.parse_args()
+    run_dir = args.run_directory
+    execution_mode = args.mode
     
     # Verify run directory exists
     if not os.path.isdir(run_dir):
@@ -57,6 +73,9 @@ def main():
     try:
         raw_data = load_json_data(json_path)
         
+        # Use the mode specified by the user
+        print(f"🎯 Using execution mode: {execution_mode.upper()}")
+        
         # Try to load migration data if actuator.log exists
         migration_data = []
         if os.path.exists(actuator_log_path):
@@ -65,12 +84,12 @@ def main():
         else:
             print(f"Warning: actuator.log not found at {actuator_log_path}, continuing without migration data")
 
-        timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods = process_resources(raw_data)
+        timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods = process_resources(raw_data, mode=execution_mode)
         
-        cluster_info_alloc = process_cluster_info(raw_data, timestamps, limit_load=True)
+        cluster_info_alloc = process_cluster_info(raw_data, timestamps, mode=execution_mode)
         df_alloc = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info_alloc)
         
-        cluster_info_req = process_cluster_info(raw_data, timestamps, limit_load=False)
+        cluster_info_req = process_cluster_info(raw_data, timestamps, mode=execution_mode)
         df_req = build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info_req)
 
         plot_resource(df_alloc, ['mem_allocated_public', 'mem_allocated_private'], ['cluster_memory_capacity_public', 'cluster_memory_capacity_private'], ['number_pending_private', 'number_pending_public'], 'Memory Allocated', os.path.join(plots_dir, 'allocated_memory.png'), migration_data)

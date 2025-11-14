@@ -79,10 +79,17 @@ func main() {
 
 	// Extract timestamp from run directory
 	timestamp := filepath.Base(runDir)
+	
+	// Determine execution mode from KWOK_MODE environment variable
+	kwokMode := os.Getenv("KWOK_MODE")
+	executionMode := "real" // default to real mode
+	if kwokMode == "true" {
+		executionMode = "kwok"
+	}
 
 	log.Infof("Sequential execution cycle finished.")
 	log.Infof("Simulation data saved to: %s", absRunDir)
 	log.Infof("")
 	log.Infof("To generate plots and analysis, run:")
-	log.Infof("  cd analyzer && make generate-plots %s", timestamp)
+	log.Infof("  cd analyzer && make generate-plots %s %s", executionMode, timestamp)
 }
