@@ -16,91 +16,17 @@ clusters:
 prometheus:
   grafana_enable: false
 
-# morpheus config
-
 # engine config
 ai-engine:
   enabled: true
-  scheduler_interval: 300  # Interval between scheduler runs (seconds)
-  timestamp_lookback_seconds: 600  # Seconds to look back when processing metrics
+  scheduler_interval: 300
+  timestamp_lookback_seconds: 600
   workloads_shard_size: 20
-
-  data:
-    input_json: monitor_outputs.json
-
-  ai:
-    selected_model: anthropic/claude-3.5-sonnet
-    multi_agent: false
-    fetch_metrics_immediately: true
-    default_config:
-      provider: openrouter
-      generation_config:
-        temperature: 0.1
-        max_output_tokens: 12000
-        system_prompt: "You are an expert Kubernetes workload migration advisor. Analyze the provided workloads through temporal metrics and make migration decisions."
-        rules:
-          - "Cluster load must not exceed 80% of the cluster capacity."
-          - "Pending workloads must not exceed 40% of total workloads."
-          - "Provide specific recommendations for each workload."
-          - "Provide a summary of the recommendations."
-
-    models:
-      gemini:
-        model_name: google/gemini-2.0-flash-001
-        provider: google
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
-      llama:
-        model_name: nvidia/nemotron-nano-9b-v2
-        provider: nvidia
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
-      claude:
-        model_name: anthropic/claude-3.5-sonnet
-        provider: anthropic
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
-      gpt-4o:
-        model_name: openai/gpt-4o
-        provider: openai
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
-
-  paths:
-    output_dir: ai-engine/data/output
-    log_dir: ai-engine/logs
-
-  logging:
-    level: DEBUG
-    file: ai_engine.log
-
-  monitor:
-    host: 0.0.0.0
-    port: 8082
-    route: metrics
-
-  actuator:
-    host: 0.0.0.0
-    port: 8084
-    route: apply
-
-  server:
-    host: 0.0.0.0
-    port: 8083
-    reload: false
+  monitored_duration_sec: 600
 
 # monitor config
 monitor:
-  mode: "api"
-  collection_interval: 30  # Applied to both API and CLI modes (can be overridden per mode)
-  api:
-    port: 8082
-  cli:
-    output_path: "monitor_outputs.json"
+  collection_interval: 30
 
 # actuator config
 actuator:
@@ -109,9 +35,11 @@ actuator:
     port: 8084
   file:
     recommendations: recommendations_example.csv
+  mode: auto  # Options: "auto" or "human-in-the-loop"
   morpheus:
     url: "https://CHANGE_ME_WITH_YOUR_MORPHEUS_URL"
     access_token: "CHANGE_ME_WITH_YOUR_MORPHEUS_ACCESS_TOKEN"
     refresh_token: "CHANGE_ME_WITH_YOUR_MORPHEUS_REFRESH_TOKEN"
     expires_in: 604800 # 7 days
     scope: "write"
+    clusters: []
