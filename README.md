@@ -67,6 +67,32 @@ git submodule update --init --recursive
   make help
   ```
 
+## Output and Analysis
+
+After running a simulation, the data is saved in a timestamped directory:
+
+```
+simulator/data/output/YYYYMMDD_HHMMSS/
+├── metrics.json          # Metrics from Monitor
+└── logs/                 # Container logs
+    ├── actuator.log
+    ├── broker.log
+    ├── monitor.log
+    ├── ai-engine.log
+    └── kubectl.log
+```
+
+**To generate plots and analysis:**
+
+```sh
+cd analyzer
+make generate-plots RUN_DIR=../simulator/data/output/YYYYMMDD_HHMMSS
+```
+
+This creates plots and summaries in `analyzer/output/YYYYMMDD_HHMMSS/`.
+
+See `analyzer/README.md` for more details.
+
 ## Container Details
 
 - **Actuator**

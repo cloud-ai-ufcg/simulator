@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 from datetime import datetime
+from pricing_utils import calculate_infrastructure_cost, parse_millicores_to_cores, parse_mebibytes_to_gb
 
 STAT_FUNCTION = ["mean", "min", "max", "std", "median"]
 
@@ -21,19 +22,64 @@ def grouping_elements(raw_data) -> dict:
     return grouped_data
 
 
-def summarize_cost(list_of_cluster_info: list) -> list:
+def summarize_cost(list_of_cluster_info: list, interval_seconds: int = 30) -> list:
     """
     Calculate the cost summary from the list of cluster info. Sum the cost of each type of cluster (private and public).
+    Now calculates costs using the same logic as process_pricing_data().
     """
     cost_list = []
 
     for info in list_of_cluster_info:
-        private_cost = info[0]["pricing"]["interval_cost"]
-        public_cost = info[1]["pricing"]["interval_cost"]
+        # info is a list of cluster dictionaries
+        private_cost = 0.0
+        public_cost = 0.0
+        
+        for cluster in info:
+            cluster_label = cluster.get('cluster_label')
+            if cluster_label not in ['public', 'private']:
+                continue
+            
+            # Get node information
+            node_info = cluster.get('node_info', {})
+            node_cpu = node_info.get('cpu', 0)
+            node_memory = node_info.get('memory', 0)
+            node_quantity = int(node_info.get('quantity', 1) or 1)
+            
+            # If node_info is not available, try to estimate from cluster capacity
+            if node_cpu == 0 or node_memory == 0:
+                cpu_cap_str = cluster.get('cluster_cpu_capacity', '0m')
+                mem_cap_str = cluster.get('cluster_memory_capacity', '0Mi')
+                
+                total_cpu = parse_millicores_to_cores(cpu_cap_str)
+                total_memory = parse_mebibytes_to_gb(mem_cap_str)
+                
+                if node_quantity > 0 and total_cpu > 0 and total_memory > 0:
+                    node_cpu = int(total_cpu / node_quantity)
+                    node_memory = int(total_memory / node_quantity)
+                else:
+                    continue
+            
+            # Calculate infrastructure cost
+            cost_info = calculate_infrastructure_cost(
+                node_cpu=int(node_cpu),
+                node_memory=int(node_memory),
+                node_quantity=node_quantity,
+                interval_seconds=interval_seconds
+            )
+            
+            if cluster_label == 'private':
+                private_cost = cost_info['cost_per_interval']
+            elif cluster_label == 'public':
+                public_cost = cost_info['cost_per_interval']
 
         local_total_cost = private_cost + public_cost
         cost_list.append(local_total_cost)
 
+    if not cost_list:
+        # Return zero stats if no costs calculated
+        zero_series = pd.Series([0.0])
+        return zero_series.agg(STAT_FUNCTION).to_dict()
+    
     local_serie = pd.Series(cost_list)
     return local_serie.agg(STAT_FUNCTION).to_dict()
 
