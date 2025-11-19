@@ -16,7 +16,6 @@ PROMETHEUS_GRAFANA_ENABLE=$(yq '.prometheus.grafana_enable' "$CONFIG_FILE")
 SCHEDULER_INTERVAL=$(yq '.ai-engine.scheduler_interval' "$CONFIG_FILE")
 TIMESTAMP_LOOKBACK_SECONDS=$(yq '.ai-engine.timestamp_lookback_seconds' "$CONFIG_FILE")
 WORKLOADS_SHARD_SIZE=$(yq '.ai-engine.workload_shard_size' "$CONFIG_FILE")
-MONITORED_DURATION_SEC=$(yq '.ai-engine.monitored_duration_sec' "$CONFIG_FILE")
 
 # Monitor variables
 COLLECTION_INTERVAL=$(yq '.monitor.collection_interval' "$CONFIG_FILE")

@@ -43,3 +43,6 @@ scripts/kwok-provider-templates-member1.yaml
 scripts/kwok-provider-templates-member2.yaml
 scripts/admin-user
 scripts/admin-password
+
+output*
+input_benchmarks
