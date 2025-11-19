@@ -19,10 +19,6 @@ prometheus:
 # engine config
 ai-engine:
   enabled: true
-  scheduler_interval: 300
-  timestamp_lookback_seconds: 600
-  workloads_shard_size: 20
-  monitored_duration_sec: 600
   data:
     input_json: monitor_outputs.json
   ai:
