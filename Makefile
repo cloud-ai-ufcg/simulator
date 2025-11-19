@@ -7,9 +7,6 @@ ACTUATOR_MODE ?= auto
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
 
-# Sets up the complete infrastructure and runs the simulator
-setup-and-start: setup-kubernetes-infra stop-all-containers run-all-containers start
-
 # Sets up infrastructure and runs in human-in-the-loop mode
 setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
 
