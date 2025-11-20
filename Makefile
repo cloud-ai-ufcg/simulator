@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: all setup start setup-and-start setup-kubernetes-infra stop-all-containers restart-all-containers help
+.PHONY: all setup start setup-and-start setup-kubernetes-infra stop-all-containers restart-all-containers clean-karmada-deployments clean-all help
 
 # Default target: shows help
 all: help
@@ -111,6 +111,42 @@ clean-mongo-db:
 	sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
 	echo "All documents removed from all user collections via mongosh in container."
 
+# Cleans all deployments and jobs from Karmada namespace default
+clean-karmada-deployments:
+	@echo -e "\\e[33m🧹 Cleaning all deployments and jobs from Karmada...\\e[0m"
+	@if [ -z "$$KUBECONFIG" ]; then \
+		export KUBECONFIG=~/.kube/karmada.config; \
+		echo "Using default KUBECONFIG: ~/.kube/karmada.config"; \
+	fi; \
+	kubectl config use-context karmada-apiserver 2>/dev/null || true; \
+	echo "Deleting all deployments in namespace default..."; \
+	deployments=$$(kubectl get deployments -n default -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); \
+	if [ -n "$$deployments" ]; then \
+		for deploy in $$deployments; do \
+			echo "  Deleting deployment: $$deploy"; \
+			kubectl delete deployment $$deploy -n default --ignore-not-found=true 2>/dev/null || true; \
+		done; \
+		echo "✓ All deployments deleted."; \
+	else \
+		echo "  No deployments found in namespace default."; \
+	fi; \
+	echo "Deleting all jobs in namespace default..."; \
+	jobs=$$(kubectl get jobs -n default -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); \
+	if [ -n "$$jobs" ]; then \
+		for job in $$jobs; do \
+			echo "  Deleting job: $$job"; \
+			kubectl delete job $$job -n default --ignore-not-found=true 2>/dev/null || true; \
+		done; \
+		echo "✓ All jobs deleted."; \
+	else \
+		echo "  No jobs found in namespace default."; \
+	fi; \
+	echo -e "\\e[32m✓ Karmada cleanup completed.\\e[0m"
+
+# Cleans both Karmada deployments and MongoDB
+clean-all: clean-karmada-deployments clean-mongo-db
+	@echo -e "\\e[32m✓ Complete cleanup finished (Karmada + MongoDB).\\e[0m"
+
 restart-all-containers: stop-all-containers run-all-containers
 	@echo "All services have been fully restarted."
 
@@ -173,6 +209,10 @@ help:
 	@echo ""
 	@echo "🗄️  Database:"
 	@echo "  clean-mongo-db                    : Cleans all documents from MongoDB collections"
+	@echo ""
+	@echo "🧹 Cleanup:"
+	@echo "  clean-karmada-deployments         : Deletes all deployments and jobs from Karmada"
+	@echo "  clean-all                         : Cleans Karmada deployments + MongoDB"
 	@echo ""
 	@echo "☸️  Infrastructure:"
 	@echo "  setup-kubernetes-infra            : Runs scripts/main.sh to set up Kubernetes"
