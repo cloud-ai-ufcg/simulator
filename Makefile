@@ -1,9 +1,14 @@
 SHELL := /bin/bash
 
-.PHONY: all setup start setup-and-start setup-kubernetes-infra stop-all-containers restart-all-containers clean-karmada-deployments clean-all help
+ACTUATOR_MODE ?= auto
+
+.PHONY: all setup start setup-and-start setup-and-start-human setup-kubernetes-infra stop-all-containers restart-all-containers clean-karmada-deployments clean-all help start-auto-mode start-human-loop-mode run-auto-mode run-all-containers run-all-containers-human
 
 # Default target: shows help
 all: help
+
+# Sets up infrastructure and runs in human-in-the-loop mode
+setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
 
 # Sets up Kubernetes infrastructure (receives mode as parameter)
 setup-kubernetes-infra:
@@ -20,6 +25,16 @@ run-all-containers:
 	@echo "Starting all necessary containers via docker-compose..."
 	@docker-compose -f compose.yaml up --build -d
 	@echo "All containers started successfully."
+
+# Run containers in human-in-the-loop mode (UI review required)
+run-all-containers-human:
+	@echo "Starting all containers in HUMAN-IN-THE-LOOP mode..."
+	@echo "Updating compose.yaml paths with the user's HOME..."
+	@echo scripts/replace_paths_in_compose.sh
+	@echo "Starting all necessary containers via docker compose (ACTUATOR_MODE=human-in-the-loop)..."
+	@ACTUATOR_MODE=human-in-the-loop docker compose -f compose.yaml up --build -d
+	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
+	@echo "🎯 Actuator UI available at: http://localhost:5173"
 
 # Sets up the complete infrastructure (KWOK mode)
 setup-kwok:

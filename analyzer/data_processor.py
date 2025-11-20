@@ -1,5 +1,17 @@
+"""
+Data Processor (Refactored)
+
+This module processes raw JSON data from simulations and converts it into
+structured data models. It focuses purely on data transformation without
+any visualization concerns.
+"""
+
+from typing import Dict, Any, List, Optional
 import pandas as pd
-from typing import Dict, Any, List
+from data_models import (
+    ClusterMetrics, PricingMetrics, WorkloadMetrics, 
+    MigrationEvent, ProcessedSimulationData
+)
 from utils import parse_resource_value
 from pricing_utils import (
     calculate_infrastructure_cost,
@@ -56,225 +68,135 @@ def process_json_data(input_data: Dict[str, Any]) -> Dict[str, Any]:
     return processed_data
 
 # Functions from processing.py
-def process_resources_kwok_mode(data):
-    """
-    Calcula recursos alocados e requisitados para cada cluster (KWOK MODE).
-    No modo KWOK, cpu_load e mem_load são percentuais (0-1), então multiplicamos pela capacidade.
-    """
-    timestamps = sorted([int(ts) for ts in data.keys()])
-    mem_allocated = {'public': [], 'private': []}
-    mem_requested = {'public': [], 'private': []}
-    cpu_allocated = {'public': [], 'private': []}
-    cpu_requested = {'public': [], 'private': []}
-    pending_pods = {'public': [], 'private': []}
-    
-    for ts in timestamps:
-        ts_str = str(ts)
-        for c in data[ts_str]['cluster_info']:
-            label = c['cluster_label']
-            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') / 1024
-            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
-            mem_load = c['cluster_load'].get('memory', 0)
-            cpu_load = c['cluster_load'].get('cpu', 0)
-            
-            # KWOK MODE: cpu_load and mem_load are percentages (0-1)
-            # Multiply by capacity to get absolute values
-            mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
-            cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
-            mem_requested[label].append(c['cluster_load'].get('memory_requested', 0))
-            cpu_requested[label].append(c['cluster_load'].get('cpu_requested', 0))
-
-        pods_sum_for_ts = {'public': 0, 'private': 0}
-        for workload in data[ts_str].get('workloads', []):
-            label = workload['cluster_label']
-            pending_count = workload.get('pods_pending', 0)
-            if label in pods_sum_for_ts:
-                pods_sum_for_ts[label] += pending_count
-        pending_pods['public'].append(pods_sum_for_ts['public'])
-        pending_pods['private'].append(pods_sum_for_ts['private'])
-
-    return timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods
-
-def process_resources_real_mode(data):
-    """
-    Calcula recursos alocados e requisitados para cada cluster (REAL MODE).
-    No modo Real, cpu_load e mem_load são valores absolutos em cores/GB do cAdvisor.
-    """
-    timestamps = sorted([int(ts) for ts in data.keys()])
-    mem_allocated = {'public': [], 'private': []}
-    mem_requested = {'public': [], 'private': []}
-    cpu_allocated = {'public': [], 'private': []}
-    cpu_requested = {'public': [], 'private': []}
-    pending_pods = {'public': [], 'private': []}
-    
-    for ts in timestamps:
-        ts_str = str(ts)
-        for c in data[ts_str]['cluster_info']:
-            label = c['cluster_label']
-            mem_load = c['cluster_load'].get('memory', 0)
-            cpu_load = c['cluster_load'].get('cpu', 0)
-            
-            # REAL MODE: cpu_load and mem_load are already absolute values in cores/GB
-            # Use them directly without multiplying by capacity
-            mem_allocated[label].append(mem_load)
-            cpu_allocated[label].append(cpu_load)
-            mem_requested[label].append(c['cluster_load'].get('memory_requested', 0))
-            cpu_requested[label].append(c['cluster_load'].get('cpu_requested', 0))
-
-        pods_sum_for_ts = {'public': 0, 'private': 0}
-        for workload in data[ts_str].get('workloads', []):
-            label = workload['cluster_label']
-            pending_count = workload.get('pods_pending', 0)
-            if label in pods_sum_for_ts:
-                pods_sum_for_ts[label] += pending_count
-        pending_pods['public'].append(pods_sum_for_ts['public'])
-        pending_pods['private'].append(pods_sum_for_ts['private'])
-
-    return timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods
-
-def process_resources(data, mode='real'):
+def process_resources(data, execution_mode='kwok'):
     """
     Calcula recursos alocados e requisitados para cada cluster.
     
     Args:
-        data: Dados do metrics.json
-        mode: 'kwok' ou 'real' (default: 'real')
+        data: Raw JSON data
+        execution_mode: 'kwok' (percentual 0-1) or 'real' (valores absolutos do cAdvisor)
+    """
+    timestamps = sorted([int(ts) for ts in data.keys()])
+    mem_allocated = {'public': [], 'private': []}
+    mem_requested = {'public': [], 'private': []}
+    cpu_allocated = {'public': [], 'private': []}
+    cpu_requested = {'public': [], 'private': []}
+    pending_pods = {'public': [], 'private': []}
     
-    Returns:
-        Tupla com timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods
-    """
-    if mode.lower() == 'kwok':
-        return process_resources_kwok_mode(data)
-    else:
-        return process_resources_real_mode(data)
-
-def process_cluster_info_kwok_mode(data, timestamps):
-    """
-    Processes cluster info for KWOK MODE.
-    In KWOK mode, load values are percentages (0-1), so we multiply by capacity.
-    """
-    result = {k: [] for k in [
-        'mem_load_public', 'mem_load_private', 'cpu_load_public', 'cpu_load_private',
-        'cpu_capacity_public', 'cpu_capacity_private', 'memory_capacity_public', 'memory_capacity_private',
-        'number_pending_public', 'number_pending_private'
-    ]}
-
+    # In KWOK mode, loads are percentages (0-1), so we limit them
+    # In REAL mode, loads are absolute values from cAdvisor, so we don't limit
+    limit_for_allocated = (execution_mode == 'kwok')
+    
     for ts in timestamps:
         ts_str = str(ts)
-        
-        pods_sum_for_ts = {'public': 0, 'private': 0}
-        
-        for workload in data[ts_str].get('workloads', []):
-            label = workload.get('cluster_label')
-            pending_count = workload.get('pods_pending', 0)
-            if label in pods_sum_for_ts:
-                pods_sum_for_ts[label] += pending_count
-                
-        result['number_pending_public'].append(pods_sum_for_ts['public'])
-        result['number_pending_private'].append(pods_sum_for_ts['private'])
-
         for c in data[ts_str]['cluster_info']:
+            label = c['cluster_label']
+            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') / 1024
+            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
             mem_load = c['cluster_load'].get('memory', 0)
             cpu_load = c['cluster_load'].get('cpu', 0)
             
-            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') / 1024
-            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
+            # For allocated: limit load in KWOK mode, use absolute in REAL mode
+            if limit_for_allocated:
+                mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
+                cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
+            else:
+                # In REAL mode, mem_load and cpu_load are already in absolute units (GB/cores)
+                mem_allocated[label].append(mem_load if mem_load > 0 else 0.0)
+                cpu_allocated[label].append(cpu_load if cpu_load > 0 else 0.0)
             
-            # KWOK MODE: load values are percentages, limit to 1.0 and multiply by capacity
-            mem_load = min(mem_load, 1.0)
-            cpu_load = min(cpu_load, 1.0)
-            
-            if c['cluster_label'] == 'public':
-                result['mem_load_public'].append(mem_cap * mem_load)
-                result['cpu_load_public'].append(cpu_cap * cpu_load)
-                result['cpu_capacity_public'].append(cpu_cap)
-                result['memory_capacity_public'].append(mem_cap)
-            
-            elif c['cluster_label'] == 'private':
-                result['mem_load_private'].append(mem_cap * mem_load)
-                result['cpu_load_private'].append(cpu_cap * cpu_load)
-                result['cpu_capacity_private'].append(cpu_cap)
-                result['memory_capacity_private'].append(mem_cap)
+            # For requested: cpu_requested and memory_requested are ALWAYS absolute values (cores/GB)
+            # from the monitor, regardless of mode (KWOK or REAL)
+            # They represent the total requested resources (running + pending pods)
+            mem_requested_value = c['cluster_load'].get('memory_requested', 0)
+            cpu_requested_value = c['cluster_load'].get('cpu_requested', 0)
+            mem_requested[label].append(mem_requested_value if mem_requested_value > 0 else 0.0)
+            cpu_requested[label].append(cpu_requested_value if cpu_requested_value > 0 else 0.0)
 
-    return (
-        result['mem_load_public'], result['mem_load_private'],
-        result['cpu_load_public'], result['cpu_load_private'],
-        result['cpu_capacity_public'], result['cpu_capacity_private'],
-        result['memory_capacity_public'], result['memory_capacity_private'],
-        result['number_pending_public'], result['number_pending_private']
-    )
-
-def process_cluster_info_real_mode(data, timestamps):
-    """
-    Processes cluster info for REAL MODE.
-    In Real mode, load values are already absolute (cores/GB from cAdvisor).
-    """
-    result = {k: [] for k in [
-        'mem_load_public', 'mem_load_private', 'cpu_load_public', 'cpu_load_private',
-        'cpu_capacity_public', 'cpu_capacity_private', 'memory_capacity_public', 'memory_capacity_private',
-        'number_pending_public', 'number_pending_private'
-    ]}
-
-    for ts in timestamps:
-        ts_str = str(ts)
-        
         pods_sum_for_ts = {'public': 0, 'private': 0}
-        
         for workload in data[ts_str].get('workloads', []):
-            label = workload.get('cluster_label')
+            label = workload['cluster_label']
             pending_count = workload.get('pods_pending', 0)
             if label in pods_sum_for_ts:
                 pods_sum_for_ts[label] += pending_count
-                
-        result['number_pending_public'].append(pods_sum_for_ts['public'])
-        result['number_pending_private'].append(pods_sum_for_ts['private'])
+        pending_pods['public'].append(pods_sum_for_ts['public'])
+        pending_pods['private'].append(pods_sum_for_ts['private'])
 
-        for c in data[ts_str]['cluster_info']:
-            mem_load = c['cluster_load'].get('memory', 0)
-            cpu_load = c['cluster_load'].get('cpu', 0)
-            
-            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') / 1024
-            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
-            
-            # REAL MODE: load values are already absolute in cores/GB
-            # Use them directly without multiplying by capacity
-            
-            if c['cluster_label'] == 'public':
-                result['mem_load_public'].append(mem_load)
-                result['cpu_load_public'].append(cpu_load)
-                result['cpu_capacity_public'].append(cpu_cap)
-                result['memory_capacity_public'].append(mem_cap)
-            
-            elif c['cluster_label'] == 'private':
-                result['mem_load_private'].append(mem_load)
-                result['cpu_load_private'].append(cpu_load)
-                result['cpu_capacity_private'].append(cpu_cap)
-                result['memory_capacity_private'].append(mem_cap)
+    return timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods
 
-    return (
-        result['mem_load_public'], result['mem_load_private'],
-        result['cpu_load_public'], result['cpu_load_private'],
-        result['cpu_capacity_public'], result['cpu_capacity_private'],
-        result['memory_capacity_public'], result['memory_capacity_private'],
-        result['number_pending_public'], result['number_pending_private']
-    )
-
-def process_cluster_info(data, timestamps, mode='real'):
+def process_cluster_info(data, timestamps, limit_load=True, execution_mode='kwok'):
     """
-    Processes cluster info based on the mode (KWOK or Real).
+    Processes cluster info (limiting load or not).
     
     Args:
-        data: Dados do metrics.json
-        timestamps: Lista de timestamps
-        mode: 'kwok' ou 'real' (default: 'real')
-    
-    Returns:
-        Tupla com métricas processadas
+        data: Raw JSON data
+        timestamps: List of timestamps
+        limit_load: Whether to limit load to 1.0 (for allocated metrics)
+        execution_mode: 'kwok' (percentual 0-1) or 'real' (valores absolutos do cAdvisor)
     """
-    if mode.lower() == 'kwok':
-        return process_cluster_info_kwok_mode(data, timestamps)
-    else:
-        return process_cluster_info_real_mode(data, timestamps)
+    result = {k: [] for k in [
+        'mem_load_public', 'mem_load_private', 'cpu_load_public', 'cpu_load_private',
+        'cpu_capacity_public', 'cpu_capacity_private', 'memory_capacity_public', 'memory_capacity_private',
+        'number_pending_public', 'number_pending_private'
+    ]}
+
+    for ts in timestamps:
+        ts_str = str(ts)
+        
+        pods_sum_for_ts = {'public': 0, 'private': 0}
+        
+        for workload in data[ts_str].get('workloads', []):
+            label = workload.get('cluster_label')
+            pending_count = workload.get('pods_pending', 0)
+            if label in pods_sum_for_ts:
+                pods_sum_for_ts[label] += pending_count
+                
+        result['number_pending_public'].append(pods_sum_for_ts['public'])
+        result['number_pending_private'].append(pods_sum_for_ts['private'])
+
+        for c in data[ts_str]['cluster_info']:
+            mem_load = c['cluster_load'].get('memory', 0)
+            cpu_load = c['cluster_load'].get('cpu', 0)
+            
+            # Apply limit based on mode and limit_load parameter
+            if limit_load and execution_mode == 'kwok':
+                mem_load = min(mem_load, 1.0)
+                cpu_load = min(cpu_load, 1.0)
+            
+            mem_cap = parse_resource_value(c['cluster_memory_capacity'], 'Mi') / 1024
+            cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
+            
+            if c['cluster_label'] == 'public':
+                if execution_mode == 'kwok':
+                    # In KWOK mode, load is percentage, multiply by capacity
+                    result['mem_load_public'].append(mem_load * mem_cap)
+                    result['cpu_load_public'].append(cpu_load * cpu_cap)
+                else:
+                    # In REAL mode, load is already in absolute units (GB/cores)
+                    result['mem_load_public'].append(mem_load if mem_load > 0 else 0.0)
+                    result['cpu_load_public'].append(cpu_load if cpu_load > 0 else 0.0)
+                result['cpu_capacity_public'].append(cpu_cap)
+                result['memory_capacity_public'].append(mem_cap)
+            
+            elif c['cluster_label'] == 'private':
+                if execution_mode == 'kwok':
+                    # In KWOK mode, load is percentage, multiply by capacity
+                    result['mem_load_private'].append(mem_load * mem_cap)
+                    result['cpu_load_private'].append(cpu_load * cpu_cap)
+                else:
+                    # In REAL mode, load is already in absolute units (GB/cores)
+                    result['mem_load_private'].append(mem_load if mem_load > 0 else 0.0)
+                    result['cpu_load_private'].append(cpu_load if cpu_load > 0 else 0.0)
+                result['cpu_capacity_private'].append(cpu_cap)
+                result['memory_capacity_private'].append(mem_cap)
+
+    return (
+        result['mem_load_public'], result['mem_load_private'],
+        result['cpu_load_public'], result['cpu_load_private'],
+        result['cpu_capacity_public'], result['cpu_capacity_private'],
+        result['memory_capacity_public'], result['memory_capacity_private'],
+        result['number_pending_public'], result['number_pending_private']
+    )
 
 def build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info):
     """Builds a pandas DataFrame from the processed data."""
@@ -320,120 +242,361 @@ def melt_df_with_cluster_and_cap(df, value_vars, cluster_vars, cap_vars, var_nam
     cap_df['type'] = 'capacity'
     return melted, cluster_df, cap_df
 
-def process_pricing_data(data):
+def extract_interval_duration(raw_data: Dict[str, Any]) -> int:
     """
-    Process pricing data for each cluster over time.
-    Calculates infrastructure costs using the same logic as the AI Engine.
+    Extract interval duration from raw data.
+    Looks for interval_duration in the first timestamp's data.
+    
+    Args:
+        raw_data: Raw JSON data
+        
+    Returns:
+        Interval duration in seconds (default: 30)
+    """
+    if not raw_data:
+        return 30
+    
+    # Try to get from first timestamp
+    first_ts = sorted(raw_data.keys())[0]
+    first_data = raw_data[first_ts]
+    
+    # Check cluster_info for interval_duration
+    if 'cluster_info' in first_data and first_data['cluster_info']:
+        cluster = first_data['cluster_info'][0]
+        if 'interval_duration' in cluster:
+            return int(cluster['interval_duration'])
+    
+    # Check workloads for interval_duration
+    if 'workloads' in first_data and first_data['workloads']:
+        workload = first_data['workloads'][0]
+        if 'pricing' in workload and 'interval_duration' in workload['pricing']:
+            return int(workload['pricing']['interval_duration'])
+    
+    return 30  # Default
+
+
+def process_cluster_metrics_at_timestamp(
+    cluster_data: Dict[str, Any],
+    timestamp: int,
+    execution_mode: str = 'kwok'
+) -> ClusterMetrics:
+    """
+    Process cluster metrics at a specific timestamp.
+    
+    Args:
+        cluster_data: Raw cluster data from JSON
+        timestamp: Unix timestamp
+        execution_mode: 'kwok' (percentual 0-1) or 'real' (valores absolutos do cAdvisor)
+        
+    Returns:
+        ClusterMetrics object
+    """
+    label = cluster_data['cluster_label']
+    
+    # Parse capacities
+    mem_cap = parse_resource_value(cluster_data.get('cluster_memory_capacity', '0Mi'), 'Mi') / 1024
+    cpu_cap = parse_resource_value(cluster_data.get('cluster_cpu_capacity', '0m'), 'm') / 1000
+    
+    # Get loads
+    cluster_load = cluster_data.get('cluster_load', {})
+    mem_load = cluster_load.get('memory', 0.0)
+    cpu_load = cluster_load.get('cpu', 0.0)
+    mem_load_requested = cluster_load.get('memory_requested', 0.0)
+    cpu_load_requested = cluster_load.get('cpu_requested', 0.0)
+    
+    # Calculate allocated and requested resources
+    if execution_mode == 'kwok':
+        # In KWOK mode, loads are percentages (0-1)
+        mem_allocated = mem_cap * min(mem_load, 1.0)
+        cpu_allocated = cpu_cap * min(cpu_load, 1.0)
+    else:
+        # In REAL mode, loads are already in absolute units (GB/cores)
+        mem_allocated = mem_load if mem_load > 0 else 0.0
+        cpu_allocated = cpu_load if cpu_load > 0 else 0.0
+    
+    # cpu_requested and memory_requested are ALWAYS absolute values (cores/GB) from the monitor
+    # They represent the total requested resources (running + pending pods)
+    # Do NOT multiply by capacity - they are already in absolute units
+    mem_requested = mem_load_requested if mem_load_requested > 0 else 0.0
+    cpu_requested = cpu_load_requested if cpu_load_requested > 0 else 0.0
+    
+    # Get node information
+    node_info = cluster_data.get('node_info', {})
+    node_cpu = int(node_info.get('cpu', 0))
+    node_memory = int(node_info.get('memory', 0))
+    node_quantity = int(node_info.get('quantity', 1) or 1)
+    
+    # If node_info is missing, try to estimate from capacity
+    if node_cpu == 0 or node_memory == 0:
+        if node_quantity > 0 and cpu_cap > 0 and mem_cap > 0:
+            node_cpu = int(cpu_cap / node_quantity)
+            node_memory = int(mem_cap / node_quantity)
+    
+    return ClusterMetrics(
+        label=label,
+        timestamp=timestamp,
+        cpu_capacity=cpu_cap,
+        memory_capacity=mem_cap,
+        cpu_allocated=cpu_allocated,
+        memory_allocated=mem_allocated,
+        cpu_requested=cpu_requested,
+        memory_requested=mem_requested,
+        cpu_load=cpu_load,
+        memory_load=mem_load,
+        cpu_load_requested=cpu_load_requested,
+        memory_load_requested=mem_load_requested,
+        pending_pods=0,  # Will be updated later
+        node_cpu=node_cpu,
+        node_memory=node_memory,
+        node_quantity=node_quantity
+    )
+
+
+def process_pricing_metrics_at_timestamp(
+    cluster_data: Dict[str, Any],
+    timestamp: int,
+    interval_duration: int
+) -> PricingMetrics:
+    """
+    Process pricing information for a single cluster at a specific timestamp.
+    
+    Args:
+        cluster_data: Raw cluster data from JSON
+        timestamp: Unix timestamp
+        interval_duration: Interval duration in seconds
+        
+    Returns:
+        PricingMetrics object
+    """
+    label = cluster_data['cluster_label']
+    
+    # Get node information
+    node_info = cluster_data.get('node_info', {})
+    node_cpu = int(node_info.get('cpu', 0))
+    node_memory = int(node_info.get('memory', 0))
+    node_quantity = int(node_info.get('quantity', 1) or 1)
+    
+    # If node_info is missing, try to estimate from capacity
+    if node_cpu == 0 or node_memory == 0:
+        cpu_cap_str = cluster_data.get('cluster_cpu_capacity', '0m')
+        mem_cap_str = cluster_data.get('cluster_memory_capacity', '0Mi')
+        
+        total_cpu = parse_millicores_to_cores(cpu_cap_str)
+        total_memory = parse_mebibytes_to_gb(mem_cap_str)
+        
+        if node_quantity > 0 and total_cpu > 0 and total_memory > 0:
+            node_cpu = int(total_cpu / node_quantity)
+            node_memory = int(total_memory / node_quantity)
+    
+    # Calculate cost
+    if node_cpu > 0 and node_memory > 0:
+        cost_info = calculate_infrastructure_cost(
+            node_cpu=node_cpu,
+            node_memory=node_memory,
+            node_quantity=node_quantity,
+            interval_seconds=interval_duration
+        )
+        
+        return PricingMetrics(
+            label=label,
+            timestamp=timestamp,
+            cost_per_interval=cost_info['cost_per_interval'],
+            hourly_cost=cost_info['hourly_cost'],
+            instance_type=cost_info.get('instance_type'),
+            provider=cost_info.get('provider')
+        )
+    else:
+        return PricingMetrics(
+            label=label,
+            timestamp=timestamp,
+            cost_per_interval=0.0,
+            hourly_cost=0.0,
+            instance_type=None,
+            provider=None
+        )
+
+
+def process_pricing_data(data, execution_mode='kwok'):
+    """
+    Process pricing information for all clusters across all timestamps.
+    
+    Args:
+        data: Raw JSON data
+        execution_mode: 'kwok' or 'real' (not used but kept for compatibility)
+        
+    Returns:
+        Tuple of (timestamps, pricing_data_dict)
+        pricing_data_dict: {timestamp: {label: PricingMetrics}}
     """
     timestamps = sorted([int(ts) for ts in data.keys()])
-    pricing_data = {
-        'public': [],
-        'private': [],
-        'public_hourly': [],
-        'private_hourly': [],
-        'total_cost': [],
-        'instance_types': {}  # Store instance types used
-    }
-    
-    # Get interval duration (assume 30s if not specified)
-    first_ts = str(timestamps[0]) if timestamps else None
-    interval_duration = None
-    if first_ts and 'interval_duration' in data.get(first_ts, {}):
-        interval_str = data[first_ts].get('interval_duration', '30s')
-        try:
-            interval_duration = int(str(interval_str).rstrip('s'))
-        except Exception:
-            interval_duration = 30
-    else:
-        interval_duration = 30
+    interval_duration = extract_interval_duration(data)
+    pricing_data = {}
     
     for ts in timestamps:
         ts_str = str(ts)
-        cluster_info = data[ts_str].get('cluster_info', [])
+        ts_data = data[ts_str]
+        pricing_data[ts] = {}
         
-        # Initialize costs to 0 for this timestamp
-        costs_for_ts = {'public': 0.0, 'private': 0.0}
-        hourly_costs_for_ts = {'public': 0.0, 'private': 0.0}
-        
-        for cluster in cluster_info:
-            cluster_label = cluster.get('cluster_label')
-            if cluster_label not in ['public', 'private']:
-                continue
-            
-            # Get node information
-            node_info = cluster.get('node_info', {})
-            node_cpu = node_info.get('cpu', 0)
-            node_memory = node_info.get('memory', 0)  # Assume GB
-            node_quantity = int(node_info.get('quantity', 1) or 1)
-            
-            # If node_info is not available, try to estimate from cluster capacity
-            if node_cpu == 0 or node_memory == 0:
-                # Try to extract from cluster capacity
-                cpu_cap_str = cluster.get('cluster_cpu_capacity', '0m')
-                mem_cap_str = cluster.get('cluster_memory_capacity', '0Mi')
-                
-                # Parse capacity
-                total_cpu = parse_millicores_to_cores(cpu_cap_str)
-                total_memory = parse_mebibytes_to_gb(mem_cap_str)
-                
-                # If we have capacity but no node info, estimate node size
-                # Assume homogeneous nodes: divide total capacity by node quantity
-                if node_quantity > 0 and total_cpu > 0 and total_memory > 0:
-                    # Estimate per-node CPU and memory
-                    node_cpu = int(total_cpu / node_quantity)
-                    node_memory = int(total_memory / node_quantity)
-                else:
-                    # If we still can't estimate, skip this cluster for this timestamp
-                    continue
-            
-            # Calculate infrastructure cost
-            cost_info = calculate_infrastructure_cost(
-                node_cpu=int(node_cpu),
-                node_memory=int(node_memory),
-                node_quantity=node_quantity,
-                interval_seconds=interval_duration
+        for cluster_data in ts_data.get('cluster_info', []):
+            pricing_metric = process_pricing_metrics_at_timestamp(
+                cluster_data, ts, interval_duration
             )
-            
-            if cluster_label in costs_for_ts:
-                costs_for_ts[cluster_label] = cost_info['cost_per_interval']
-                hourly_costs_for_ts[cluster_label] = cost_info['hourly_cost']
-                # Store instance type info (keep the first one found for each cluster)
-                if cluster_label not in pricing_data['instance_types'] and cost_info.get('instance_type'):
-                    pricing_data['instance_types'][cluster_label] = cost_info['instance_type']
-        
-        pricing_data['public'].append(costs_for_ts['public'])
-        pricing_data['private'].append(costs_for_ts['private'])
-        pricing_data['public_hourly'].append(hourly_costs_for_ts['public'])
-        pricing_data['private_hourly'].append(hourly_costs_for_ts['private'])
-        pricing_data['total_cost'].append(costs_for_ts['public'] + costs_for_ts['private'])
+            pricing_data[ts][pricing_metric.label] = pricing_metric
     
     return timestamps, pricing_data
 
-def build_pricing_dataframe(timestamps, pricing_data):
+
+def process_workload_metrics_at_timestamp(
+    workloads: List[Dict[str, Any]],
+    timestamp: int
+) -> WorkloadMetrics:
     """
-    Build a pandas DataFrame for pricing data.
-    Includes costs per interval, hourly costs, and cumulative costs.
+    Process workload information at a specific timestamp.
     
+    Args:
+        workloads: List of workload data from JSON
+        timestamp: Unix timestamp
+        
     Returns:
-        tuple: (DataFrame, dict of instance_types)
+        WorkloadMetrics object
     """
-    index = pd.to_datetime(timestamps, unit='s')
-    df = pd.DataFrame({
-        'timestamp': index,
-        'cost_public': pricing_data['public'],
-        'cost_private': pricing_data['private'],
-        'cost_total': pricing_data['total_cost'],
-        'cost_public_hourly': pricing_data['public_hourly'],
-        'cost_private_hourly': pricing_data['private_hourly'],
-    })
+    total_pods = 0
+    total_pending = 0
+    pending_public = 0
+    pending_private = 0
     
-    # Add time_seconds column for plotting
-    start_time = df['timestamp'].min()
-    df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
+    for workload in workloads:
+        total_pods += workload.get('pods_total', 0)
+        pending = workload.get('pods_pending', 0)
+        total_pending += pending
+        
+        cluster_label = workload.get('cluster_label', '')
+        if cluster_label == 'private':
+            pending_private += pending
+        else:
+            pending_public += pending
     
-    # Calculate cumulative costs
-    df['cumulative_cost_public'] = df['cost_public'].cumsum()
-    df['cumulative_cost_private'] = df['cost_private'].cumsum()
-    df['cumulative_cost_total'] = df['cost_total'].cumsum()
+    total_percent_pending = (total_pending / total_pods) if total_pods > 0 else 0.0
     
-    return df, pricing_data.get('instance_types', {})
+    return WorkloadMetrics(
+        timestamp=timestamp,
+        total_pending=total_pending,
+        pending_public=pending_public,
+        pending_private=pending_private,
+        total_percent_pending=total_percent_pending
+    )
+
+
+def update_pending_pods_in_clusters(
+    cluster_metrics: Dict[int, List[ClusterMetrics]],
+    workload_metrics: Dict[int, WorkloadMetrics]
+):
+    """
+    Update pending_pods count in ClusterMetrics based on WorkloadMetrics.
+    Modifies cluster_metrics in place.
+    """
+    for timestamp, workload in workload_metrics.items():
+        if timestamp in cluster_metrics:
+            for cluster in cluster_metrics[timestamp]:
+                if cluster.label == 'private':
+                    cluster.pending_pods = workload.pending_private
+                elif cluster.label == 'public':
+                    cluster.pending_pods = workload.pending_public
+
+
+def process_migration_events(migration_df) -> List[MigrationEvent]:
+    """
+    Convert migration DataFrame to list of MigrationEvent objects.
+    
+    Args:
+        migration_df: DataFrame from parse_migration_logs
+        
+    Returns:
+        List of MigrationEvent objects
+    """
+    if migration_df is None or migration_df.empty:
+        return []
+    
+    events = []
+    for _, row in migration_df.iterrows():
+        events.append(MigrationEvent(
+            timestamp=int(row['timestamp']),
+            execution=int(row['execution']),
+            type=str(row['type']),
+            total_migrated_pods=int(row['total_migrated_pods']),
+            migrated_to_private=int(row['migrated_to_private']),
+            migrated_to_public=int(row['migrated_to_public'])
+        ))
+    
+    return events
+
+
+def process_simulation_data(
+    raw_data: Dict[str, Any],
+    migration_df=None,
+    run_name: str = "unknown",
+    execution_mode: str = 'kwok'
+) -> ProcessedSimulationData:
+    """
+    Process complete simulation data from raw JSON.
+    
+    This is the main processing function that converts raw data into
+    structured ProcessedSimulationData.
+    
+    Args:
+        raw_data: Raw metrics JSON data
+        migration_df: Optional DataFrame with migration events
+        run_name: Name of the simulation run (usually timestamp)
+        
+    Returns:
+        ProcessedSimulationData object with all processed metrics
+    """
+    # Extract basic information
+    timestamps = sorted([int(ts) for ts in raw_data.keys()])
+    interval_duration = extract_interval_duration(raw_data)
+    
+    # Initialize collections
+    cluster_metrics = {}
+    pricing_metrics = {}
+    workload_metrics = {}
+    
+    # Process each timestamp
+    for ts in timestamps:
+        ts_str = str(ts)
+        ts_data = raw_data[ts_str]
+        
+        # Process cluster data
+        cluster_info_list = ts_data.get('cluster_info', [])
+        cluster_metrics[ts] = []
+        pricing_metrics[ts] = []
+        
+        for cluster_data in cluster_info_list:
+            # Process cluster metrics
+            cluster_metric = process_cluster_metrics_at_timestamp(cluster_data, ts, execution_mode)
+            cluster_metrics[ts].append(cluster_metric)
+            
+            # Process pricing metrics
+            pricing_metric = process_pricing_metrics_at_timestamp(
+                cluster_data, ts, interval_duration
+            )
+            pricing_metrics[ts].append(pricing_metric)
+        
+        # Process workload data
+        workloads = ts_data.get('workloads', [])
+        workload_metrics[ts] = process_workload_metrics_at_timestamp(workloads, ts)
+    
+    # Update pending pods in cluster metrics
+    update_pending_pods_in_clusters(cluster_metrics, workload_metrics)
+    
+    # Process migration events
+    migration_events = process_migration_events(migration_df)
+    
+    return ProcessedSimulationData(
+        run_name=run_name,
+        interval_duration=interval_duration,
+        timestamps=timestamps,
+        cluster_metrics=cluster_metrics,
+        pricing_metrics=pricing_metrics,
+        workload_metrics=workload_metrics,
+        migration_events=migration_events
+    )

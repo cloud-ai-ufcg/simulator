@@ -4,6 +4,7 @@ services:
         build:
             context: ./broker
             dockerfile: Dockerfile.api
+        restart: unless-stopped
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -12,6 +13,8 @@ services:
               source: ~/.kube/members.config
               target: /root/.kube/members.config
         network_mode: "host"
+        depends_on:
+            - mongo
         environment:
             - KWOK_MODE=true
 
@@ -20,6 +23,13 @@ services:
         build:
             context: ./monitor
             dockerfile: Dockerfile
+        restart: unless-stopped
+        environment:
+            - SIMULATOR_CONFIG=/app/simulator_config.yaml
+        volumes:
+            - type: bind
+              source: ./simulator/data/config.yaml
+              target: /app/simulator_config.yaml
         network_mode: host
         environment:
             - KWOK_MODE=true
@@ -28,12 +38,28 @@ services:
         build:
             context: ./ai-engine
             dockerfile: Dockerfile.api
+        restart: unless-stopped
+        environment:
+            - SIMULATOR_CONFIG=/app/simulator_config.yaml
+            - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+            - GROQ_API_KEY=${GROQ_API_KEY}
+            - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+        volumes:
+            - type: bind
+              source: ./simulator/data/config.yaml
+              target: /app/simulator_config.yaml
         network_mode: "host"
+        depends_on:
+            - monitor
+            - actuator
     actuator:
         container_name: actuator
         build:
             context: ./actuator
             dockerfile: Dockerfile.api
+        restart: unless-stopped
+        environment:
+            - SIMULATOR_CONFIG=/simulator/data/config.yaml
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -41,10 +67,16 @@ services:
             - type: bind
               source: ~/.kwok
               target: /root/.kwok
+            - type: bind
+              source: ./simulator/data/config.yaml
+              target: /simulator/data/config.yaml
         network_mode: "host"
+        depends_on:
+            - mongo
     mongo:
         container_name: mongo
         image: mongo:latest
+        restart: unless-stopped
         ports:
             - "27017:27017"
         volumes:

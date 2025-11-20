@@ -1,3 +1,10 @@
+"""
+Plotter (Refactored)
+
+This module contains visualization functions that work with pre-formatted DataFrames.
+All data processing is done externally - these functions only handle plotting.
+"""
+
 import os
 import datetime
 import pandas as pd
@@ -6,80 +13,110 @@ from plotnine.exceptions import PlotnineWarning
 from plotnine import (
     ggplot, aes, geom_step, geom_point, labs, geom_vline, facet_wrap, 
     scale_color_manual, scale_linetype_manual, scale_x_continuous,
-    scale_y_continuous, theme_bw, theme, element_blank, expand_limits
+    scale_y_continuous, theme_bw, theme, element_blank
 )
 
 warnings.filterwarnings("ignore", category=PlotnineWarning)
 os.environ['LIBGL_DEBUG'] = 'quiet'
 
-def plot_cpu_load(df, output_dir):
-    """Plot CPU load by cluster over time using plotnine."""
-    plot_df = df.melt(id_vars=['time_seconds'], value_vars=['cpu_load_private', 'cpu_load_public'],
-                        var_name='Cluster', value_name='CPU Load')
-    plot_df['Cluster'] = plot_df['Cluster'].map({'cpu_load_private': 'Private', 'cpu_load_public': 'Public'})
 
-    max_time = df['time_seconds'].max()    
+def _calculate_x_breaks(max_time: float) -> list:
+    """Calculate appropriate X-axis break points based on max time."""
     x_breaks = list(range(0, int(max_time) + 120, 120))
     if len(x_breaks) > 20:
         x_breaks = list(range(0, int(max_time) + 300, 300))
     elif len(x_breaks) < 4:
         x_breaks = list(range(0, int(max_time) + 15, 15))
+    return x_breaks
 
+
+def plot_cpu_load(df: pd.DataFrame, output_dir: str):
+    """
+    Plot CPU load by cluster over time.
+    
+    Args:
+        df: DataFrame with columns: time_seconds, cpu_load_private, cpu_load_public
+        output_dir: Directory to save the plot
+    """
+    plot_df = df.melt(
+        id_vars=['time_seconds'], 
+        value_vars=['cpu_load_private', 'cpu_load_public'],
+        var_name='Cluster', 
+        value_name='CPU Load'
+    )
+    plot_df['Cluster'] = plot_df['Cluster'].map({
+        'cpu_load_private': 'Private', 
+        'cpu_load_public': 'Public'
+    })
+
+    max_time = df['time_seconds'].max()
+    x_breaks = _calculate_x_breaks(max_time)
 
     g = (
         ggplot(plot_df, aes(x='time_seconds', y='CPU Load', color='Cluster'))
         + geom_step(size=1.5)
         + labs(title="CPU Load by Cluster over time", y="CPU Load", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
-        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0
+        + scale_y_continuous(limits=(0, None))
         + theme_bw()
-        + theme(legend_key=element_blank()) 
+        + theme(legend_key=element_blank())
     )
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    filename_with_timestamp = os.path.splitext("cpu_load.png")[0] + '_' + timestamp + os.path.splitext("cpu_load.png")[1]
-    output_path = os.path.join(output_dir, filename_with_timestamp)
+    filename = f"cpu_load_{timestamp}.png"
+    output_path = os.path.join(output_dir, filename)
     g.save(output_path, width=12, height=6, dpi=300)
 
-def plot_memory_load(df, output_dir):
-    """Plot memory load by cluster over time using plotnine."""
-    plot_df = df.melt(id_vars=['time_seconds'], value_vars=['mem_load_private', 'mem_load_public'],
-                        var_name='Cluster', value_name='Memory Load')
-    plot_df['Cluster'] = plot_df['Cluster'].map({'mem_load_private': 'Private', 'mem_load_public': 'Public'})
+
+def plot_memory_load(df: pd.DataFrame, output_dir: str):
+    """
+    Plot memory load by cluster over time.
+    
+    Args:
+        df: DataFrame with columns: time_seconds, mem_load_private, mem_load_public
+        output_dir: Directory to save the plot
+    """
+    plot_df = df.melt(
+        id_vars=['time_seconds'], 
+        value_vars=['mem_load_private', 'mem_load_public'],
+        var_name='Cluster', 
+        value_name='Memory Load'
+    )
+    plot_df['Cluster'] = plot_df['Cluster'].map({
+        'mem_load_private': 'Private', 
+        'mem_load_public': 'Public'
+    })
 
     max_time = df['time_seconds'].max()
-    x_breaks = list(range(0, int(max_time) + 120, 120))
-    if len(x_breaks) > 20:
-        x_breaks = list(range(0, int(max_time) + 300, 300))
-    elif len(x_breaks) < 4:
-        x_breaks = list(range(0, int(max_time) + 15, 15))
-
+    x_breaks = _calculate_x_breaks(max_time)
 
     g = (
         ggplot(plot_df, aes(x='time_seconds', y='Memory Load', color='Cluster'))
         + geom_step(size=1.5)
         + labs(title="Memory Load by Cluster over time", y="Memory Load", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
-        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0
+        + scale_y_continuous(limits=(0, None))
         + theme_bw()
-        + theme(legend_key=element_blank()) 
+        + theme(legend_key=element_blank())
     )
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    filename_with_timestamp = os.path.splitext("memory_load.png")[0] + '_' + timestamp + os.path.splitext("memory_load.png")[1]
-    output_path = os.path.join(output_dir, filename_with_timestamp)
+    filename = f"memory_load_{timestamp}.png"
+    output_path = os.path.join(output_dir, filename)
     g.save(output_path, width=12, height=6, dpi=300)
 
-def plot_total_percent_pending(df, output_dir):
-    """Plot total percent pending pods over time."""
-    max_time = df['time_seconds'].max() if not df.empty else 0
-    x_breaks = list(range(0, int(max_time) + 120, 120))
-    if len(x_breaks) > 20:
-        x_breaks = list(range(0, int(max_time) + 300, 300))
-    elif len(x_breaks) < 4:
-        x_breaks = list(range(0, int(max_time) + 15, 15))
 
-    # Create a copy of the dataframe to avoid modifying the original
+def plot_total_percent_pending(df: pd.DataFrame, output_dir: str):
+    """
+    Plot total percent of pending pods over time.
+    
+    Args:
+        df: DataFrame with columns: time_seconds, total_percent_pending
+        output_dir: Directory to save the plot
+    """
+    max_time = df['time_seconds'].max() if not df.empty else 0
+    x_breaks = _calculate_x_breaks(max_time)
+
     plot_df = df.copy()
     plot_df['total_percent_pending'] = plot_df['total_percent_pending'] * 100
 
@@ -88,20 +125,38 @@ def plot_total_percent_pending(df, output_dir):
         + geom_step(color='black', size=1)
         + labs(title="Total Percent Pending over time", y="Percent Pending (%)", x="Time (seconds)")
         + scale_x_continuous(breaks=x_breaks)
-        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0
+        + scale_y_continuous(limits=(0, None))
         + theme_bw()
-        + theme(legend_key=element_blank()) 
+        + theme(legend_key=element_blank())
     )
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    filename_with_timestamp = os.path.splitext("total_percent_pending.png")[0] + '_' + timestamp + os.path.splitext("total_percent_pending.png")[1]
-    output_path = os.path.join(output_dir, filename_with_timestamp)
+    filename = f"total_percent_pending_{timestamp}.png"
+    output_path = os.path.join(output_dir, filename)
     g.save(output_path, width=12, height=6, dpi=300)
 
-def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migration_data=None):
+
+def plot_resource(
+    df: pd.DataFrame, 
+    value_vars: list, 
+    cap_vars: list, 
+    pending_vars: list, 
+    title: str, 
+    filename: str, 
+    migration_data: pd.DataFrame = None
+):
     """
     Generates a 4-panel plot for resource usage and pending pods.
-
+    
+    Args:
+        df: DataFrame with resource data including timestamp, time_seconds columns
+        value_vars: List of column names for resource usage (e.g., ['mem_allocated_public', ...])
+        cap_vars: List of column names for capacity (e.g., ['cluster_memory_capacity_public', ...])
+        pending_vars: List of column names for pending pods
+        title: Plot title
+        filename: Output filename (with path)
+        migration_data: Optional DataFrame with migration events
+        
     Layout:
     1. Top: Private Cluster - Pending Pods
     2. Mid-Top: Private Cluster - Resource Usage
@@ -110,85 +165,125 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     """
     df = df.copy()
 
-    # Ensure a time_seconds column exists, starting from 0
-    if 'timestamp' in df.columns:
-        start_time = df['timestamp'].min() # This is the starting point (time zero)
+    # Ensure time_seconds exists
+    if 'time_seconds' not in df.columns and 'timestamp' in df.columns:
+        start_time = df['timestamp'].min()
         df['time_seconds'] = (df['timestamp'] - start_time).dt.total_seconds()
-    else:
-        df['time_seconds'] = df.index * 60  # Fallback
-        start_time = None # No start_time defined
-
+    
     min_time = df['time_seconds'].min()
     df['time_seconds'] = df['time_seconds'] - min_time
 
-    # --- 1. Prepare Resource data (Usage and Capacity) ---
-    df_usage_melt = df.melt(id_vars=['time_seconds'], value_vars=value_vars, var_name='metric', value_name='value')
-    df_usage_melt['cluster'] = df_usage_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    # Prepare Resource data (Usage and Capacity)
+    df_usage_melt = df.melt(
+        id_vars=['time_seconds'], 
+        value_vars=value_vars, 
+        var_name='metric', 
+        value_name='value'
+    )
+    df_usage_melt['cluster'] = df_usage_melt['metric'].apply(
+        lambda x: 'Public' if 'public' in x else 'Private'
+    )
     df_usage_melt['type'] = 'Load'
 
-    df_cap_melt = df.melt(id_vars=['time_seconds'], value_vars=cap_vars, var_name='metric', value_name='value')
-    df_cap_melt['cluster'] = df_cap_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    df_cap_melt = df.melt(
+        id_vars=['time_seconds'], 
+        value_vars=cap_vars, 
+        var_name='metric', 
+        value_name='value'
+    )
+    df_cap_melt['cluster'] = df_cap_melt['metric'].apply(
+        lambda x: 'Public' if 'public' in x else 'Private'
+    )
     df_cap_melt['type'] = 'Capacity'
 
     plot_df_resources = pd.concat([df_usage_melt, df_cap_melt], ignore_index=True)
-    plot_df_resources['plot_group'] = plot_df_resources['cluster'].apply(lambda x: f'{x} Cluster Resources')
+    plot_df_resources['plot_group'] = plot_df_resources['cluster'].apply(
+        lambda x: f'{x} Cluster Resources'
+    )
 
-    # --- 2. Prepare Pending Pods data ---
-    df_pending_melt = df.melt(id_vars=['time_seconds'], value_vars=pending_vars, var_name='metric', value_name='value')
-    df_pending_melt['cluster'] = df_pending_melt['metric'].apply(lambda x: 'Public' if 'public' in x else 'Private')
+    # Prepare Pending Pods data
+    df_pending_melt = df.melt(
+        id_vars=['time_seconds'], 
+        value_vars=pending_vars, 
+        var_name='metric', 
+        value_name='value'
+    )
+    df_pending_melt['cluster'] = df_pending_melt['metric'].apply(
+        lambda x: 'Public' if 'public' in x else 'Private'
+    )
     df_pending_melt['type'] = 'Pending'
-    df_pending_melt['plot_group'] = df_pending_melt['cluster'].apply(lambda x: f'{x} Cluster Pending Pods')
+    df_pending_melt['plot_group'] = df_pending_melt['cluster'].apply(
+        lambda x: f'{x} Cluster Pending Pods'
+    )
 
-    pending_groups = [
-        'Private Cluster Pending Pods',
-        'Public Cluster Pending Pods'
-    ]
+    # Add reference points for pending pods to ensure proper scaling
+    pending_groups = ['Private Cluster Pending Pods', 'Public Cluster Pending Pods']
     ref_points_data = []
     for group in pending_groups:
-        ref_points_data.append({'plot_group': group, 'time_seconds': df['time_seconds'].min(), 'value': 0})
-        ref_points_data.append({'plot_group': group, 'time_seconds': df['time_seconds'].min(), 'value': 1})
-    
+        ref_points_data.append({
+            'plot_group': group, 
+            'time_seconds': df['time_seconds'].min(), 
+            'value': 0
+        })
+        ref_points_data.append({
+            'plot_group': group, 
+            'time_seconds': df['time_seconds'].min(), 
+            'value': 1
+        })
     ref_df = pd.DataFrame(ref_points_data)
 
-    # --- 3. Combine DataFrames and set the plot order ---
+    # Combine DataFrames
     plot_df = pd.concat([plot_df_resources, df_pending_melt], ignore_index=True)
 
+    # Set plot order
     plot_order = [
         'Private Cluster Pending Pods',
         'Private Cluster Resources',
         'Public Cluster Resources',
         'Public Cluster Pending Pods'
     ]
-    plot_df['plot_group'] = pd.Categorical(plot_df['plot_group'], categories=plot_order, ordered=True)
+    plot_df['plot_group'] = pd.Categorical(
+        plot_df['plot_group'], 
+        categories=plot_order, 
+        ordered=True
+    )
 
     categories = [
         'Load', 'Capacity', 'Pending', 'Migration to Private',
         'Migration to Public', 'Both Migrations', 'No Migration'
     ]
-    plot_df['type'] = pd.Categorical(plot_df['type'],
-                                   categories=categories,
-                                   ordered=True)
+    plot_df['type'] = pd.Categorical(
+        plot_df['type'],
+        categories=categories,
+        ordered=True
+    )
     plot_df = plot_df.sort_values('type')
 
     # Color and linetype maps
     color_map = {
-        'Load': '#d62728', 'Capacity': '#1f77b4', 'Pending': '#8c564b',
-        'Migration to Private': '#9467bd', 'Migration to Public': '#ff7f0e', 'Both Migrations': '#2ca02c', 'No Migration': '#5f615f',
+        'Load': '#d62728', 
+        'Capacity': '#1f77b4', 
+        'Pending': '#8c564b',
+        'Migration to Private': '#9467bd', 
+        'Migration to Public': '#ff7f0e', 
+        'Both Migrations': '#2ca02c', 
+        'No Migration': '#5f615f',
     }
     linetype_map = {
-        'Load': 'solid', 'Capacity': 'dashed', 'Pending': 'solid',
-        'Migration to Private': 'dotted', 'Migration to Public': 'dotted', 'Both Migrations': 'dotted', 'No Migration': 'dotted'
+        'Load': 'solid', 
+        'Capacity': 'dashed', 
+        'Pending': 'solid',
+        'Migration to Private': 'dotted', 
+        'Migration to Public': 'dotted', 
+        'Both Migrations': 'dotted', 
+        'No Migration': 'dotted'
     }
 
     # Calculate X-axis intervals
     max_time = df['time_seconds'].max()
-    x_breaks = list(range(0, int(max_time) + 120, 120))
-    if len(x_breaks) > 20:
-        x_breaks = list(range(0, int(max_time) + 300, 300))
-    elif len(x_breaks) < 4:
-        x_breaks = list(range(0, int(max_time) + 15, 15))
+    x_breaks = _calculate_x_breaks(max_time)
 
-    # --- 4. Create the plot with ggplot ---
+    # Create the plot
     g = (
         ggplot(plot_df)
         + geom_step(
@@ -207,16 +302,16 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
         )
         + labs(title=title, y='Value', x='Time (seconds)', color='Legend', linetype='Legend')
         + scale_x_continuous(breaks=x_breaks, limits=(0, max_time))
-        + scale_y_continuous(limits=(0, None))  # Force Y-axis to start from 0 and no negative values
+        + scale_y_continuous(limits=(0, None))
         + theme_bw()
-        + theme(legend_key=element_blank()) 
+        + theme(legend_key=element_blank())
     )
 
-    # Add vertical lines for migrations (will be applied to all panels)
+    # Add vertical lines for migrations
     if migration_data is not None and not migration_data.empty and 'timestamp' in df.columns:
         start_time = df['timestamp'].min()
         end_time = df['timestamp'].max()
-        max_time = (end_time - start_time).total_seconds()
+        max_time_sec = (end_time - start_time).total_seconds()
 
         migration_data = migration_data.copy()
         migration_data['timestamp_dt'] = pd.to_datetime(migration_data['timestamp'], unit='s')
@@ -224,7 +319,9 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
         # Subtract 3 hours from migration timestamps to align with metrics
         migration_data['timestamp_dt'] = migration_data['timestamp_dt'] - pd.Timedelta(hours=3)
         
-        migration_data['xintercept'] = (migration_data['timestamp_dt'] - start_time).dt.total_seconds()
+        migration_data['xintercept'] = (
+            migration_data['timestamp_dt'] - start_time
+        ).dt.total_seconds()
 
         # Mapping for the legend
         migration_map = {
@@ -238,11 +335,10 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
         # Filter only valid values within the plot range
         migration_data_filtered = migration_data[
             (migration_data['xintercept'] >= 0) &
-            (migration_data['xintercept'] <= max_time)
+            (migration_data['xintercept'] <= max_time_sec)
         ]
 
         if not migration_data_filtered.empty:
-            # Use color and legend mapping again
             g += geom_vline(
                 data=migration_data_filtered,
                 mapping=aes(
@@ -257,40 +353,45 @@ def plot_resource(df, value_vars, cap_vars, pending_vars, title, filename, migra
     g += scale_color_manual(name='Legend', values=color_map)
     g += scale_linetype_manual(name='Legend', values=linetype_map)
 
-    # Ensure the output directory exists
+    # Save the plot
     os.makedirs(os.path.dirname(filename) or '.', exist_ok=True)
-    # Increase height to accommodate the 4 plots
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    filename_with_timestamp = os.path.splitext(filename)[0] + '_' + timestamp + os.path.splitext(filename)[1]
+    base, ext = os.path.splitext(filename)
+    filename_with_timestamp = f"{base}_{timestamp}{ext}"
     g.save(filename_with_timestamp, width=16, height=12, dpi=300)
 
-def plot_pricing(df, output_dir, migration_data=None, instance_types=None):
+
+def plot_pricing(
+    df: pd.DataFrame, 
+    output_dir: str, 
+    migration_data: pd.DataFrame = None, 
+    instance_types: dict = None
+):
     """
-    Plot pricing data for both clusters showing cost per interval and cumulative costs.
-    Creates a 4-panel layout: cost per interval (2 panels) and cumulative costs (2 panels).
+    Plot pricing data for both clusters.
+    Creates a 4-panel layout: cost per interval and cumulative costs.
     
     Args:
-        df: DataFrame containing pricing data with columns:
-            'time_seconds', 'cost_public', 'cost_private', 'cost_total',
-            'cumulative_cost_public', 'cumulative_cost_private', 'cumulative_cost_total'
+        df: DataFrame with columns: time_seconds, timestamp, cost_public, cost_private,
+            cumulative_cost_public, cumulative_cost_private
         output_dir: Directory to save the plot
-        migration_data: DataFrame containing migration events (optional)
-        instance_types: Dict with 'public' and 'private' instance type names (optional)
+        migration_data: Optional DataFrame with migration events
+        instance_types: Dict with 'public' and 'private' instance type names
     """
     # Calculate X-axis intervals
     max_time = df['time_seconds'].max() if not df.empty else 0
-    x_breaks = list(range(0, int(max_time) + 120, 120))
-    if len(x_breaks) > 20:
-        x_breaks = list(range(0, int(max_time) + 300, 300))
-    elif len(x_breaks) < 4:
-        x_breaks = list(range(0, int(max_time) + 15, 15))
+    x_breaks = _calculate_x_breaks(max_time)
 
     # Prepare data for cost per interval plot
-    plot_df_interval = df.melt(id_vars=['time_seconds'], 
-                               value_vars=['cost_public', 'cost_private'],
-                               var_name='cluster', value_name='cost')
+    plot_df_interval = df.melt(
+        id_vars=['time_seconds'], 
+        value_vars=['cost_public', 'cost_private'],
+        var_name='cluster', 
+        value_name='cost'
+    )
     plot_df_interval['cluster'] = plot_df_interval['cluster'].map({
-        'cost_public': 'Public', 'cost_private': 'Private'
+        'cost_public': 'Public', 
+        'cost_private': 'Private'
     })
     plot_df_interval['type'] = 'Cost per Interval'
     plot_df_interval['plot_group'] = plot_df_interval['cluster'].apply(
@@ -298,11 +399,15 @@ def plot_pricing(df, output_dir, migration_data=None, instance_types=None):
     )
 
     # Prepare data for cumulative cost plot
-    plot_df_cumulative = df.melt(id_vars=['time_seconds'],
-                                value_vars=['cumulative_cost_public', 'cumulative_cost_private'],
-                                var_name='cluster', value_name='cost')
+    plot_df_cumulative = df.melt(
+        id_vars=['time_seconds'],
+        value_vars=['cumulative_cost_public', 'cumulative_cost_private'],
+        var_name='cluster', 
+        value_name='cost'
+    )
     plot_df_cumulative['cluster'] = plot_df_cumulative['cluster'].map({
-        'cumulative_cost_public': 'Public', 'cumulative_cost_private': 'Private'
+        'cumulative_cost_public': 'Public', 
+        'cumulative_cost_private': 'Private'
     })
     plot_df_cumulative['type'] = 'Cumulative Cost'
     plot_df_cumulative['plot_group'] = plot_df_cumulative['cluster'].apply(
@@ -319,13 +424,16 @@ def plot_pricing(df, output_dir, migration_data=None, instance_types=None):
         'Private Cluster - Cumulative Cost',
         'Public Cluster - Cumulative Cost'
     ]
-    plot_df['plot_group'] = pd.Categorical(plot_df['plot_group'], 
-                                          categories=plot_order, ordered=True)
+    plot_df['plot_group'] = pd.Categorical(
+        plot_df['plot_group'], 
+        categories=plot_order, 
+        ordered=True
+    )
 
     # Color mapping
     color_map = {
-        'Public': '#d62728',  # Red
-        'Private': '#1f77b4',  # Blue
+        'Public': '#d62728',
+        'Private': '#1f77b4',
         'Migration to Private': '#9467bd',
         'Migration to Public': '#ff7f0e',
         'Both Migrations': '#2ca02c',
@@ -364,12 +472,13 @@ def plot_pricing(df, output_dir, migration_data=None, instance_types=None):
         migration_data = migration_data.copy()
         migration_data['timestamp_dt'] = pd.to_datetime(migration_data['timestamp'], unit='s')
         
-        # Subtract 3 hours from migration timestamps to align with metrics
+        # Subtract 3 hours from migration timestamps
         migration_data['timestamp_dt'] = migration_data['timestamp_dt'] - pd.Timedelta(hours=3)
         
-        migration_data['xintercept'] = (migration_data['timestamp_dt'] - start_time).dt.total_seconds()
+        migration_data['xintercept'] = (
+            migration_data['timestamp_dt'] - start_time
+        ).dt.total_seconds()
 
-        # Color mapping for migration types
         migration_map = {
             'private': 'Migration to Private',
             'public': 'Migration to Public',
@@ -378,7 +487,6 @@ def plot_pricing(df, output_dir, migration_data=None, instance_types=None):
         }
         migration_data['mig_legend'] = migration_data['type'].map(migration_map)
 
-        # Filter only valid values within the plot range
         migration_data_filtered = migration_data[
             (migration_data['xintercept'] >= 0) &
             (migration_data['xintercept'] <= max_time)
@@ -407,6 +515,6 @@ def plot_pricing(df, output_dir, migration_data=None, instance_types=None):
 
     # Save the plot
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    filename_with_timestamp = f"pricing_{timestamp}.png"
-    output_path = os.path.join(output_dir, filename_with_timestamp)
-    g.save(output_path, width=12, height=14, dpi=300)  # Increased height for 4 panels
+    filename = f"pricing_{timestamp}.png"
+    output_path = os.path.join(output_dir, filename)
+    g.save(output_path, width=12, height=14, dpi=300)

@@ -1,5 +1,6 @@
 {
     "config": {
+        "orchestrator": "karmada",
         "kubeconfig": "karmada.config",
         "namespace": "default"
     },
