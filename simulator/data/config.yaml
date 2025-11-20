@@ -1,16 +1,16 @@
 # clusters initialzation
 clusters:
   member1:
-    nodes: 2
-    cpu: "8"
-    memory: "16Gi"
+    nodes: 1
+    cpu: "3"
+    memory: "4Gi"
     autoscaler: false
 
   member2:
-    nodes: 2
-    cpu: "8"
-    memory: "16Gi"
-    autoscaler: true
+    nodes: 1
+    cpu: "3"
+    memory: "4Gi"
+    autoscaler: false
 
 # environment config
 prometheus:
@@ -20,7 +20,7 @@ prometheus:
 
 # engine config
 ai-engine:
-  enabled: true
+  enabled: false
   scheduler_interval: 300
   timestamp_lookback_seconds: 600
   workloads_shard_size: 20
