@@ -42,7 +42,11 @@ def extract_cluster_loads(cluster_info: List[Dict[str, Any]]) -> Dict[str, Dict[
                 'cpu': cluster['cluster_load'].get('cpu', 0.0),
                 'memory': cluster['cluster_load'].get('memory', 0.0),
                 'cpu_requested': cluster['cluster_load'].get('cpu_requested', 0.0),
-                'memory_requested': cluster['cluster_load'].get('memory_requested', 0.0)
+                'memory_requested': cluster['cluster_load'].get('memory_requested', 0.0),
+                'network_receive': cluster['cluster_load'].get('network_receive', 0.0),
+                'network_transmit': cluster['cluster_load'].get('network_transmit', 0.0),
+                'io_read': cluster['cluster_load'].get('io_read', 0.0),
+                'io_write': cluster['cluster_load'].get('io_write', 0.0)
             }
     return cluster_loads
 
@@ -60,6 +64,10 @@ def process_json_data(input_data: Dict[str, Any]) -> Dict[str, Any]:
         processed_data[timestamp] = {
             'cluster_load_cpu': {lbl: loads['cpu'] for lbl, loads in cluster_loads.items()},
             'cluster_load_memory': {lbl: loads['memory'] for lbl, loads in cluster_loads.items()},
+            'cluster_load_network_receive': {lbl: loads.get('network_receive', 0.0) for lbl, loads in cluster_loads.items()},
+            'cluster_load_network_transmit': {lbl: loads.get('network_transmit', 0.0) for lbl, loads in cluster_loads.items()},
+            'cluster_load_io_read': {lbl: loads.get('io_read', 0.0) for lbl, loads in cluster_loads.items()},
+            'cluster_load_io_write': {lbl: loads.get('io_write', 0.0) for lbl, loads in cluster_loads.items()},
             'number_of_pods_pending': total_pending,
             'number_pending_public': round(pending_public, 3),
             'number_pending_private': round(pending_private, 3),
@@ -197,6 +205,72 @@ def process_cluster_info(data, timestamps, limit_load=True, execution_mode='kwok
         result['memory_capacity_public'], result['memory_capacity_private'],
         result['number_pending_public'], result['number_pending_private']
     )
+
+
+def process_network_io_data(data, timestamps, execution_mode='kwok'):
+    """
+    Process network and I/O metrics from cluster info.
+    Only processes in REAL mode (when execution_mode='real').
+    
+    Args:
+        data: Raw JSON data
+        timestamps: List of timestamps
+        execution_mode: 'kwok' or 'real' (only processes if 'real')
+        
+    Returns:
+        Dictionary with network and I/O data by cluster
+    """
+    if execution_mode != 'real':
+        # Return empty data for KWOK mode
+        return {
+            'network_receive_public': [],
+            'network_receive_private': [],
+            'network_transmit_public': [],
+            'network_transmit_private': [],
+            'io_read_public': [],
+            'io_read_private': [],
+            'io_write_public': [],
+            'io_write_private': []
+        }
+    
+    result = {
+        'network_receive_public': [],
+        'network_receive_private': [],
+        'network_transmit_public': [],
+        'network_transmit_private': [],
+        'io_read_public': [],
+        'io_read_private': [],
+        'io_write_public': [],
+        'io_write_private': []
+    }
+    
+    for ts in timestamps:
+        ts_str = str(ts)
+        
+        # Initialize with zeros
+        for key in result:
+            result[key].append(0.0)
+        
+        for c in data[ts_str].get('cluster_info', []):
+            cluster_load = c.get('cluster_load', {})
+            network_receive = cluster_load.get('network_receive', 0.0)
+            network_transmit = cluster_load.get('network_transmit', 0.0)
+            io_read = cluster_load.get('io_read', 0.0)
+            io_write = cluster_load.get('io_write', 0.0)
+            
+            label = c.get('cluster_label')
+            if label == 'public':
+                result['network_receive_public'][-1] = network_receive
+                result['network_transmit_public'][-1] = network_transmit
+                result['io_read_public'][-1] = io_read
+                result['io_write_public'][-1] = io_write
+            elif label == 'private':
+                result['network_receive_private'][-1] = network_receive
+                result['network_transmit_private'][-1] = network_transmit
+                result['io_read_private'][-1] = io_read
+                result['io_write_private'][-1] = io_write
+    
+    return result
 
 def build_dataframe(timestamps, mem_allocated, mem_requested, cpu_allocated, cpu_requested, pending_pods, cluster_info):
     """Builds a pandas DataFrame from the processed data."""

@@ -518,3 +518,141 @@ def plot_pricing(
     filename = f"pricing_{timestamp}.png"
     output_path = os.path.join(output_dir, filename)
     g.save(output_path, width=12, height=14, dpi=300)
+
+
+def plot_network_load(df: pd.DataFrame, output_dir: str, migration_data: pd.DataFrame = None):
+    """
+    Plot network load (receive and transmit) by cluster over time.
+    Only works in REAL mode.
+    Creates two separate plots: network_receive and network_transmit.
+    
+    Args:
+        df: DataFrame with columns: time_seconds, network_receive_private, network_receive_public,
+            network_transmit_private, network_transmit_public
+        output_dir: Directory to save the plot
+        migration_data: Optional DataFrame with migration events
+    """
+    if df.empty or 'network_receive_private' not in df.columns:
+        return
+    
+    max_time = df['time_seconds'].max()
+    x_breaks = _calculate_x_breaks(max_time)
+    
+    # Plot Network Receive
+    receive_df = df.melt(
+        id_vars=['time_seconds'],
+        value_vars=['network_receive_private', 'network_receive_public'],
+        var_name='Cluster',
+        value_name='Network Receive'
+    )
+    receive_df['Cluster'] = receive_df['Cluster'].map({
+        'network_receive_private': 'Private',
+        'network_receive_public': 'Public'
+    })
+    
+    g_receive = (
+        ggplot(receive_df, aes(x='time_seconds', y='Network Receive', color='Cluster'))
+        + geom_step(size=1.5)
+        + labs(title="Network Receive by Cluster over time", y="Network Receive (bytes/sec)", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + scale_y_continuous(limits=(0, None))
+        + theme_bw()
+        + theme(legend_key=element_blank())
+    )
+    
+    # Plot Network Transmit
+    transmit_df = df.melt(
+        id_vars=['time_seconds'],
+        value_vars=['network_transmit_private', 'network_transmit_public'],
+        var_name='Cluster',
+        value_name='Network Transmit'
+    )
+    transmit_df['Cluster'] = transmit_df['Cluster'].map({
+        'network_transmit_private': 'Private',
+        'network_transmit_public': 'Public'
+    })
+    
+    g_transmit = (
+        ggplot(transmit_df, aes(x='time_seconds', y='Network Transmit', color='Cluster'))
+        + geom_step(size=1.5)
+        + labs(title="Network Transmit by Cluster over time", y="Network Transmit (bytes/sec)", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + scale_y_continuous(limits=(0, None))
+        + theme_bw()
+        + theme(legend_key=element_blank())
+    )
+    
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename_receive = f"network_receive_{timestamp}.png"
+    filename_transmit = f"network_transmit_{timestamp}.png"
+    g_receive.save(os.path.join(output_dir, filename_receive), width=12, height=6, dpi=300)
+    g_transmit.save(os.path.join(output_dir, filename_transmit), width=12, height=6, dpi=300)
+
+
+def plot_io_load(df: pd.DataFrame, output_dir: str, migration_data: pd.DataFrame = None):
+    """
+    Plot I/O load (read and write) by cluster over time.
+    Only works in REAL mode.
+    Creates two separate plots: io_read and io_write.
+    
+    Args:
+        df: DataFrame with columns: time_seconds, io_read_private, io_read_public,
+            io_write_private, io_write_public
+        output_dir: Directory to save the plot
+        migration_data: Optional DataFrame with migration events
+    """
+    if df.empty or 'io_read_private' not in df.columns:
+        return
+    
+    max_time = df['time_seconds'].max()
+    x_breaks = _calculate_x_breaks(max_time)
+    
+    # Plot I/O Read
+    read_df = df.melt(
+        id_vars=['time_seconds'],
+        value_vars=['io_read_private', 'io_read_public'],
+        var_name='Cluster',
+        value_name='I/O Read'
+    )
+    read_df['Cluster'] = read_df['Cluster'].map({
+        'io_read_private': 'Private',
+        'io_read_public': 'Public'
+    })
+    
+    g_read = (
+        ggplot(read_df, aes(x='time_seconds', y='I/O Read', color='Cluster'))
+        + geom_step(size=1.5)
+        + labs(title="Disk I/O Read by Cluster over time", y="I/O Read (bytes/sec)", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + scale_y_continuous(limits=(0, None))
+        + theme_bw()
+        + theme(legend_key=element_blank())
+    )
+    
+    # Plot I/O Write
+    write_df = df.melt(
+        id_vars=['time_seconds'],
+        value_vars=['io_write_private', 'io_write_public'],
+        var_name='Cluster',
+        value_name='I/O Write'
+    )
+    write_df['Cluster'] = write_df['Cluster'].map({
+        'io_write_private': 'Private',
+        'io_write_public': 'Public'
+    })
+    
+    g_write = (
+        ggplot(write_df, aes(x='time_seconds', y='I/O Write', color='Cluster'))
+        + geom_step(size=1.5)
+        + labs(title="Disk I/O Write by Cluster over time", y="I/O Write (bytes/sec)", x="Time (seconds)")
+        + scale_x_continuous(breaks=x_breaks)
+        + scale_y_continuous(limits=(0, None))
+        + theme_bw()
+        + theme(legend_key=element_blank())
+    )
+    
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    filename_read = f"io_read_{timestamp}.png"
+    filename_write = f"io_write_{timestamp}.png"
+    g_read.save(os.path.join(output_dir, filename_read), width=12, height=6, dpi=300)
+    g_write.save(os.path.join(output_dir, filename_write), width=12, height=6, dpi=300)
