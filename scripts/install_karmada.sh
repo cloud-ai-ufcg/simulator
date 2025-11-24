@@ -19,6 +19,13 @@ set -e
 trap 'echo -e "${COLOR}❌  Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
 # -----------------------------------------------------------------------------
+# 0. Ensure Go is in PATH (needed for Karmada build)
+# ------------------------------------------------------------------------------
+if [ -f /usr/local/go/bin/go ] && ! command -v go &> /dev/null; then
+  export PATH=$PATH:/usr/local/go/bin
+fi
+
+# -----------------------------------------------------------------------------
 # 1. Clone and launch Karmada control plane
 # ------------------------------------------------------------------------------
 KARMADA_RELEASE=v1.14.1
