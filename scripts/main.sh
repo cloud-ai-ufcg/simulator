@@ -73,8 +73,25 @@ echo ""
 echo -e "${COLOR}[3/8] 📝 Generating configuration files...${RESET}"
 ./generate_manifests.sh
 
+# -----------------------------------------------------------------------------
+# 3.5. Clean up KIND clusters if in KWOK mode (before Karmada creates them)
+# -----------------------------------------------------------------------------
+if [[ "$EXECUTION_MODE" == "kwok" ]]; then
+    echo -e "${COLOR}[3.5/8] 🧹 Cleaning up KIND clusters for KWOK mode...${RESET}"
+    if command -v kind &> /dev/null; then
+        for cluster in member1 member2; do
+            if kind get clusters 2>/dev/null | grep -q "^${cluster}$"; then
+                echo -e "${COLOR}  -> Deleting KIND cluster: ${cluster}${RESET}"
+                kind delete cluster --name "$cluster" 2>/dev/null || true
+                echo -e "${COLOR}    ✓ Cluster ${cluster} deleted${RESET}"
+            fi
+        done
+        echo -e "${COLOR}  ✅ KIND clusters cleanup completed${RESET}"
+    fi
+fi
+
 echo -e "${COLOR}[4/8] ☸️  Bringing up Karmada...${RESET}"
-./install_karmada.sh
+EXECUTION_MODE="$EXECUTION_MODE" ./install_karmada.sh
 export KUBECONFIG=~/.kube/karmada.config
 
 # -----------------------------------------------------------------------------
@@ -86,8 +103,11 @@ if [[ "$EXECUTION_MODE" == "kwok" ]]; then
     echo -e "${COLOR}[5/8] 🎭 Setting up KWOK mode (simulated)...${RESET}"
     ./kwok-mode_setup.sh
     
-    echo -e "${COLOR}[6/8] 📊 Installing Prometheus...${RESET}"
+    echo -e "${COLOR}[6/8] 📊 Installing Prometheus (before applying taints)...${RESET}"
     ./install_prometheus.sh  # includes readiness check and port-forwards
+    
+    echo -e "${COLOR}[6.5/8] 🧪 Applying control-plane taints (after Prometheus)...${RESET}"
+    ./taint_control_plane.sh
 elif [[ "$EXECUTION_MODE" == "real" ]]; then
     echo -e "${COLOR}[5/8] 🌐 Setting up Real mode (creating clusters)...${RESET}"
     ./real-mode_setup.sh

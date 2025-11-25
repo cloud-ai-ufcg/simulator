@@ -31,29 +31,47 @@ else
   echo -e "${COLOR}[INFO] Karmada repository already exists. Skipping clone.${RESET}"
 fi
 
-# Modify member1 and member2 configs to include worker nodes
+# Modify member1 and member2 configs based on execution mode
 cd karmada
-echo -e "${COLOR}🔧 Modifying KIND configs to include worker nodes...${RESET}"
-if [ -f "artifacts/kindClusterConfig/member1.yaml" ]; then
-  # Add workers to member1 config
-  if ! grep -q "role: worker" "artifacts/kindClusterConfig/member1.yaml"; then
-    cat >> "artifacts/kindClusterConfig/member1.yaml" <<'EOF'
-  - role: worker
-  - role: worker
-EOF
-  fi
-fi
+EXECUTION_MODE="${EXECUTION_MODE:-real}"  # Default to real if not set
 
-if [ -f "artifacts/kindClusterConfig/member2.yaml" ]; then
-  # Add workers to member2 config
-  if ! grep -q "role: worker" "artifacts/kindClusterConfig/member2.yaml"; then
-    cat >> "artifacts/kindClusterConfig/member2.yaml" <<'EOF'
+if [[ "$EXECUTION_MODE" != "kwok" ]]; then
+  echo -e "${COLOR}🔧 Modifying KIND configs to include worker nodes (Real mode)...${RESET}"
+  if [ -f "artifacts/kindClusterConfig/member1.yaml" ]; then
+    # Add workers to member1 config
+    if ! grep -q "role: worker" "artifacts/kindClusterConfig/member1.yaml"; then
+      cat >> "artifacts/kindClusterConfig/member1.yaml" <<'EOF'
   - role: worker
   - role: worker
 EOF
+    fi
   fi
+
+  if [ -f "artifacts/kindClusterConfig/member2.yaml" ]; then
+    # Add workers to member2 config
+    if ! grep -q "role: worker" "artifacts/kindClusterConfig/member2.yaml"; then
+      cat >> "artifacts/kindClusterConfig/member2.yaml" <<'EOF'
+  - role: worker
+  - role: worker
+EOF
+    fi
+  fi
+  echo -e "${COLOR}✅ Config files updated with workers${RESET}"
+else
+  echo -e "${COLOR}🎭 KWOK mode: Removing worker nodes from configs (will use fake KWOK nodes only)...${RESET}"
+  # Remove workers from configs if they exist (for clean KWOK setup)
+  if [ -f "artifacts/kindClusterConfig/member1.yaml" ]; then
+    # Remove worker nodes from config (keep only control-plane)
+    # Use a temporary file to avoid issues with sed in-place editing
+    grep -v "role: worker" "artifacts/kindClusterConfig/member1.yaml" > "artifacts/kindClusterConfig/member1.yaml.tmp" 2>/dev/null && \
+    mv "artifacts/kindClusterConfig/member1.yaml.tmp" "artifacts/kindClusterConfig/member1.yaml" || true
+  fi
+  if [ -f "artifacts/kindClusterConfig/member2.yaml" ]; then
+    grep -v "role: worker" "artifacts/kindClusterConfig/member2.yaml" > "artifacts/kindClusterConfig/member2.yaml.tmp" 2>/dev/null && \
+    mv "artifacts/kindClusterConfig/member2.yaml.tmp" "artifacts/kindClusterConfig/member2.yaml" || true
+  fi
+  echo -e "${COLOR}✅ Config files cleaned (control-plane only for KWOK mode)${RESET}"
 fi
-echo -e "${COLOR}✅ Config files updated with workers${RESET}"
 sudo sysctl fs.inotify.max_user_watches=524288
 sudo sysctl fs.inotify.max_user_instances=512
 hack/local-up-karmada.sh
