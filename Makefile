@@ -69,12 +69,12 @@ start-simulator:
 # Starts simulator in KWOK mode (assumes setup already done)
 start-kwok:
 	@echo -e "\\e[36m🎭 Starting simulator in KWOK mode...\\e[0m"
-	@$(MAKE) start-simulator
+	@KWOK_MODE=true $(MAKE) start-simulator
 
 # Starts simulator in Real mode (assumes setup already done)
 start-real:
 	@echo -e "\\e[36m🌐 Starting simulator in Real mode...\\e[0m"
-	@$(MAKE) start-simulator
+	@KWOK_MODE=false $(MAKE) start-simulator
 
 # Generic start target (requires mode parameter)
 start:
