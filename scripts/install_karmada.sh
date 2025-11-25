@@ -30,6 +30,30 @@ fi
 # ------------------------------------------------------------------------------
 KARMADA_RELEASE=v1.14.1
 
+# Ensure user has docker permissions before using docker commands
+echo -e "${COLOR}🔍 Checking docker permissions...${RESET}"
+if ! docker ps &>/dev/null; then
+  echo -e "${COLOR}⚠️  Docker permission check failed. Ensuring user has docker group access...${RESET}"
+  CURRENT_USER=$(whoami)
+  
+  if ! groups | grep -q docker; then
+    echo -e "${COLOR}➕ Adding user $CURRENT_USER to docker group...${RESET}"
+    sudo usermod -aG docker "$CURRENT_USER"
+    echo -e "${COLOR}✅ User added to docker group.${RESET}"
+  else
+    echo -e "${COLOR}ℹ️  User is already in docker group.${RESET}"
+  fi
+  
+  echo -e "${COLOR}ℹ️  Docker group membership requires a new login session to take effect.${RESET}"
+  echo -e "${COLOR}ℹ️  Options:${RESET}"
+  echo -e "${COLOR}   1. Run 'newgrp docker' in a new terminal and re-run this script${RESET}"
+  echo -e "${COLOR}   2. Logout and login again, then re-run this script${RESET}"
+  echo -e "${COLOR}⚠️  Exiting. Please activate docker group and re-run this script.${RESET}"
+  exit 1
+else
+  echo -e "${COLOR}✅ Docker permissions OK.${RESET}"
+fi
+
 echo -e "${COLOR}🚀 Starting local Karmada environment...${RESET}"
 if [ ! -d "karmada" ]; then
   echo -e "${COLOR}[INFO] Cloning Karmada repository...${RESET}"
@@ -74,6 +98,7 @@ export KUBECONFIG=~/.kube/members.config
 kubectl config delete-context member3 || true
 kubectl config delete-cluster kind-member3 || true
 
+# Docker permissions were already verified in section 1, so we can use docker directly
 CONTAINER_ID=$(docker ps -q --filter "name=member3-control-plane")
 if [ -n "$CONTAINER_ID" ]; then
   echo -e "${COLOR}🧹 Stopping container $CONTAINER_ID for cluster member3...${RESET}"
