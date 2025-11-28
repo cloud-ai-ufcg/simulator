@@ -7,6 +7,7 @@ any visualization concerns.
 """
 
 from typing import Dict, Any, List
+from datetime import datetime
 from data_models import (
     ClusterMetrics, PricingMetrics, WorkloadMetrics, 
     MigrationEvent, ProcessedSimulationData
@@ -19,15 +20,55 @@ from pricing_utils import (
 )
 
 
+def parse_timestamp_key(ts_key: str) -> int:
+    """
+    Parse a timestamp key from metrics.json to Unix timestamp (int).
+    
+    Supports two formats:
+    - Unix timestamp (int or string): '1732744377' or 1732744377
+    - Date string: '2025-11-27 23:32:57'
+    
+    Args:
+        ts_key: Timestamp key from JSON
+        
+    Returns:
+        Unix timestamp as integer
+    """
+    ts_str = str(ts_key).strip()
+    
+    # Try to parse as integer (Unix timestamp)
+    try:
+        return int(ts_str)
+    except ValueError:
+        pass
+    
+    # Try to parse as date string 'YYYY-MM-DD HH:MM:SS'
+    try:
+        dt = datetime.strptime(ts_str, '%Y-%m-%d %H:%M:%S')
+        return int(dt.timestamp())
+    except ValueError:
+        pass
+    
+    # Try other common formats
+    for fmt in ['%Y/%m/%d %H:%M:%S', '%d-%m-%Y %H:%M:%S', '%Y-%m-%dT%H:%M:%S']:
+        try:
+            dt = datetime.strptime(ts_str, fmt)
+            return int(dt.timestamp())
+        except ValueError:
+            continue
+    
+    raise ValueError(f"Unable to parse timestamp: {ts_key}")
+
+
 def extract_interval_duration(raw_data: Dict[str, Any]) -> int:
     """Extract interval duration from raw data."""
-    timestamps = sorted([int(ts) for ts in raw_data.keys()])
-    if not timestamps:
+    if not raw_data:
         return 30  # Default
     
-    first_ts = str(timestamps[0])
-    if 'interval_duration' in raw_data.get(first_ts, {}):
-        interval_str = raw_data[first_ts].get('interval_duration', '30s')
+    # Get the first key from raw_data (original format, not converted)
+    first_key = next(iter(raw_data.keys()))
+    if 'interval_duration' in raw_data.get(first_key, {}):
+        interval_str = raw_data[first_key].get('interval_duration', '30s')
         try:
             return int(str(interval_str).rstrip('s'))
         except Exception:
@@ -269,7 +310,11 @@ def process_simulation_data(
         ProcessedSimulationData object with all processed metrics
     """
     # Extract basic information
-    timestamps = sorted([int(ts) for ts in raw_data.keys()])
+    # Create mapping from original keys to Unix timestamps
+    key_to_unix = {key: parse_timestamp_key(key) for key in raw_data.keys()}
+    timestamps = sorted(key_to_unix.values())
+    unix_to_key = {v: k for k, v in key_to_unix.items()}
+    
     interval_duration = extract_interval_duration(raw_data)
     
     # Initialize collections
@@ -279,8 +324,8 @@ def process_simulation_data(
     
     # Process each timestamp
     for ts in timestamps:
-        ts_str = str(ts)
-        ts_data = raw_data[ts_str]
+        original_key = unix_to_key[ts]
+        ts_data = raw_data[original_key]
         
         # Process cluster data
         cluster_info_list = ts_data.get('cluster_info', [])
