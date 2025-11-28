@@ -47,12 +47,18 @@ function install_docker() {
 
     echo -e "${COLOR}ℹ️ Docker installed and user added to 'docker' group.${RESET}"
 
-    read -p "❓ Do you want to start a new shell with 'docker' group now? [y/N] " answer
-    if [[ "$answer" =~ ^[yY]$ ]]; then
-      echo -e "${COLOR}🔁 Starting new shell with docker group. Type 'exit' to return to the previous shell.${RESET}"
-      newgrp docker
+    # Check if running interactively (has a TTY)
+    if [ -t 0 ]; then
+      read -p "❓ Do you want to start a new shell with 'docker' group now? [y/N] " answer
+      if [[ "$answer" =~ ^[yY]$ ]]; then
+        echo -e "${COLOR}🔁 Starting new shell with docker group. Type 'exit' to return to the previous shell.${RESET}"
+        newgrp docker
+      else
+        echo -e "${COLOR}ℹ️ You can run 'newgrp docker' manually later or restart your session.${RESET}"
+      fi
     else
-      echo -e "${COLOR}ℹ️ You can run 'newgrp docker' manually later or restart your session.${RESET}"
+      # Non-interactive mode: just inform user
+      echo -e "${COLOR}ℹ️ Running in non-interactive mode. Run 'newgrp docker' manually later or restart your session.${RESET}"
     fi
   else
     echo -e "${COLOR}✅ Docker is already installed.${RESET}"
@@ -155,34 +161,49 @@ function install_pip() {
 }
 
 function install_go() {
-  if ! command -v go &> /dev/null; then
+  # Check if go is in PATH or if it's installed in /usr/local/go
+  if ! command -v go &> /dev/null && [ ! -f /usr/local/go/bin/go ]; then
     echo -e "${COLOR}🔧 Installing Golang...${RESET}"
     GO_VERSION="1.21.0"
     curl -LO https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz
     sudo rm -rf /usr/local/go
     sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
     rm "go${GO_VERSION}.linux-amd64.tar.gz"
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-    export PATH=$PATH:/usr/local/go/bin
-    echo -e "${COLOR}ℹ️ Golang installed. PATH has been updated.${RESET}"
-
-    read -p "❓ Do you want to run 'source ~/.bashrc' now to apply the changes? [y/N] " answer
-    if [[ "$answer" =~ ^[yY]$ ]]; then
-      source ~/.bashrc
-      echo -e "${COLOR}✅ PATH updated successfully.${RESET}"
-    else
-      echo -e "${COLOR}ℹ️ You can run 'source ~/.bashrc' manually later or open a new terminal.${RESET}"
+    # Add to .bashrc if not already present
+    if ! grep -q '/usr/local/go/bin' ~/.bashrc; then
+      echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
     fi
+    # Update PATH for current session
+    export PATH=$PATH:/usr/local/go/bin
+    echo -e "${COLOR}ℹ️ Golang installed. PATH updated for current session.${RESET}"
+    echo -e "${COLOR}ℹ️ For future sessions, the PATH will be set automatically from ~/.bashrc${RESET}"
   else
-    echo -e "${COLOR}✅ Golang is already installed.${RESET}"
+    # Go is installed but may not be in PATH
+    if [ -f /usr/local/go/bin/go ] && ! command -v go &> /dev/null; then
+      echo -e "${COLOR}ℹ️ Golang is installed but not in PATH. Updating PATH...${RESET}"
+      # Add to .bashrc if not already present
+      if ! grep -q '/usr/local/go/bin' ~/.bashrc; then
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+      fi
+      # Update PATH for current session
+      export PATH=$PATH:/usr/local/go/bin
+      echo -e "${COLOR}✅ Golang PATH updated.${RESET}"
+    else
+      echo -e "${COLOR}✅ Golang is already installed.${RESET}"
+    fi
   fi
 }
 
 function install_yq() {
   DESIRED_VERSION="v4.44.5"
-  CURRENT_VERSION="$(yq --version 2>/dev/null | awk '{print $NF}')"
+  CURRENT_VERSION=""
+  
+  # Safely get current version if yq is installed
+  if command -v yq &> /dev/null; then
+    CURRENT_VERSION="$(yq --version 2>/dev/null | awk '{print $NF}' || echo "")"
+  fi
 
-  if ! command -v yq &> /dev/null || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
+  if ! command -v yq &> /dev/null || [[ -z "$CURRENT_VERSION" ]] || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
     echo -e "${COLOR}📦 Installing yq ${DESIRED_VERSION} (from GitHub)...${RESET}"
     sudo wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${DESIRED_VERSION}/yq_linux_amd64"
     sudo chmod +x /usr/local/bin/yq

@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+export PATH := $(PATH):/usr/local/go/bin
 
 ACTUATOR_MODE ?= auto
 
