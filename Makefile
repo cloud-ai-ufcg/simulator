@@ -1,6 +1,9 @@
 SHELL := /bin/bash
+export PATH := $(PATH):/usr/local/go/bin
 
-.PHONY: all setup-and-start start setup-kubernetes-infra stop-all-containers restart-all-containers help verify-start
+ACTUATOR_MODE ?= auto
+
+.PHONY: all setup-and-start setup-and-start-human start setup-kubernetes-infra stop-all-containers restart-all-containers help start-auto-mode start-human-loop-mode run-auto-mode run-all-containers run-all-containers-human
 
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
@@ -8,6 +11,8 @@ all: setup-and-start
 # Verifies if the environment is ready for start
 verify-start:
 	@scripts/verify_env.sh
+# Sets up infrastructure and runs in human-in-the-loop mode
+setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
 
 # Sets up Kubernetes infrastructure
 setup-kubernetes-infra:
@@ -24,6 +29,16 @@ run-all-containers:
 	@echo "Starting all necessary containers via docker-compose..."
 	@docker-compose -f compose.yaml up --build -d
 	@echo "All containers started successfully."
+
+# Run containers in human-in-the-loop mode (UI review required)
+run-all-containers-human:
+	@echo "Starting all containers in HUMAN-IN-THE-LOOP mode..."
+	@echo "Updating compose.yaml paths with the user's HOME..."
+	@echo scripts/replace_paths_in_compose.sh
+	@echo "Starting all necessary containers via docker compose (ACTUATOR_MODE=human-in-the-loop)..."
+	@ACTUATOR_MODE=human-in-the-loop docker compose -f compose.yaml up --build -d
+	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
+	@echo "🎯 Actuator UI available at: http://localhost:5173"
 
 # Sets up the complete infrastructure
 setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
@@ -68,12 +83,6 @@ stop-all-containers:
 		fi; \
 	done
 	@echo "Cleanup process completed."
-
-generate-plots:
-	@if [ -z "$(METRICS)" ]; then \
-		METRICS=analyzer/dataplots/metrics.json; \
-	fi; \
-	venv/bin/python3 analyzer/main.py $$METRICS
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Important Notes

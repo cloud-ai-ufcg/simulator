@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	simcfg "simulator/internal/config"
 	"simulator/internal/constants"
 	"simulator/internal/log"
 	"time"
@@ -17,11 +18,22 @@ func CallAIEngineAPI(enabled bool) error {
 	var retryDelay time.Duration = 3 * time.Second
 
 	if enabled {
-		url = constants.APIURLAIEngine
+		host, port, err := simcfg.LoadAIEngineServer("../data/config.yaml")
+		if err != nil {
+			// fallback to previous constant if config not available
+			url = constants.APIURLAIEngine
+		} else {
+			url = fmt.Sprintf("http://%s:%d/start", host, port)
+		}
 		successMsg = "AI-Engine API called successfully."
 		errorMsg = "Error calling AI-Engine API"
 	} else {
-		url = constants.APIURLAIEngineStop
+		host, port, err := simcfg.LoadAIEngineServer("../data/config.yaml")
+		if err != nil {
+			url = constants.APIURLAIEngineStop
+		} else {
+			url = fmt.Sprintf("http://%s:%d/stop", host, port)
+		}
 		successMsg = "AI-Engine STOP API called successfully."
 		errorMsg = "Error calling AI-Engine STOP API"
 	}

@@ -49,3 +49,6 @@ scripts/clusterpropagationpolicy.yaml
 analyzer/dataplots/actuator.log
 data/output
 analyzer/metrics.json
+
+output*
+input_benchmarks
