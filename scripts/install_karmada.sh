@@ -78,6 +78,7 @@ kubectl config use-context karmada-apiserver
 echo -e "${COLOR}🏷️  Labeling clusters...${RESET}"
 kubectl label cluster member1 cloud=private --overwrite
 kubectl label cluster member2 cloud=public --overwrite
+kubectl label cluster member3 cloud=private --overwrite
 
 # -----------------------------------------------------------------------------
 # 3. Apply ClusterPropagationPolicies if not already present
@@ -93,20 +94,20 @@ fi
 # -----------------------------------------------------------------------------
 # 4. Cleanup: remove legacy member3 context and container
 # -----------------------------------------------------------------------------
-echo -e "${COLOR}🧹 Removing cluster member3...${RESET}"
-export KUBECONFIG=~/.kube/members.config
-kubectl config delete-context member3 || true
-kubectl config delete-cluster kind-member3 || true
+# echo -e "${COLOR}🧹 Removing cluster member3...${RESET}"
+# export KUBECONFIG=~/.kube/members.config
+# kubectl config delete-context member3 || true
+# kubectl config delete-cluster kind-member3 || true
 
-# Docker permissions were already verified in section 1, so we can use docker directly
-CONTAINER_ID=$(docker ps -q --filter "name=member3-control-plane")
-if [ -n "$CONTAINER_ID" ]; then
-  echo -e "${COLOR}🧹 Stopping container $CONTAINER_ID for cluster member3...${RESET}"
-  docker stop "$CONTAINER_ID"
-  docker rm "$CONTAINER_ID"
-else
-  echo -e "${COLOR}ℹ️ Container kind-member3 is not running.${RESET}"
-fi
+# # Docker permissions were already verified in section 1, so we can use docker directly
+# CONTAINER_ID=$(docker ps -q --filter "name=member3-control-plane")
+# if [ -n "$CONTAINER_ID" ]; then
+#   echo -e "${COLOR}🧹 Stopping container $CONTAINER_ID for cluster member3...${RESET}"
+#   docker stop "$CONTAINER_ID"
+#   docker rm "$CONTAINER_ID"
+# else
+#   echo -e "${COLOR}ℹ️ Container kind-member3 is not running.${RESET}"
+# fi
 
 # -----------------------------------------------------------------------------
 # 5. Validate kubectl connectivity through karmada-apiserver

@@ -5,7 +5,7 @@ metadata:
   namespace: default
 data:
   nodes: |-
-    - name: member1-template
+    - name: member3-template
       status: "Ready"
       resources:
         cpu: "8"

@@ -47,6 +47,7 @@ source ./load_config.sh $CONFIG_FILE
 echo -e "\n🔧 Loaded configuration from $CONFIG_FILE:"
 echo "member1: $MEMBER1_NODES nodes, ${MEMBER1_CPU} CPU, ${MEMBER1_MEM} RAM"
 echo "member2: $MEMBER2_NODES nodes, ${MEMBER2_CPU} CPU, ${MEMBER2_MEM} RAM, autoscaler=$MEMBER2_AUTOSCALER"
+echo "member3: $MEMBER3_NODES nodes, ${MEMBER3_CPU} CPU, ${MEMBER3_MEM} RAM"
 echo ""
 
 # -----------------------------------------------------------------------------

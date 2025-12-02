@@ -28,7 +28,10 @@ spec:
         staticWeightList:
           - targetCluster:
               clusterNames: [member1]
-            weight: 100
+            weight: 1
+          - targetCluster:
+              clusterNames: [member3]
+            weight: 1
 ---
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
@@ -84,7 +87,7 @@ spec:
             operator: DoesNotExist
   placement:
     clusterAffinity:
-      labelSelector: {}
-    replicaScheduling:
-      replicaSchedulingType: Divided
-      replicaDivisionPreference: Weighted
+    spreadConstraints:
+      - spreadByField: "cluster"
+        minGroups: 1
+        maxGroups: 1

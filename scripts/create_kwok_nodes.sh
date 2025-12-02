@@ -31,7 +31,7 @@ function create_fake_nodes() {
   local cloud_label=""
 
   # Assign cloud label based on cluster identity
-  if [[ "$cluster_name" == "member1" ]]; then
+  if [[ "$cluster_name" == "member1" || "$cluster_name" == "member3" ]]; then
     cloud_label="private"
   elif [[ "$cluster_name" == "member2" ]]; then
     cloud_label="public"
@@ -103,5 +103,6 @@ EOF
 # -----------------------------------------------------------------------------
 create_fake_nodes "member1"
 create_fake_nodes "member2"
+create_fake_nodes "member3"
 
 echo -e "${COLOR}✅ All initial KWOK fake nodes created successfully!${RESET}"
