@@ -83,14 +83,21 @@ function install_git() {
 function install_kubectl() {
   local KUBECTL_VERSION=v1.32.3
 
-  if ! command -v kubectl &> /dev/null; then
-    echo -e "${COLOR}📦 Installing kubectl...${RESET}"
-    curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
-    chmod +x kubectl
-    sudo mv kubectl /usr/local/bin/
-  else
+  # Check if kubectl exists AND works
+  if command -v kubectl &> /dev/null && kubectl version --client &> /dev/null; then
     echo -e "${COLOR}✅ kubectl is already installed.${RESET}"
+    return 0
   fi
+
+  echo -e "${COLOR}📦 Installing kubectl...${RESET}"
+  
+  local OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+  local ARCH=$(uname -m)
+  if [[ "$ARCH" == "x86_64" ]]; then ARCH="amd64"; fi
+
+  curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/${OS}/${ARCH}/kubectl"
+  chmod +x kubectl
+  sudo mv kubectl /usr/local/bin/
 }
 
 function install_helm() {
@@ -103,14 +110,29 @@ function install_helm() {
 }
 
 function install_kind() {
-  if ! command -v kind &> /dev/null; then
-    echo -e "${COLOR}🧱 Installing kind...${RESET}"
-    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
-    chmod +x ./kind
-    sudo mv ./kind /usr/local/bin/kind
-  else
+  # Check if kind exists AND works
+  if command -v kind &> /dev/null && kind version &> /dev/null; then
     echo -e "${COLOR}✅ kind is already installed.${RESET}"
+    return 0
   fi
+
+  echo -e "${COLOR}🧱 Installing kind...${RESET}"
+  
+  local OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+  local ARCH=$(uname -m)
+  if [[ "$ARCH" == "x86_64" ]]; then ARCH="amd64"; fi
+  
+  local KIND_URL=""
+  if [[ "$OS" == "darwin" ]]; then
+      KIND_URL="https://kind.sigs.k8s.io/dl/v0.29.0/kind-darwin-${ARCH}"
+  else
+      KIND_URL="https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64"
+  fi
+
+  echo "Downloading kind from $KIND_URL"
+  curl -Lo ./kind "$KIND_URL"
+  chmod +x ./kind
+  sudo mv ./kind /usr/local/bin/kind
 }
 
 function install_jq() {
@@ -118,9 +140,30 @@ function install_jq() {
 
   if ! command -v jq &> /dev/null; then
     local JQ_VERSION="jq-1.6"
-
     echo -e "${COLOR}🔧 Installing jq...${RESET}"
-    sudo curl -L -o /usr/local/bin/jq https://github.com/stedolan/jq/releases/download/$JQ_VERSION/jq-linux64
+    
+    local OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local URL=""
+    
+    if [[ "$OS" == "darwin" ]]; then
+        # jq 1.6 release naming for mac is osx-amd64. No arm64 binary in 1.6 release assets?
+        # jq 1.7 has better support. Let's try to use system package manager or fallback.
+        if command -v brew &> /dev/null; then
+            brew install jq
+            return 0
+        fi
+        # Fallback to 1.7.1 which has macos binaries
+        JQ_VERSION="jq-1.7.1"
+        URL="https://github.com/jqlang/jq/releases/download/${JQ_VERSION}/jq-macos-amd64"
+        # For M1/M2 (arm64), jq 1.7.1 has jq-macos-arm64
+        if [[ "$(uname -m)" == "arm64" ]]; then
+             URL="https://github.com/jqlang/jq/releases/download/${JQ_VERSION}/jq-macos-arm64"
+        fi
+    else
+        URL="https://github.com/stedolan/jq/releases/download/${JQ_VERSION}/jq-linux64"
+    fi
+    
+    sudo curl -L -o /usr/local/bin/jq "$URL"
     sudo chmod +x /usr/local/bin/jq
   else
     echo -e "${COLOR}✅ jq is already installed.${RESET}"
@@ -158,17 +201,25 @@ function install_go() {
   if ! command -v go &> /dev/null; then
     echo -e "${COLOR}🔧 Installing Golang...${RESET}"
     GO_VERSION="1.21.0"
-    curl -LO https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz
+    local OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local ARCH=$(uname -m)
+    if [[ "$ARCH" == "x86_64" ]]; then ARCH="amd64"; fi
+    
+    curl -LO https://go.dev/dl/go${GO_VERSION}.${OS}-${ARCH}.tar.gz
     sudo rm -rf /usr/local/go
-    sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
-    rm "go${GO_VERSION}.linux-amd64.tar.gz"
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    sudo tar -C /usr/local -xzf go${GO_VERSION}.${OS}-${ARCH}.tar.gz
+    rm "go${GO_VERSION}.${OS}-${ARCH}.tar.gz"
+    
+    # Update path only if not present
+    if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    fi
     export PATH=$PATH:/usr/local/go/bin
     echo -e "${COLOR}ℹ️ Golang installed. PATH has been updated.${RESET}"
 
     read -p "❓ Do you want to run 'source ~/.bashrc' now to apply the changes? [y/N] " answer
     if [[ "$answer" =~ ^[yY]$ ]]; then
-      source ~/.bashrc
+      if [ -f ~/.bashrc ]; then source ~/.bashrc; fi
       echo -e "${COLOR}✅ PATH updated successfully.${RESET}"
     else
       echo -e "${COLOR}ℹ️ You can run 'source ~/.bashrc' manually later or open a new terminal.${RESET}"
@@ -184,7 +235,18 @@ function install_yq() {
 
   if ! command -v yq &> /dev/null || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
     echo -e "${COLOR}📦 Installing yq ${DESIRED_VERSION} (from GitHub)...${RESET}"
-    sudo wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${DESIRED_VERSION}/yq_linux_amd64"
+    
+    # Detect platform
+    local PLATFORM="linux_amd64"
+    if [[ "$(uname)" == "Darwin" ]]; then
+      if [[ "$(uname -m)" == "arm64" ]]; then
+        PLATFORM="darwin_arm64"
+      else
+        PLATFORM="darwin_amd64"
+      fi
+    fi
+    
+    sudo curl -L -o /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${DESIRED_VERSION}/yq_${PLATFORM}"
     sudo chmod +x /usr/local/bin/yq
     echo -e "${COLOR}✅ yq ${DESIRED_VERSION} installed.${RESET}"
   else
@@ -195,7 +257,7 @@ function install_yq() {
 function remove_from_apt() {
   local TARGET_PACKAGE=$1
 
-  if dpkg -l | grep -q "^ii  $TARGET_PACKAGE"; then
+  if command -v dpkg &> /dev/null && dpkg -l | grep -q "^ii  $TARGET_PACKAGE"; then
     echo "${COLOR}🔧 $TARGET_PACKAGE is installed via apt. Removing...${RESET}"
     sudo apt remove -y $TARGET_PACKAGE
   fi

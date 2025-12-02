@@ -32,9 +32,12 @@ else
 fi
 
 cd karmada
-sudo sysctl fs.inotify.max_user_watches=524288
-sudo sysctl fs.inotify.max_user_instances=512
-hack/local-up-karmada.sh
+# Only set inotify limits on Linux (not needed on macOS)
+if [[ "$(uname)" == "Linux" ]]; then
+  sudo sysctl fs.inotify.max_user_watches=524288
+  sudo sysctl fs.inotify.max_user_instances=512
+fi
+bash hack/local-up-karmada.sh
 cd ..
 
 # -----------------------------------------------------------------------------
