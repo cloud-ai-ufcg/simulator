@@ -1,9 +1,13 @@
 SHELL := /bin/bash
 
-.PHONY: all setup-and-start start setup-kubernetes-infra stop-all-containers restart-all-containers help
+.PHONY: all setup-and-start start setup-kubernetes-infra stop-all-containers restart-all-containers help verify-start
 
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
+
+# Verifies if the environment is ready for start
+verify-start:
+	@scripts/verify_env.sh
 
 # Sets up Kubernetes infrastructure
 setup-kubernetes-infra:
@@ -88,6 +92,7 @@ generate-plots:
 help:
 	@echo "Available targets:"
 	@echo "  all                      : Alias for 'setup-and-start'."
+	@echo "  verify-start             : Verifies if the environment is ready for 'start'."
 	@echo "  setup-and-start          : Sets up infrastructure, starts all containers and runs the simulator."
 	@echo "  start                    : Starts ONLY the Go simulator (assumes infrastructure and containers are already running)."
 	@echo "  ---"
