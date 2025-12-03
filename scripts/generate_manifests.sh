@@ -78,7 +78,7 @@ cat > clusterpropagationpolicy.yaml <<EOF
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
 metadata:
-  name: deploy-private
+  name: deploy-member1
 spec:
   resourceSelectors:
     - apiVersion: apps/v1
@@ -86,18 +86,18 @@ spec:
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
     - apiVersion: batch/v1
       kind: Job
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
   placement:
     clusterAffinity:
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
@@ -105,12 +105,12 @@ spec:
         staticWeightList:
           - targetCluster:
               clusterNames: [member1]
-            weight: 100
+            weight: 1
 ---
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
 metadata:
-  name: deploy-public
+  name: deploy-member2
 spec:
   resourceSelectors:
     - apiVersion: apps/v1
@@ -118,18 +118,18 @@ spec:
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
     - apiVersion: batch/v1
       kind: Job
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
   placement:
     clusterAffinity:
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
@@ -137,7 +137,39 @@ spec:
         staticWeightList:
           - targetCluster:
               clusterNames: [member2]
-            weight: 100
+            weight: 1
+---
+apiVersion: policy.karmada.io/v1alpha1
+kind: ClusterPropagationPolicy
+metadata:
+  name: deploy-member3
+spec:
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: member3
+    - apiVersion: batch/v1
+      kind: Job
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: member3
+  placement:
+    clusterAffinity:
+      labelSelector:
+        matchLabels:
+          cloud: member3
+    replicaScheduling:
+      replicaSchedulingType: Divided
+      replicaDivisionPreference: Weighted
+      weightPreference:
+        staticWeightList:
+          - targetCluster:
+              clusterNames: [member3]
+            weight: 1
 ---
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy

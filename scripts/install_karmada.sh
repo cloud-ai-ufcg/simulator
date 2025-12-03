@@ -76,9 +76,9 @@ export KUBECONFIG=~/.kube/karmada.config
 kubectl config use-context karmada-apiserver
 
 echo -e "${COLOR}🏷️  Labeling clusters...${RESET}"
-kubectl label cluster member1 cloud=private --overwrite
-kubectl label cluster member2 cloud=public --overwrite
-kubectl label cluster member3 cloud=private --overwrite
+kubectl label cluster member1 cloud=member1 --overwrite
+kubectl label cluster member2 cloud=member2 --overwrite
+kubectl label cluster member3 cloud=member3 --overwrite
 
 # -----------------------------------------------------------------------------
 # 3. Apply ClusterPropagationPolicies if not already present
