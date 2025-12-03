@@ -47,6 +47,9 @@ setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-
 start:
 	@(cd simulator/cmd && go run main.go)
 
+fast-setup:
+	@cd scripts && ./fast_deploy.sh
+
 # Sets up the complete infrastructure and runs the simulator
 setup-and-start: setup start
 
