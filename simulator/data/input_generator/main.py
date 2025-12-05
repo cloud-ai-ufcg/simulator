@@ -20,21 +20,23 @@ PLOT_DIR_OUT = ROOT_PATH / "plot"
 # Lista composta de (timestamp, porcentagem)
 WEIGHTS_PLANNED = [
     (1, 0.1),
-    (180, 1),
-    (300, 1),
-    (420, 0.5),
-    (450, 0.5),
-    (510, 0.1),
-    (540, 0.1),
-    (600, 0.7),
-    (720, 0.7),
+        (300, 0.5),
+        (400, 0.5),
+        (600, 1),
+        (700, 1),
+        (900, 0.5),
+        (1000, 0.5),
+        (1200, 0.1),
+        (1500, 0.7),
+        (1800, 0.7)
+    
 ]
 
 # Valores fixados para os workloads (o MAXIMUM_TIMESTAMP deve ser igual a o último indicado no WEIGHTS_PLANNED)
 MAXIMUM_REPLICAS = 6
-MAXIMUM_TIMESTAMP = 720
+MAXIMUM_TIMESTAMP = 1800
 NUMBER_OF_JOBS = 0
-NUMBER_OF_DEPLOYMENTS = 30
+NUMBER_OF_DEPLOYMENTS = 50
 
 # Recusos fixos para cada workload
 CPU_DEFAULT = "1"  # Core

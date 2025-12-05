@@ -93,6 +93,12 @@ stop-all-containers:
 #
 # - Without this, the Broker will not be able to create deployments and jobs correctly.
 # ──────────────────────────────────────────────────────────────────────────────
+# Generates input data for simulation
+generate-input:
+	@echo "Generating input data for simulation..."
+	@(cd simulator/data/input_generator && ../../../venv/bin/python main.py)
+	@echo "Input data generated successfully."
+
 # Help
 
 help:
@@ -108,6 +114,9 @@ help:
 	@echo "  ---"
 	@echo "  Database:"
 	@echo "    clean-mongo-db         : Stops the mongo container and removes its data volume."
+	@echo "  ---"
+	@echo "  Data Generation:"
+	@echo "    generate-input         : Generates input data for simulation using the input_generator."
 	@echo "  ---"
 	@echo "  Infrastructure:"
 	@echo "    setup-kubernetes-infra : Runs scripts/main.sh to set up Kubernetes infrastructure."
