@@ -65,6 +65,11 @@ clean-mongo-db:
 	sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
 	echo "All documents removed from all user collections via mongosh in container."
 
+clean-infra:
+	@echo "Cleaning infrastructure..."
+	@bash scripts/clean_infra.sh
+	@echo "Infrastructure cleaned."
+
 restart-all-containers: stop-all-containers run-all-containers
 	@echo "All services have been fully restarted."
 
