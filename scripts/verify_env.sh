@@ -35,6 +35,24 @@ check_file() {
     fi
 }
 
+check_prometheus_endpoint() {
+    local url=$1
+    local name=$2
+
+    if ! command -v curl >/dev/null 2>&1; then
+        echo -e "${RED}[FAIL] 'curl' is required to check Prometheus '$name' endpoint${NC}"
+        failed=1
+        return
+    fi
+
+    if curl --silent --fail --max-time 5 "$url" > /dev/null 2>&1; then
+        echo -e "${GREEN}[OK] Prometheus '$name' is reachable at $url${NC}"
+    else
+        echo -e "${RED}[FAIL] Prometheus '$name' is NOT reachable at $url${NC}"
+        failed=1
+    fi
+}
+
 echo "========================================"
 echo "Verifying environment for 'make start'"
 echo "========================================"
@@ -58,13 +76,17 @@ check_container ai-engine
 check_container actuator
 check_container mongo
 
-# 4. Check Simulator Code
-echo -e "\n[Checking Simulator Code]"
-check_file "simulator/cmd/main.go"
-
-echo "========================================"
-if [ $failed -eq 0 ]; then
-    echo -e "${GREEN}Everything looks ready for 'make start'!${NC}"
+ # 4. Check Simulator Code
+ echo -e "\n[Checking Simulator Code]"
+ check_file "simulator/cmd/main.go"
+ 
+ echo -e "\n[Checking Prometheus Endpoints]"
+ check_prometheus_endpoint "http://localhost:9090/-/ready" "member1"
+ check_prometheus_endpoint "http://localhost:9091/-/ready" "member2"
+ 
+ echo "========================================"
+ if [ $failed -eq 0 ]; then
+     echo -e "${GREEN}Everything looks ready for 'make start'!${NC}"
     exit 0
 else
     echo -e "${RED}Some requirements are missing. Please fix them before running 'make start'.${NC}"

@@ -13,8 +13,8 @@ services:
               source: ~/.kube/members.config
               target: /root/.kube/members.config
         network_mode: "host"
-        ports:
-            - "8080:8081"
+        expose:
+            - "8081"
         depends_on:
             - mongo
 
@@ -31,8 +31,8 @@ services:
               source: ./simulator/data/config.yaml
               target: /app/simulator_config.yaml
         network_mode: host
-        ports:
-            - "8080:8082"
+        expose:
+            - "8082"
     ai-engine:
         container_name: ai-engine
         build:
@@ -49,8 +49,8 @@ services:
               source: ./simulator/data/config.yaml
               target: /app/simulator_config.yaml
         network_mode: "host"
-        ports:
-            - "8080:8083"
+        expose:
+            - "8083"
         depends_on:
             - monitor
             - actuator
@@ -73,8 +73,8 @@ services:
               source: ./simulator/data/config.yaml
               target: /simulator/data/config.yaml
         network_mode: "host"
-        ports:
-            - "8080:8084"
+        expose:
+            - "8084"
         depends_on:
             - mongo
     mongo:

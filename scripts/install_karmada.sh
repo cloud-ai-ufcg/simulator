@@ -68,6 +68,12 @@ if [[ "$(uname)" == "Linux" ]]; then
   sudo sysctl fs.inotify.max_user_watches=524288
   sudo sysctl fs.inotify.max_user_instances=512
 fi
+  # Ensure /tmp/karmada is owned by the current user to avoid permission
+  # errors inside Karmada's local-up script when cleaning temporary logs.
+  if [ -d /tmp/karmada ]; then
+    sudo chown -R "$(id -un)":"$(id -gn)" /tmp/karmada 2>/dev/null || true
+  fi
+
 bash hack/local-up-karmada.sh
 cd ..
 
