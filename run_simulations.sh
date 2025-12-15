@@ -42,7 +42,7 @@ echo "Creating configuration backup at: ${BACKUP_FILE}"
 cp "${CONFIG_FILE}" "${BACKUP_FILE}"
 
 # Parameter combinations
-MODELS=("openai/gpt-5")
+MODELS=("openai/gpt-5" "openai/gpt-5-mini")
 INPUTS=("input_const.json" "input_varia.json")
 TEMPERATURES=(0.1 0.5)
 GRAPH_VERSIONS=("v1" "v2")
@@ -74,6 +74,16 @@ for model in "${MODELS[@]}"; do
         yq -i '.["ai-engine"].ai.multi_agent.generation_config.temperature = '"${temp}" "${CONFIG_FILE}"
 
         echo "Configuration applied to ${CONFIG_FILE}."
+
+        # Ensure simulator uses the same input file as configured for the AI engine
+        SIM_INPUT_SRC="${ROOT_DIR}/simulator/data/${input_file}"
+        SIM_INPUT_DST="${ROOT_DIR}/simulator/data/input.json"
+        if [ -f "${SIM_INPUT_SRC}" ]; then
+          echo "Syncing simulator input: ${SIM_INPUT_SRC} -> ${SIM_INPUT_DST}"
+          cp "${SIM_INPUT_SRC}" "${SIM_INPUT_DST}"
+        else
+          echo "Warning: simulator input source file not found: ${SIM_INPUT_SRC}"
+        fi
 
         desc="Model=${model} | Input=${input_file} | Temp=${temp} | Graph=${graph}"
         status="SUCCESS"
