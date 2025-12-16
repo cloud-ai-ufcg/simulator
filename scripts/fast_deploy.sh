@@ -258,7 +258,7 @@ main() {
     
     echo -e "${COLOR_MAIN}"
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                        🎉 SUCCESS! 🎉                         ║"
+    echo "║                        🎉 SUCCESS! 🎉                       ║"
     echo "║              Infrastructure deployed successfully            ║"
     echo "║                Time: ${minutes}m ${seconds}s                 ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
