@@ -16,6 +16,31 @@ if [ ! -f "${CONFIG_FILE}" ]; then
   exit 1
 fi
 
+# Help / usage
+if [ "${1-}" = "-h" ] || [ "${1-}" = "--help" ]; then
+  script_name="$(basename "$0")"
+  cat <<EOF
+Usage: ${script_name} [INPUT_FILTER] [GRAPH_VERSION]
+
+INPUT_FILTER:
+  (none)       Run both input_const.json and input_varia.json
+  const        Run only input_const.json (24 nodes/cluster)
+  varia        Run only input_varia.json (38 nodes/cluster)
+
+GRAPH_VERSION:
+  (none)       Run both v1 and v2
+  v1           Use only graph version v1
+  v2           Use only graph version v2
+
+Examples:
+  ${script_name}               # all inputs, v1 and v2
+  ${script_name} const         # only input_const.json, v1 and v2
+  ${script_name} varia v1      # only input_varia.json, graph v1
+  ${script_name} "" v2         # both inputs, only graph v2
+EOF
+  exit 0
+fi
+
 echo "Checking sudo credentials (you may be prompted once)..."
 if ! sudo -v; then
   echo "Error: failed to obtain sudo credentials."
@@ -47,6 +72,50 @@ INPUTS=("input_const.json" "input_varia.json")
 TEMPERATURES=(0.1 0.5)
 GRAPH_VERSIONS=("v1" "v2")
 
+# Optional CLI filters:
+#   ./run_simulations.sh                 # runs all combinations (both inputs, v1+v2)
+#   ./run_simulations.sh const           # only input_const.json (both v1+v2)
+#   ./run_simulations.sh varia           # only input_varia.json (both v1+v2)
+#   ./run_simulations.sh const v1        # only input_const.json + graph v1
+#   ./run_simulations.sh varia v2        # only input_varia.json + graph v2
+INPUT_FILTER="${1-}"
+GRAPH_FILTER="${2-}"
+
+# Filter by input type (const/varia)
+case "${INPUT_FILTER}" in
+  "" )
+    # No filter: keep both inputs
+    ;;
+  const)
+    INPUTS=("input_const.json")
+    ;;
+  varia)
+    INPUTS=("input_varia.json")
+    ;;
+  *)
+    echo "Invalid input type: '${INPUT_FILTER}'"
+    echo "Usage: $0 [const|varia] [v1|v2]"
+    exit 1
+    ;;
+esac
+
+# Optional filter by graph version
+case "${GRAPH_FILTER}" in
+  "" )
+    # No filter: keep both versions
+    ;;
+  v1)
+    GRAPH_VERSIONS=("v1")
+    ;;
+  v2)
+    GRAPH_VERSIONS=("v2")
+    ;;
+  *)
+    echo "Invalid graph_version: '${GRAPH_FILTER}'. Use 'v1' or 'v2'."
+    exit 1
+    ;;
+esac
+
 run_counter=0
 declare -a RUN_STATUS
 declare -a RUN_DESC
@@ -67,11 +136,26 @@ for model in "${MODELS[@]}"; do
         # Restore original config before applying changes
         cp "${BACKUP_FILE}" "${CONFIG_FILE}"
 
-        # Update parameters in config.yaml
+        # Update AI engine parameters in config.yaml
         yq -i '.["ai-engine"].ai.selected_model = "'"${model}"'"' "${CONFIG_FILE}"
         yq -i '.["ai-engine"].data.input_json = "'"${input_file}"'"' "${CONFIG_FILE}"
         yq -i '.["ai-engine"].ai.multi_agent.graph_version = "'"${graph}"'"' "${CONFIG_FILE}"
         yq -i '.["ai-engine"].ai.multi_agent.generation_config.temperature = '"${temp}" "${CONFIG_FILE}"
+
+        # Adjust cluster size (nodes per member) based on the selected input file
+        # - input_const.json  -> 24 nodes per cluster
+        # - input_varia.json  -> 38 nodes per cluster
+        nodes_value=38
+        case "${input_file}" in
+          input_const.json)
+            nodes_value=24
+            ;;
+          input_varia.json)
+            nodes_value=38
+            ;;
+        esac
+        yq -i ".clusters.member1.nodes = ${nodes_value}" "${CONFIG_FILE}"
+        yq -i ".clusters.member2.nodes = ${nodes_value}" "${CONFIG_FILE}"
 
         echo "Configuration applied to ${CONFIG_FILE}."
 
@@ -186,6 +270,19 @@ else
   echo "  No simulations were executed."
 fi
 echo "============================================"
+
+# Ensure output directories are owned by the invoking user (not root),
+# so they can be edited or deleted without sudo.
+OWNER_USER="${SUDO_USER:-$USER}"
+if [ -n "${OWNER_USER}" ]; then
+  echo "Fixing ownership of output directories for user: ${OWNER_USER}"
+  if [ -d "${ROOT_DIR}/simulator/data/output" ]; then
+    sudo chown -R "${OWNER_USER}:${OWNER_USER}" "${ROOT_DIR}/simulator/data/output" || true
+  fi
+  if [ -d "${ROOT_DIR}/analyzer/output" ]; then
+    sudo chown -R "${OWNER_USER}:${OWNER_USER}" "${ROOT_DIR}/analyzer/output" || true
+  fi
+fi
 
 echo "All simulations finished."
 echo "You can find outputs in: ${ROOT_DIR}/simulator/data/output/"
