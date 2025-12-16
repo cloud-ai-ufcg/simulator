@@ -8,6 +8,9 @@ ACTUATOR_MODE ?= auto
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
 
+# Verifies if the environment is ready for start
+verify-start:
+	@scripts/verify_env.sh
 # Sets up infrastructure and runs in human-in-the-loop mode
 setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
 
@@ -44,6 +47,9 @@ setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-
 start:
 	@(cd simulator/cmd && go run main.go)
 
+fast-setup:
+	@cd scripts && ./fast_deploy.sh
+
 # Sets up the complete infrastructure and runs the simulator
 setup-and-start: setup start
 
@@ -58,6 +64,11 @@ clean-mongo-db:
 	js='dbs=db.getMongo().getDBNames().filter(function(x){return ["admin","local","config"].indexOf(x)<0});dbs.forEach(function(dbName){db=db.getSiblingDB(dbName);db.getCollectionNames().forEach(function(coll){db[coll].deleteMany({});});});'; \
 	sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
 	echo "All documents removed from all user collections via mongosh in container."
+
+clean-infra:
+	@echo "Cleaning infrastructure..."
+	@bash scripts/clean_infra.sh
+	@echo "Infrastructure cleaned."
 
 restart-all-containers: stop-all-containers run-all-containers
 	@echo "All services have been fully restarted."
@@ -104,6 +115,7 @@ generate-input:
 help:
 	@echo "Available targets:"
 	@echo "  all                      : Alias for 'setup-and-start'."
+	@echo "  verify-start             : Verifies if the environment is ready for 'start'."
 	@echo "  setup-and-start          : Sets up infrastructure, starts all containers and runs the simulator."
 	@echo "  start                    : Starts ONLY the Go simulator (assumes infrastructure and containers are already running)."
 	@echo "  ---"

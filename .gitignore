@@ -43,6 +43,12 @@ scripts/kwok-provider-templates-member1.yaml
 scripts/kwok-provider-templates-member2.yaml
 scripts/admin-user
 scripts/admin-password
+scripts/clusterpropagationpolicy.yaml
+
+# Outputs
+analyzer/dataplots/actuator.log
+data/output
+analyzer/metrics.json
 
 output*
 input_benchmarks
