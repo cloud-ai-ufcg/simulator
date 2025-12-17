@@ -317,7 +317,7 @@ def plot_resource(
         migration_data['timestamp_dt'] = pd.to_datetime(migration_data['timestamp'], unit='s')
         
         # Subtract 3 hours from migration timestamps to align with metrics
-        migration_data['timestamp_dt'] = migration_data['timestamp_dt'] - pd.Timedelta(hours=3)
+        # migration_data['timestamp_dt'] = migration_data['timestamp_dt'] - pd.Timedelta(hours=3)
         
         migration_data['xintercept'] = (
             migration_data['timestamp_dt'] - start_time
