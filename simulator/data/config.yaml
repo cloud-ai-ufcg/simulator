@@ -31,17 +31,11 @@ ai-engine:
     single_agent:
       selected_prompt: single_agent_v1
       provider: openrouter
-      generation_config:
-        temperature: 0.1
-        max_output_tokens: 18000
     # Multi-Agent Configuration
     multi_agent:
       selected_prompt: multi_agent
       provider: openrouter
       graph_version: v2  # Options: 'v1' (tool_system) or 'v2' (performance+cost+consolidator)
-      generation_config:
-        temperature: 0.1
-        max_output_tokens: 18000
       # Vote system:
       agents:
         cpu_checker:
@@ -63,31 +57,6 @@ ai-engine:
       generation_config:
         temperature: 0.1
         max_output_tokens: 18000
-    models:
-      gemini:
-        model_name: google/gemini-2.0-flash-001
-        provider: google
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
-      nemotron:
-        model_name: nvidia/nemotron-nano-9b-v2
-        provider: nvidia
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
-      claude:
-        model_name: anthropic/claude-3.5-sonnet
-        provider: anthropic
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
-      gpt-4o:
-        model_name: openai/gpt-4o
-        provider: openai
-        generation_config:
-          temperature: 0.1
-          max_output_tokens: 6000
     cluster_selection: # Configuration for selecting clusters to analyze
       listed_clusters: [] # List of specific cluster labels to include. Empty means all clusters.
   paths:
