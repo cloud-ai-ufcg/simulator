@@ -1,4 +1,5 @@
 .PHONY: help setup clean run generate-plots list-runs
+.PHONY: analyze-load
 
 # Default target
 help:
@@ -11,6 +12,7 @@ help:
 	@echo "  list-runs       - List available simulation runs"
 	@echo "  clean           - Remove output files and __pycache__"
 	@echo "  clean-all       - Remove output files, __pycache__, and venv"
+	@echo "  analyze-load    - Run R load/pending analysis (RUN_ID=<ts> or RUN_DIR=<path>)"
 	@echo ""
 	@echo "Usage examples:"
 	@echo "  make setup"
@@ -130,6 +132,38 @@ list-runs:
 	@echo ""
 	@echo "To analyze a run, use:"
 	@echo "  make generate-plots RUN_DIR=../simulator/data/output/<timestamp>"
+	@echo "  make analyze-load RUN_ID=<timestamp>" \
+		"or RUN_DIR=/abs/path/to/output/<run>"
+
+# Analyze load and pending pods using R script
+analyze-load:
+	@if [ -z "$(RUN_ID)" ] && [ -z "$(RUN_DIR)" ]; then \
+		echo "Usage: make analyze-load RUN_ID=20251218_081553"; \
+		echo "   or: make analyze-load RUN_DIR=/abs/path/to/output/<run>"; \
+		echo "Example (fragment): make analyze-load RUN_DIR=/google-gemini-2.5-pro_input_varia_v2_0.5/20251218_125816"; \
+		echo "Example (abs path): make analyze-load RUN_DIR=/home/gabrielly.lima/projetos/simulator/analyzer/output/google-gemini-2.5-pro_input_varia_v2_0.5/20251218_125816"; \
+		exit 1; \
+	fi
+	@if [ -n "$(RUN_DIR)" ]; then \
+		if [ -d "$(RUN_DIR)" ]; then \
+			BASE_DIR="$(RUN_DIR)"; \
+		elif [ -d "output$(RUN_DIR)" ]; then \
+			BASE_DIR="output$(RUN_DIR)"; \
+		elif [ -d "output/$(RUN_DIR)" ]; then \
+			BASE_DIR="output/$(RUN_DIR)"; \
+		else \
+			echo "Directory not found: $(RUN_DIR)"; exit 1; \
+		fi; \
+	else \
+		BASE_DIR="output/$(RUN_ID)"; \
+	fi; \
+	CSV_PATH="$$BASE_DIR/processed_data/processed_data.csv"; \
+	if [ ! -f "$$CSV_PATH" ]; then \
+		echo "File not found: $$CSV_PATH"; \
+		exit 1; \
+	fi; \
+	echo "Analyzing load using $$CSV_PATH..."; \
+	Rscript calculate_quantitative_metrics/analyze_cluster_load.R "$$BASE_DIR" "$$CSV_PATH"
 
 # Clean output files and Python cache
 clean:
