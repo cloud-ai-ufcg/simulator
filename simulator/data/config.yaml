@@ -1,15 +1,15 @@
 # clusters initialzation
 clusters:
   member1:
-    nodes: 1
+    nodes: 2
     cpu: "3"
-    memory: "4Gi"
+    memory: "2560Mi"
     autoscaler: false
 
   member2:
-    nodes: 1
+    nodes: 2
     cpu: "3"
-    memory: "4Gi"
+    memory: "2560Mi"
     autoscaler: false
 
 # environment config
@@ -18,12 +18,12 @@ prometheus:
 
 # engine config
 ai-engine:
-  enabled: false
+  enabled: true
   data:
     input_json: monitor_outputs.json
   ai:
     mode: multi_agent
-    selected_model: x-ai/grok-4-fast
+    selected_model: anthropic/claude-3.5-sonnet
     scheduler_interval: 300
     timestamp_lookback_seconds: 600
     workloads_shard_size: 200
@@ -112,7 +112,7 @@ actuator:
     port: 8084
   file:
     recommendations: recommendations_example.csv
-  mode: auto  # Options: "auto" or "human-in-the-loop"
+  mode: auto # Options: "auto" or "human-in-the-loop"
   morpheus:
     url: "https://CHANGE_ME_WITH_YOUR_MORPHEUS_URL"
     access_token: "CHANGE_ME_WITH_YOUR_MORPHEUS_ACCESS_TOKEN"

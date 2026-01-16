@@ -168,8 +168,10 @@ restart-all-containers: stop-all-containers run-all-containers
 # Para derrubar os containers KIND do cluster
 stop-kubernetes-infra:
 	@echo "Parando containers KIND do cluster..."
-	docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
-	@echo "Containers KIND removidos."
+	kind delete cluster --name member1 || true
+	kind delete cluster --name member2 || true
+	kind delete cluster --name karmada-host || true
+	@echo "Clusters KIND removidos."
 
 # Stops and removes all simulator containers, volumes, and images
 stop-all-containers:
