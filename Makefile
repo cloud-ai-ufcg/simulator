@@ -36,7 +36,7 @@ run-all-containers-human:
 	@echo "Updating compose.yaml paths with the user's HOME..."
 	@echo scripts/replace_paths_in_compose.sh
 	@echo "Starting all necessary containers via docker compose (ACTUATOR_MODE=human-in-the-loop)..."
-	@ACTUATOR_MODE=human-in-the-loop docker compose -f compose.yaml up --build -d
+	@ACTUATOR_MODE=human-in-the-loop docker-compose -f compose.yaml up --build -d
 	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
 	@echo "🎯 Actuator UI available at: http://localhost:5173"
 
