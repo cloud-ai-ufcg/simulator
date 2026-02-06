@@ -1,4 +1,17 @@
 services:
+    infra-environment:
+        container_name: infra-environment
+        build:
+            context: ./scripts
+            dockerfile: Dockerfile
+        privileged: true
+        restart: unless-stopped
+        network_mode: "host"
+        volumes:
+            - ./simulator/data/config.yaml:/workspace/data/config.yaml
+            - ~/.kube:/root/.kube
+            - /var/run/docker.sock:/var/run/docker.sock
+
     broker:
         container_name: broker
         build:
@@ -17,6 +30,7 @@ services:
             - "8081"
         depends_on:
             - mongo
+            - infra-environment
 
     monitor:
         container_name: monitor
@@ -33,6 +47,9 @@ services:
         network_mode: host
         expose:
             - "8082"
+        depends_on:
+            - infra-environment
+    
     ai-engine:
         container_name: ai-engine
         build:
@@ -54,6 +71,7 @@ services:
         depends_on:
             - monitor
             - actuator
+    
     actuator:
         container_name: actuator
         build:
@@ -77,6 +95,7 @@ services:
             - "8084"
         depends_on:
             - mongo
+            - infra-environment
     mongo:
         container_name: mongo
         image: mongo:latest
