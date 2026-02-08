@@ -40,6 +40,11 @@ run-all-containers-human:
 	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
 	@echo "🎯 Actuator UI available at: http://localhost:5173"
 
+
+docker-environment:
+	@echo "Setting up Docker environment variables..."
+	@( cd initializer && bash ./setup-environment.sh )
+
 # Sets up the complete infrastructure
 setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
 
