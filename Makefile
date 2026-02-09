@@ -11,6 +11,12 @@ all: setup-and-start
 # Verifies if the environment is ready for start
 verify-start:
 	@scripts/verify_env.sh
+
+# Sets up the infrastructure and the components using Docker
+setup-infra-and-components:
+	@echo "Setting up the infrastructure and the components using Docker..."
+	@( cd initializer && bash ./setup-environment.sh )
+
 # Sets up infrastructure and runs in human-in-the-loop mode
 setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
 
@@ -40,10 +46,6 @@ run-all-containers-human:
 	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
 	@echo "🎯 Actuator UI available at: http://localhost:5173"
 
-
-docker-environment:
-	@echo "Setting up Docker environment variables..."
-	@( cd initializer && bash ./setup-environment.sh )
 
 # Sets up the complete infrastructure
 setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
