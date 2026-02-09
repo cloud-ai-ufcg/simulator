@@ -1,44 +1,33 @@
-#!/usr/bin/env Rscript
-# Analyze cluster load metrics - count how many times they exceed 80%
-
 library(dplyr)
 library(readr)
 
-# Resolve run path from CLI/env.
-# Priority: explicit CSV (2nd arg) > RUN_DIR/first arg (as dir or dir fragment) > RUN_ID/first arg (as id) -> output/<id>/processed_data/processed_data.csv
+# --- 1. CONFIGURAÇÕES ---
+FIXED_CAPACITY_PRIVATE <- 8000 
+FIXED_CAPACITY_PUBLIC  <- 8000 
+
+# Limite de Pods Pendentes (Violado se estourar 40%)
+PENDING_THRESHOLD <- 40
+
+# --- 2. SETUP DE ARQUIVO (Padrão) ---
 args <- commandArgs(trailingOnly = TRUE)
 run_id <- Sys.getenv("RUN_ID")
 run_dir <- Sys.getenv("RUN_DIR")
 explicit_csv <- NULL
 
-# Helper: expand run_dir fragments like "/google-.../2025..." to output/<fragment>
 expand_run_dir <- function(path_candidate) {
-  if (dir.exists(path_candidate)) {
-    return(path_candidate)
-  }
-  # If it starts with '/', strip and prepend output/
+  if (dir.exists(path_candidate)) return(path_candidate)
   frag <- sub("^/", "", path_candidate)
   candidate <- file.path("output", frag)
-  if (dir.exists(candidate)) {
-    return(candidate)
-  }
+  if (dir.exists(candidate)) return(candidate)
   candidate_alt <- file.path("output", path_candidate)
-  if (dir.exists(candidate_alt)) {
-    return(candidate_alt)
-  }
+  if (dir.exists(candidate_alt)) return(candidate_alt)
   return(path_candidate)
 }
 
 if (length(args) >= 1) {
-  if (dir.exists(args[1])) {
-    run_dir <- args[1]
-  } else {
-    run_id <- args[1]
-  }
+  if (dir.exists(args[1])) run_dir <- args[1] else run_id <- args[1]
 }
-if (length(args) >= 2) {
-  explicit_csv <- args[2]
-}
+if (length(args) >= 2) explicit_csv <- args[2]
 
 if (!is.null(explicit_csv)) {
   csv_file <- explicit_csv
@@ -48,111 +37,92 @@ if (!is.null(explicit_csv)) {
 } else if (nzchar(run_id)) {
   csv_file <- file.path("output", run_id, "processed_data", "processed_data.csv")
 } else {
-  stop("Please provide RUN_DIR (env or first arg if it is a path), RUN_ID (env or first arg), or an explicit CSV path as second arg")
+  stop("Need RUN_DIR, RUN_ID, or explicit CSV path")
 }
 
-if (!file.exists(csv_file)) {
-  stop(paste("CSV not found:", csv_file))
-}
+if (!file.exists(csv_file)) stop(paste("CSV not found:", csv_file))
 
 cat("Reading CSV file:", csv_file, "\n")
 df <- read_csv(csv_file, show_col_types = FALSE)
 
-# Columns to analyze
-load_columns <- c(
-  "cluster_mem_load_public",
-  "cluster_cpu_load_public",
-  "cluster_mem_load_private",
-  "cluster_cpu_load_private"
-)
-
-# Count occurrences > 80 for each column
-# Each measurement is taken every 30 seconds
-interval_seconds <- 30
-
-cat("\n=== Cluster Load Analysis (> 80%) ===\n\n")
-
-results <- data.frame(
+# DataFrame para acumular os resultados
+final_results <- data.frame(
   Metric = character(),
-  Count_Above_80 = integer(),
-  Total_Measurements = integer(),
-  Percentage = numeric(),
-  Time_Above_80_Seconds = numeric(),
-  Time_Above_80_Minutes = numeric(),
-  Time_Above_80_Hours = numeric(),
+  Count_Violations = integer(),
+  Total_Samples = integer(),
+  Percentage_Time_Violated = numeric(),
+  Time_Violated_Minutes = numeric(),
   stringsAsFactors = FALSE
 )
 
-for (col in load_columns) {
-  if (col %in% colnames(df)) {
-    # Count values > 80
-    count_above_80 <- sum(df[[col]] > 80, na.rm = TRUE)
-    total <- sum(!is.na(df[[col]]))
-    percentage <- (count_above_80 / total) * 100
-    
-    # Calculate time above 80% threshold
-    time_seconds <- count_above_80 * interval_seconds
-    time_minutes <- time_seconds / 60
-    time_hours <- time_minutes / 60
-    
-    results <- rbind(results, data.frame(
-      Metric = col,
-      Count_Above_80 = count_above_80,
-      Total_Measurements = total,
-      Percentage = round(percentage, 2),
-      Time_Above_80_Seconds = time_seconds,
-      Time_Above_80_Minutes = round(time_minutes, 2),
-      Time_Above_80_Hours = round(time_hours, 2)
-    ))
-    
-    cat(sprintf("%-30s: %4d timestamps (%.2f%%) =  %.2f minutes\n",
-                col, count_above_80, percentage, time_minutes))
-  } else {
-    cat("Column not found:", col, "\n")
-  }
+interval_seconds <- 30
+total_measurements <- nrow(df)
+
+# ANÁLISE 1: CPU LOAD NORMALIZADA (Load / Capacity * 100 > 80%)
+cat("\n=== 1. Análise de CPU (Violação > 80% da Capacidade) ===\n")
+
+get_capacity <- function(df, col_name, fixed_val) {
+  if (col_name %in% colnames(df)) return(df[[col_name]])
+  return(rep(fixed_val, nrow(df)))
 }
 
-cat("\n=== Summary Table ===\n")
-print(results, row.names = FALSE)
+col_load_priv <- "cluster_cpu_load_private"
+col_load_pub  <- "cluster_cpu_load_public"
 
-# Save results to CSV
-output_file <- sub("\\.csv$", "_load_analysis.csv", csv_file)
-write_csv(results, output_file)
-cat("\n✅ Results saved to:", output_file, "\n")
-
-# Pending pods analysis: total_percent_pending < 40%
-pending_col <- "total_percent_pending"
-pending_threshold <- 40
-
-cat("\n=== Pending Pods Analysis (< 40%) ===\n\n")
-if (pending_col %in% colnames(df)) {
-  count_below_40 <- sum(df[[pending_col]] < pending_threshold, na.rm = TRUE)
-  total_pending <- sum(!is.na(df[[pending_col]]))
-  percentage_below <- (count_below_40 / total_pending) * 100
-
-  time_seconds <- count_below_40 * interval_seconds
-  time_minutes <- time_seconds / 60
-  time_hours <- time_minutes / 60
-
-  cat(sprintf(
-    "%-25s: %4d timestamps (%.2f%%) = %.2f minutes\n",
-    pending_col, count_below_40, percentage_below, time_minutes
+if (col_load_priv %in% colnames(df) && col_load_pub %in% colnames(df)) {
+  cap_priv <- get_capacity(df, "cluster_cpu_capacity_private", FIXED_CAPACITY_PRIVATE)
+  cap_pub  <- get_capacity(df, "cluster_cpu_capacity_public",  FIXED_CAPACITY_PUBLIC)
+  
+  # Calcula %
+  pct_priv <- (df[[col_load_priv]] / cap_priv) * 100
+  pct_pub  <- (df[[col_load_pub]]  / cap_pub)  * 100
+  
+  cpu_violation <- (pct_priv > 80 & !is.na(pct_priv)) | (pct_pub > 80 & !is.na(pct_pub))
+  count_cpu <- sum(cpu_violation)
+  time_cpu  <- count_cpu * interval_seconds
+  
+  final_results <- rbind(final_results, data.frame(
+    Metric = "CPU_CAPACITY_VIOLATION (>80%)",
+    Count_Violations = count_cpu,
+    Total_Samples = total_measurements,
+    Percentage_Time_Violated = round((count_cpu / total_measurements) * 100, 2),
+    Time_Violated_Minutes = round(time_cpu / 60, 2)
   ))
-
-  pending_results <- data.frame(
-    Metric = pending_col,
-    Count_Below_40 = count_below_40,
-    Total_Measurements = total_pending,
-    Percentage = round(percentage_below, 2),
-    Time_Below_40_Seconds = time_seconds,
-    Time_Below_40_Minutes = round(time_minutes, 2),
-    Time_Below_40_Hours = round(time_hours, 2),
-    stringsAsFactors = FALSE
-  )
-
-  pending_output_file <- sub("\\.csv$", "_pending_analysis.csv", csv_file)
-  write_csv(pending_results, pending_output_file)
-  cat("\n✅ Pending results saved to:", pending_output_file, "\n")
+  
+  cat(sprintf("CPU Violated Timestamps: %d (%.2f min)\n", count_cpu, time_cpu/60))
 } else {
-  cat("Column not found:", pending_col, "\n")
+  cat("Skipping CPU: Columns not found.\n")
 }
+
+# ANÁLISE 2: PENDING PODS (> 40%)
+cat("\n=== 2. Análise de Pods Pendentes (Violação > 40%) ===\n")
+
+col_pending <- "total_percent_pending"
+
+if (col_pending %in% colnames(df)) {
+  pending_vals <- df[[col_pending]]
+  
+  cat(sprintf("Min Pending: %.2f%% | Max Pending: %.2f%%\n", min(pending_vals, na.rm=T), max(pending_vals, na.rm=T)))
+  
+  # CONTA VIOLAÇÃO: Se for MAIOR que 40
+  pending_violation <- (pending_vals > PENDING_THRESHOLD & !is.na(pending_vals))
+  
+  count_pending <- sum(pending_violation)
+  time_pending  <- count_pending * interval_seconds
+  
+  final_results <- rbind(final_results, data.frame(
+    Metric = "PENDING_PODS_VIOLATION (>40%)",
+    Count_Violations = count_pending,
+    Total_Samples = total_measurements,
+    Percentage_Time_Violated = round((count_pending / total_measurements) * 100, 2),
+    Time_Violated_Minutes = round(time_pending / 60, 2)
+  ))
+  
+  cat(sprintf("Pending Pods Violated Timestamps: %d (%.2f min)\n", count_pending, time_pending/60))
+  
+} else {
+  cat("Skipping Pending Pods: Column 'total_percent_pending' not found.\n")
+}
+
+cat("\n=== RESUMO GERAL DAS VIOLAÇÕES ===\n")
+print(final_results, row.names = FALSE)
