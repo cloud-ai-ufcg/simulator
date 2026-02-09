@@ -108,9 +108,10 @@ echo -e "${COLOR}[8/8] 🧪 Applying taints and creating KWOK nodes...${RESET}"
 # -----------------------------------------------------------------------------
 # 5. Final message
 # -----------------------------------------------------------------------------
+export BUILDLOG="$HOME/.kube/build.log"
+
 echo -e "\n${COLOR}[🎉] Environment provisioned successfully!${RESET}"
-
-
 if [ "${SERVERMODE:-0}" -eq 1 ]; then
+    touch $BUILDLOG
     tail -f /dev/null
 fi

@@ -13,9 +13,9 @@ verify-start:
 	@scripts/verify_env.sh
 
 # Sets up the infrastructure and the components using Docker
-setup-infra-and-components:
-	@echo "Setting up the infrastructure and the components using Docker..."
-	@( cd initializer && bash ./setup-environment.sh )
+# setup-infra-and-components:
+# 	@echo "Setting up the infrastructure and the components using Docker..."
+# 	@bash initializer/setup-environment.sh 
 
 # Sets up infrastructure and runs in human-in-the-loop mode
 setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
@@ -24,7 +24,7 @@ setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-contai
 setup-kubernetes-infra:
 	@echo -e "\\e[35mStarting Kubernetes infrastructure setup (scripts/main.sh)...\\e[0m"
 	@( \
-		cd scripts && ./main.sh; \
+		bash initializer/setup-environment.sh --inframode \
 	)
 	@echo -e "\\e[35mKubernetes infrastructure setup completed.\\e[0m"
 
@@ -33,7 +33,7 @@ run-all-containers:
 	@echo "Updating compose.yaml paths with the user's HOME..."
 	@echo scripts/replace_paths_in_compose.sh
 	@echo "Starting all necessary containers via docker-compose..."
-	@docker-compose -f compose.yaml up --build -d
+	@bash initializer/setup-environment.sh --components-only
 	@echo "All containers started successfully."
 
 # Run containers in human-in-the-loop mode (UI review required)
@@ -42,7 +42,7 @@ run-all-containers-human:
 	@echo "Updating compose.yaml paths with the user's HOME..."
 	@echo scripts/replace_paths_in_compose.sh
 	@echo "Starting all necessary containers via docker compose (ACTUATOR_MODE=human-in-the-loop)..."
-	@ACTUATOR_MODE=human-in-the-loop docker compose -f compose.yaml up --build -d
+	@ACTUATOR_MODE=human-in-the-loop bash initializer/setup-environment.sh --components-only
 	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
 	@echo "🎯 Actuator UI available at: http://localhost:5173"
 
@@ -52,7 +52,7 @@ setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
 start:
-	@(cd simulator/cmd && go run main.go)
+	@(bash initializer/check_infra_status.sh && cd simulator/cmd && go run main.go)
 
 fast-setup:
 	@cd scripts && ./fast_deploy.sh

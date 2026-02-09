@@ -76,7 +76,7 @@ services:
         container_name: actuator
         build:
             context: ./actuator
-            dockerfile: Dockerfile.apifront
+            dockerfile: Dockerfile.api
         restart: unless-stopped
         environment:
             - SIMULATOR_CONFIG=/simulator/data/config.yaml
