@@ -88,8 +88,8 @@ stop-kubernetes-infra:
 
 # Stops and removes all simulator containers, volumes, and images
 stop-all-containers:
-	@echo "Stopping and removing all containers and volumes defined in compose.yaml..."
-	@sudo docker-compose -f compose.yaml down -v
+	@echo "Stopping and removing all containers and volumes defined in simulator-infra.yaml..."
+	@sudo docker compose -f simulator-infra.yaml down -v
 	@echo "Removing images..."
 	@mongo_image_ids=$$(sudo docker images --format '{{.ID}} {{.Repository}}' | grep mongo | awk '{print $$1}'); \
 	for img in $$(sudo docker images -q); do \
