@@ -76,10 +76,11 @@ services:
         container_name: actuator
         build:
             context: ./actuator
-            dockerfile: Dockerfile.api
+            dockerfile: Dockerfile.apifront
         restart: unless-stopped
         environment:
             - SIMULATOR_CONFIG=/simulator/data/config.yaml
+            - ACTUATOR_MODE=human-in-the-loop
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
