@@ -23,18 +23,19 @@ setup_components() {
 }
 
 check_call() {
-    ./check_infra_status.sh
+    chmod +x initializer/check_infra_status.sh
+    initializer/check_infra_status.sh
     if [ $? -eq 1 ]; then
         exit 1
     fi
 }
 
 # Clean up existing Karmada and members config files if they are empty
-sudo rm -f "$KUBE_PATH/karmada.config" "$KUBE_PATH/members.config" "$KUBE_PATH/build.log"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --inframode) 
+            sudo rm -rf "$KUBE_PATH/karmada.config" "$KUBE_PATH/members.config" "$KUBE_PATH/build.log"
             setup_infra
             check_call
 
@@ -50,7 +51,7 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-
+sudo rm -rf "$KUBE_PATH/karmada.config" "$KUBE_PATH/members.config" "$KUBE_PATH/build.log"
 setup_infra
 check_call
 setup_components
