@@ -112,6 +112,8 @@ export BUILDLOG="$HOME/.kube/build.log"
 
 echo -e "\n${COLOR}[🎉] Environment provisioned successfully!${RESET}"
 if [ "${SERVERMODE:-0}" -eq 1 ]; then
-    touch $BUILDLOG
+    echo "Server Mode: Build log available at $BUILDLOG"
+    echo "" > $BUILDLOG
+    
     tail -f /dev/null
 fi
