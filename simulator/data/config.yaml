@@ -1,7 +1,7 @@
 # clusters initialzation
 clusters:
   member1:
-    nodes: 38
+    nodes: 2
     cpu: "8"
     memory: "16Gi"
     autoscaler: false
@@ -23,8 +23,8 @@ ai-engine:
     input_json: monitor_outputs.json
   ai:
     mode: multi_agent                 # Agent mode: 'single_agent' or 'multi_agent'
-    selected_model: x-ai/grok-4-fast  # Selected model to be used
-    scheduler_interval: 300           # Number of seconds between scheduler runs
+    selected_model: google/gemini-2.5-flash  # Selected model to be used
+    scheduler_interval: 60           # Number of seconds between scheduler runs
     timestamp_lookback_seconds: 600   # Number of seconds to look back for metrics
     fetch_metrics_immediately: false   # Whether to fetch metrics immediately or wait for the scheduler
     # Single Agent Configuration
