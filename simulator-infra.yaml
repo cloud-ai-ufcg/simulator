@@ -80,7 +80,7 @@ services:
         restart: unless-stopped
         environment:
             - SIMULATOR_CONFIG=/simulator/data/config.yaml
-            - ACTUATOR_MODE=human-in-the-loop
+            - ACTUATOR_MODE=${ACTUATOR_MODE:-auto}
         volumes:
             - type: bind
               source: ~/.kube/karmada.config

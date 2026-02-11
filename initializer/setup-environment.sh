@@ -19,7 +19,8 @@ setup_infra() {
 
 setup_components() {
     # Up the remaining services
-    docker compose -f simulator-infra.yaml config --services | grep -v infra-environment | xargs docker compose -f simulator-infra.yaml up -d
+    export ACTUATOR_MODE=${ACTUATOR_MODE:-auto}
+    docker compose -f simulator-infra.yaml config --services | grep -v infra-environment | xargs docker compose -f simulator-infra.yaml up --no-deps -d
 }
 
 check_call() {
