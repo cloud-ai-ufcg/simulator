@@ -111,10 +111,7 @@ stop-all-containers:
 # - Without this, the Broker will not be able to create deployments and jobs correctly.
 # ──────────────────────────────────────────────────────────────────────────────
 # Generates input data for simulation
-generate-input:
-	@echo "Generating input data for simulation..."
-	@(cd simulator/data/input_generator && ../../../venv/bin/python main.py)
-	@echo "Input data generated successfully."
+
 
 # Help
 

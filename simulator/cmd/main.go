@@ -82,7 +82,5 @@ func main() {
 
 	log.Infof("Sequential execution cycle finished.")
 	log.Infof("Simulation data saved to: %s", absRunDir)
-	log.Infof("")
-	log.Infof("To generate plots and analysis, run:")
-	log.Infof("  cd analyzer && make generate-plots %s", timestamp)
+
 }
