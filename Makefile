@@ -12,9 +12,14 @@ all: setup-and-start
 verify-start:
 	@scripts/verify_env.sh
 
-
 # Sets up infrastructure and runs in human-in-the-loop mode
-setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
+setup-and-start: setup start
+
+# Sets up the complete infrastructure
+setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers clean-mongo-db
+
+# Sets up the complete infrastructure and runs the simulator without human-in-the-loop (auto mode)
+setup-and-start-auto: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto start
 
 # Sets up Kubernetes infrastructure
 setup-kubernetes-infra:
@@ -25,7 +30,7 @@ setup-kubernetes-infra:
 	@echo -e "\\e[35mKubernetes infrastructure setup completed.\\e[0m"
 
 # Starts all required containers via docker-compose
-run-all-containers:
+run-all-containers-auto:
 	@echo "Updating compose.yaml paths with the user's HOME..."
 	@echo scripts/replace_paths_in_compose.sh
 	@echo "Starting all necessary containers via docker-compose..."
@@ -33,7 +38,7 @@ run-all-containers:
 	@echo "All containers started successfully."
 
 # Run containers in human-in-the-loop mode (UI review required)
-run-all-containers-human:
+run-all-containers:
 	@echo "Starting all containers in HUMAN-IN-THE-LOOP mode..."
 	@echo "Updating compose.yaml paths with the user's HOME..."
 	@echo scripts/replace_paths_in_compose.sh
@@ -43,9 +48,6 @@ run-all-containers-human:
 	@echo "🎯 Actuator UI available at: http://localhost:5173"
 
 
-# Sets up the complete infrastructure
-setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
-
 # Starts only the Go simulator (assumes infrastructure is already set up)
 start:
 	@(bash initializer/check_infra_status.sh && cd simulator/cmd && go run main.go)
@@ -53,8 +55,6 @@ start:
 fast-setup:
 	@cd scripts && ./fast_deploy.sh
 
-# Sets up the complete infrastructure and runs the simulator
-setup-and-start: setup start
 
 # Cleans all documents from all collections in the mongo container
 clean-mongo-db:
@@ -73,7 +73,7 @@ clean-infra:
 	@bash scripts/clean_infra.sh
 	@echo "Infrastructure cleaned."
 
-restart-all-containers: stop-all-containers run-all-containers
+restart-all-containers: clean-mongo-db stop-all-containers run-all-containers
 	@echo "All services have been fully restarted."
 
 # Para derrubar os containers KIND do cluster
