@@ -1,147 +1,167 @@
-# Simulator Project
+# WASP -- Workload Agent-Based Simulation Platform
 
-This project provides a simulator environment using Docker containers for an Actuator, a Broker, a Monitor, and an AI-Engine, along with helper scripts for Kubernetes infrastructure.
-It also works with submodules to manage dependencies, such as the Broker, Actuator, Monitor, and AI-Engine repositories.
+WASP is a modular research platform for studying AI-driven workload
+migration strategies in hybrid Kubernetes environments. It integrates
+simulation, monitoring, reasoning, and execution components into a
+reproducible, containerized environment suitable for experimentation,
+demonstration, and academic evaluation.
 
-After cloning the repository, you need to initialize the submodules using the following command:
+------------------------------------------------------------------------
 
-```sh
-make init-submodules
-```
+## Overview
 
-or
+WASP provides:
 
-```sh
-git submodule update --init --recursive
-```
+-   Multi-cluster Kubernetes simulation
+-   Telemetry-driven migration recommendations
+-   AI-agnostic reasoning capabilities
+-   Human-in-the-loop (HIL) validation
+-   Fully automated execution mode
+-   Reproducible experimental runs
+
+WASP is a reproducible experimental platform for evaluating AI-driven workload migration strategies under controlled multi-cluster Kubernetes simulations.
+
+------------------------------------------------------------------------
+
+## Architecture
+
+WASP consists of the following services:
+
+-   **Simulator** -- Orchestrates execution and event scheduling
+-   **Broker** -- Dispatches workload and infrastructure events
+-   **Monitor** -- Collects periodic telemetry snapshots
+-   **AI Engine** -- Generates structured migration recommendations
+-   **Actuator** -- Validates and applies approved recommendations
+-   **Operator Interface (optional)** -- Enables human review
+
+All components are containerized and orchestrated via Docker.
+
+------------------------------------------------------------------------
 
 ## Requirements
 
-- Docker
-- Go
-- (Optional) Kubernetes and kubectl
-- (Optional) WSL for Windows users
+Minimum requirements:
 
-## Main Makefile Targets
+-   Docker (with Docker Compose support)
+-   GNU Make
+-   Go (for running the simulator locally)
 
-- **all / setup-and-start**  
-  Sets up the Kubernetes infrastructure, starts the Broker, Actuator, Monitor, and AI-Engine containers, and then runs the Go simulator. This is the main target to get everything running from scratch.
+No pre-installed Kubernetes cluster is required. The KWOK +
+Karmada-based infrastructure is provisioned automatically.
 
-  ```sh
-  make
-  # or
-  make setup-and-start
-  ```
+------------------------------------------------------------------------
 
-- **start**  
-  Runs only the Go simulator. This assumes that the Kubernetes infrastructure and all required containers are already running.
+## Quick Start
 
-  ```sh
-  make start
-  ```
+### Submodules Initialization
 
-- **run-all-containers**  
-  Starts all required containers (Broker, Actuator, Monitor, AI-Engine) without running the Go simulator.
+WASP relies on Git submodules for its core services (Broker, Monitor, Actuator, AI Engine, etc.).  
+After cloning the repository, you **must initialize and update all submodules** before running the system.
 
-  ```sh
-  make run-all-containers
-  ```
-
-- **stop-all-containers**  
-  Stops and removes all simulator containers.
-
-  ```sh
-  make stop-all-containers
-  ```
-
-- **setup-kubernetes-infra**  
-  Runs the script to set up the Kubernetes infrastructure.
-
-  ```sh
-  make setup-kubernetes-infra
-  ```
-
-- **help**  
-  Shows a list of available targets and their descriptions.
-  ```sh
-  make help
-  ```
-
-## Output and Analysis
-
-After running a simulation, the data is saved in a timestamped directory:
+First, clone the repository 
+then, from the root folder (/simulator/) run:
 
 ```
-simulator/data/output/YYYYMMDD_HHMMSS/
-├── metrics.json          # Metrics from Monitor
-└── logs/                 # Container logs
-    ├── actuator.log
-    ├── broker.log
-    ├── monitor.log
-    ├── ai-engine.log
-    └── kubectl.log
+git submodule update --init --recursive
 ```
 
-**To generate plots and analysis:**
+### Human-in-the-Loop Mode (Recommended)
 
-```sh
-cd analyzer
-make generate-plots RUN_DIR=../simulator/data/output/YYYYMMDD_HHMMSS
-```
+    make
 
-This creates plots and summaries in `analyzer/output/YYYYMMDD_HHMMSS/`.
+This command:
 
-See `analyzer/README.md` for more details.
+1.  Cleans previous infrastructure and containers
+2.  Provisions federated Kubernetes clusters
+3.  Starts all required services
+4.  Cleans MongoDB state
+5.  Launches the simulator
 
-## Container Details
+The Operator Interface (HIL mode) will be available at:
 
-- **Actuator**
+    http://localhost:5173
 
-  - Image: `actuator-api`
-  - Container name: `actuator-simulator`
-  - Dockerfile: `actuator/Dockerfile.api`
-  - Listens on port: 8085
+------------------------------------------------------------------------
 
-- **Broker**
+### Fully Automated Mode
 
-  - Image: `broker:latest`
-  - Container name: `broker-simulator`
-  - Dockerfile: `broker/Dockerfile.api`
-  - Listens on port: 8081
+    make setup-and-start-auto
 
-- **Monitor**
+In this mode, migration recommendations are automatically approved and
+applied.
 
-  - Image: `monitor:latest`
-  - Container name: `monitor-simulator`
-  - Dockerfile: `monitor/Dockerfile`
-  - Network: `host`
+------------------------------------------------------------------------
 
-- **AI-Engine**
-  - Image: `ai-engine-api`
-  - Container name: `ai-engine-simulator`
-  - Dockerfile: `ai-engine/Dockerfile.api`
-  - Listens on port: 8083
+## Execution Workflow
 
-## AI Engine Activation/Deactivation
+A typical run proceeds as follows:
 
-The AI Engine is now controlled via the configuration file `simulator/data/config.yaml`:
+1.  Infrastructure provisioning (two federated clusters).
+2.  Workload injection via the Broker.
+3.  Telemetry collection every 30 seconds.
+4.  AI reasoning every 60 seconds.
+5.  Recommendation validation (HIL or Auto).
+6.  Migration execution via the Actuator.
+7.  Logs and metrics persisted for analysis.
 
-```yaml
-ai-engine:
-  enabled: true  # Set to false to disable the AI Engine
-  ...
-```
+------------------------------------------------------------------------
 
-To enable or disable the AI Engine, simply change the value of `enabled` and run the simulator normally:
+## Output Structure
 
-```sh
-make start
-```
+Each simulation run generates a timestamped directory containing:
 
-## Notes
+-   metrics.json
+-   logs/ (actuator, broker, monitor, ai-engine logs)
 
-- The Makefile automatically builds images if they do not exist.
-- Kubeconfig and other necessary files are mounted into the containers as needed.
-- For WSL users, the Makefile attempts to detect and use the correct Windows home directory for Go commands.
+These artifacts enable reproducibility and post-run evaluation.
 
----
+------------------------------------------------------------------------
+
+## Makefile Targets
+
+Full setup + run (HIL):
+
+    make
+
+Full setup + run (Auto):
+
+    make setup-and-start-auto
+
+Setup infrastructure only:
+
+    make setup
+
+Start containers (HIL):
+
+    make run-all-containers
+
+Start containers (Auto):
+
+    make run-all-containers-auto
+
+Stop all containers:
+
+    make stop-all-containers
+
+Restart services cleanly:
+
+    make restart-all-containers
+
+------------------------------------------------------------------------
+
+## Research Focus
+
+WASP emphasizes:
+
+-   Clear separation between monitoring, reasoning, validation, and
+    execution
+-   Model-agnostic AI integration
+-   Controlled experimentation through simulation
+-   Operator oversight and auditability
+-   Reproducible research workflows
+
+------------------------------------------------------------------------
+
+## Licenses
+
+This project is intended for academic and research use.

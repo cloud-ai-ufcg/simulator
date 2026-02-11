@@ -16,7 +16,7 @@ verify-start:
 setup-and-start: setup start
 
 # Sets up the complete infrastructure
-setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers clean-mongo-db
+setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
 
 # Sets up the complete infrastructure and runs the simulator without human-in-the-loop (auto mode)
 setup-and-start-auto: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto clean-mongo-db start
@@ -49,7 +49,7 @@ run-all-containers:
 
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
-start:
+start: clean-mongo-db
 	@(bash initializer/check_infra_status.sh && cd simulator/cmd && go run main.go)
 
 fast-setup:
