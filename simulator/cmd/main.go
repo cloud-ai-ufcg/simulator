@@ -77,8 +77,6 @@ func main() {
 		absRunDir = runDir
 	}
 
-	// Extract timestamp from run directory
-	timestamp := filepath.Base(runDir)
 
 	log.Infof("Sequential execution cycle finished.")
 	log.Infof("Simulation data saved to: %s", absRunDir)
