@@ -28,7 +28,7 @@ generate_kwok_template() {
   local FILE="kwok-provider-templates-${CLUSTER}.yaml"
   local CLUSTER_TYPE=""
 
-  if [[ "$CLUSTER" == "member1" ]]; then
+  if [[ "$CLUSTER" == "member1" || "$CLUSTER" == "member3" ]]; then
     CLUSTER_TYPE="private"
   elif [[ "$CLUSTER" == "member2" ]]; then
     CLUSTER_TYPE="public"
@@ -66,6 +66,9 @@ generate_kwok_template "member1" "$MEMBER1_CPU" "$MEMBER1_MEM"
 # Generate template for member2 (public cloud)
 generate_kwok_template "member2" "$MEMBER2_CPU" "$MEMBER2_MEM"
 
+# Generate template for member3 (private cloud)
+generate_kwok_template "member3" "$MEMBER3_CPU" "$MEMBER3_MEM"
+
 # -----------------------------------------------------------------------------
 # 2. Generate Karmada ClusterPropagationPolicies
 # -----------------------------------------------------------------------------
@@ -75,7 +78,7 @@ cat > clusterpropagationpolicy.yaml <<EOF
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
 metadata:
-  name: deploy-private
+  name: deploy-member1
 spec:
   resourceSelectors:
     - apiVersion: apps/v1
@@ -83,18 +86,18 @@ spec:
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
     - apiVersion: batch/v1
       kind: Job
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
   placement:
     clusterAffinity:
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
@@ -102,12 +105,12 @@ spec:
         staticWeightList:
           - targetCluster:
               clusterNames: [member1]
-            weight: 100
+            weight: 1
 ---
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
 metadata:
-  name: deploy-public
+  name: deploy-member2
 spec:
   resourceSelectors:
     - apiVersion: apps/v1
@@ -115,18 +118,18 @@ spec:
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
     - apiVersion: batch/v1
       kind: Job
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
   placement:
     clusterAffinity:
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
@@ -134,7 +137,39 @@ spec:
         staticWeightList:
           - targetCluster:
               clusterNames: [member2]
-            weight: 100
+            weight: 1
+---
+apiVersion: policy.karmada.io/v1alpha1
+kind: ClusterPropagationPolicy
+metadata:
+  name: deploy-member3
+spec:
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: member3
+    - apiVersion: batch/v1
+      kind: Job
+      namespace: default
+      labelSelector:
+        matchLabels:
+          cloud: member3
+  placement:
+    clusterAffinity:
+      labelSelector:
+        matchLabels:
+          cloud: member3
+    replicaScheduling:
+      replicaSchedulingType: Divided
+      replicaDivisionPreference: Weighted
+      weightPreference:
+        staticWeightList:
+          - targetCluster:
+              clusterNames: [member3]
+            weight: 1
 ---
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
@@ -497,6 +532,7 @@ echo -e "${COLOR}[5/5] Generated files:${RESET}"
 ls -1 \
   kwok-provider-templates-member1.yaml \
   kwok-provider-templates-member2.yaml \
+  kwok-provider-templates-member3.yaml \
   clusterpropagationpolicy.yaml \
   kwok-provider-config.yaml \
   fast-stages.yaml

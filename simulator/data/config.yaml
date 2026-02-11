@@ -12,6 +12,12 @@ clusters:
     memory: "16Gi"
     autoscaler: true
 
+  member3:
+    nodes: 1
+    cpu: "8"
+    memory: "16Gi"
+    autoscaler: false
+
 # environment config
 prometheus:
   grafana_enable: false
