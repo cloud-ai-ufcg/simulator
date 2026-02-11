@@ -7,7 +7,7 @@ clusters:
     autoscaler: false
 
   member2:
-    nodes: 38
+    nodes: 2
     cpu: "8"
     memory: "16Gi"
     autoscaler: true
