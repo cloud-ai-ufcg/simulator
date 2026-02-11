@@ -12,10 +12,6 @@ all: setup-and-start
 verify-start:
 	@scripts/verify_env.sh
 
-# Sets up the infrastructure and the components using Docker
-# setup-infra-and-components:
-# 	@echo "Setting up the infrastructure and the components using Docker..."
-# 	@bash initializer/setup-environment.sh 
 
 # Sets up infrastructure and runs in human-in-the-loop mode
 setup-and-start-human: setup-kubernetes-infra stop-all-containers run-all-containers-human start
@@ -82,14 +78,17 @@ restart-all-containers: stop-all-containers run-all-containers
 
 # Para derrubar os containers KIND do cluster
 stop-kubernetes-infra:
-	@echo "Parando containers KIND do cluster..."
+	@echo "Parando containers KIND do cluster e infra-environment..."
 	docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
-	@echo "Containers KIND removidos."
+	@sudo docker compose -f simulator-infra.yaml stop infra-environment
+	@sudo docker compose -f simulator-infra.yaml rm -f infra-environment
+	@echo "Containers KIND e infra-environment removidos."
 
 # Stops and removes all simulator containers, volumes, and images
 stop-all-containers:
-	@echo "Stopping and removing all containers and volumes defined in simulator-infra.yaml..."
-	@sudo docker compose -f simulator-infra.yaml down -v
+	@echo "Stopping and removing all containers and volumes defined in simulator-infra.yaml (except infra-environment)..."
+	@sudo docker compose -f simulator-infra.yaml stop broker monitor ai-engine actuator mongo
+	@sudo docker compose -f simulator-infra.yaml rm -f broker monitor ai-engine actuator mongo
 	@echo "Removing images..."
 	@mongo_image_ids=$$(sudo docker images --format '{{.ID}} {{.Repository}}' | grep mongo | awk '{print $$1}'); \
 	for img in $$(sudo docker images -q); do \
