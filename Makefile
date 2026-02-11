@@ -19,7 +19,7 @@ setup-and-start: setup start
 setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers clean-mongo-db
 
 # Sets up the complete infrastructure and runs the simulator without human-in-the-loop (auto mode)
-setup-and-start-auto: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto start
+setup-and-start-auto: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto clean-mongo-db start
 
 # Sets up Kubernetes infrastructure
 setup-kubernetes-infra:
@@ -122,7 +122,7 @@ help:
 	@echo "Available targets:"
 	@echo "  all                      : Alias for 'setup-and-start'."
 	@echo "  verify-start             : Verifies if the environment is ready for 'start'."
-	@echo "  setup-and-start          : Sets up infrastructure, starts all containers and runs the simulator."
+	@echo "  setup-stopand-start          : Sets up infrastructure, starts all containers and runs the simulator."
 	@echo "  start                    : Starts ONLY the Go simulator (assumes infrastructure and containers are already running)."
 	@echo "  ---"
 	@echo "  Container Management:"
