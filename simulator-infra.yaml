@@ -58,9 +58,6 @@ services:
         restart: unless-stopped
         environment:
             - SIMULATOR_CONFIG=/app/simulator_config.yaml
-            - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-            - GROQ_API_KEY=${GROQ_API_KEY}
-            - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
         volumes:
             - type: bind
               source: ./simulator/data/config.yaml

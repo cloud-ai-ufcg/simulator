@@ -22,7 +22,7 @@ setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-
 setup-and-start-auto: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto clean-mongo-db start
 
 # Sets up Kubernetes infrastructure
-setup-kubernetes-infra:
+setup-kubernetes-infra: stop-kubernetes-infra
 	@echo -e "\\e[35mStarting Kubernetes infrastructure setup (scripts/main.sh)...\\e[0m"
 	@( \
 		bash initializer/setup-environment.sh --inframode \
@@ -76,13 +76,13 @@ clean-infra:
 restart-all-containers: clean-mongo-db stop-all-containers run-all-containers
 	@echo "All services have been fully restarted."
 
-# Para derrubar os containers KIND do cluster
+# Stops KIND cluster containers
 stop-kubernetes-infra:
-	@echo "Parando containers KIND do cluster e infra-environment..."
+	@echo "Stopping KIND cluster containers and infra-environment..."
 	docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
 	@sudo docker compose -f simulator-infra.yaml stop infra-environment
 	@sudo docker compose -f simulator-infra.yaml rm -f infra-environment
-	@echo "Containers KIND e infra-environment removidos."
+	@echo "KIND containers and infra-environment removed."
 
 # Stops and removes all simulator containers, volumes, and images
 stop-all-containers:
@@ -98,42 +98,32 @@ stop-all-containers:
 	done
 	@echo "Cleanup process completed."
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Important Notes
-# - You must export the KUBECONFIG variable with the correct files
-#   before running commands that use `kubectl`, such as the Broker.
-#   Example:
-#
-#     export KUBECONFIG=~/.kube/karmada.config
-#     # or (to view multiple clusters)
-#     export KUBECONFIG=~/.kube/karmada.config:~/.kube/members.config
-#
-# - Without this, the Broker will not be able to create deployments and jobs correctly.
-# ──────────────────────────────────────────────────────────────────────────────
-# Generates input data for simulation
-
-
 # Help
 
 help:
 	@echo "Available targets:"
 	@echo "  all                      : Alias for 'setup-and-start'."
 	@echo "  verify-start             : Verifies if the environment is ready for 'start'."
-	@echo "  setup-stopand-start          : Sets up infrastructure, starts all containers and runs the simulator."
-	@echo "  start                    : Starts ONLY the Go simulator (assumes infrastructure and containers are already running)."
+	@echo "  ---"
+	@echo "  Setup & Start:"
+	@echo "    setup                  : Sets up complete infrastructure (stops/starts k8s and containers)."
+	@echo "    setup-and-start        : Sets up infrastructure and runs simulator in human-in-the-loop mode."
+	@echo "    setup-and-start-auto   : Sets up infrastructure and runs simulator in auto mode (no UI)."
+	@echo "    fast-setup             : Fast deployment using fast_deploy.sh script."
+	@echo "    start                  : Starts ONLY the Go simulator (assumes infrastructure and containers are running)."
 	@echo "  ---"
 	@echo "  Container Management:"
-	@echo "    run-all-containers     : Starts all required containers via docker-compose."
-	@echo "    restart-all-containers : Stops, removes, and recreates all containers, volumes, and images."
-	@echo "    stop-all-containers    : Stops and removes all simulator containers, volumes and images via docker-compose."
-	@echo "  ---"
-	@echo "  Database:"
-	@echo "    clean-mongo-db         : Stops the mongo container and removes its data volume."
-	@echo "  ---"
-	@echo "  Data Generation:"
-	@echo "    generate-input         : Generates input data for simulation using the input_generator."
+	@echo "    run-all-containers     : Starts all containers in human-in-the-loop mode (with UI)."
+	@echo "    run-all-containers-auto: Starts all containers in auto mode (no UI)."
+	@echo "    restart-all-containers : Stops, removes, and recreates all containers."
+	@echo "    stop-all-containers    : Stops and removes all simulator containers, volumes and images."
 	@echo "  ---"
 	@echo "  Infrastructure:"
-	@echo "    setup-kubernetes-infra : Runs scripts/main.sh to set up Kubernetes infrastructure."
+	@echo "    setup-kubernetes-infra : Sets up Kubernetes infrastructure via scripts/main.sh."
+	@echo "    stop-kubernetes-infra  : Stops KIND cluster containers and infra-environment."
+	@echo "    clean-infra            : Cleans infrastructure using clean_infra.sh."
+	@echo "  ---"
+	@echo "  Database:"
+	@echo "    clean-mongo-db         : Removes all documents from all user collections in mongo."
 	@echo "  ---"
 	@echo "  help                     : Shows this help message."
