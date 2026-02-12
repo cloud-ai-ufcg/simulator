@@ -34,6 +34,8 @@ WASP consists of the following services:
 -   **Actuator** -- Validates and applies approved recommendations
 -   **Operator Interface (optional)** -- Enables human review
 
+![WASP_architecture](/simulator_images/wasp_architecture.png)
+
 All components are containerized and orchestrated via Docker.
 
 ------------------------------------------------------------------------
