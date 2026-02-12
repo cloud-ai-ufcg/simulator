@@ -39,7 +39,7 @@ create_grafana_credentials_files() {
 # -----------------------------------------------------------------------------
 # Install Prometheus + Grafana in both clusters
 # -----------------------------------------------------------------------------
-for CONTEXT in member1 member2 member3; do
+for CONTEXT in member1 member2; do
   echo -e "${COLOR}⛵ [$CONTEXT] Installing Prometheus + Grafana...${RESET}"
   kubectl config use-context "$CONTEXT"
 
@@ -104,12 +104,10 @@ start_port_forward() {
 echo -e "${COLOR}🌐 Starting background port-forwards...${RESET}"
 start_port_forward member1 "$NAMESPACE" prometheus-prometheus 9090 9090
 start_port_forward member2 "$NAMESPACE" prometheus-prometheus 9091 9090
-start_port_forward member3 "$NAMESPACE" prometheus-prometheus 9092 9090
 
 start_port_forward member1 "$NAMESPACE" grafana 3000 80
 start_port_forward member2 "$NAMESPACE" grafana 3001 80
-start_port_forward member3 "$NAMESPACE" grafana 3002 80
 
 echo -e "${COLOR}✅ Prometheus + Grafana successfully installed in both clusters.${RESET}"
-echo -e "${COLOR}➡️ Prometheus UI: http://localhost:9090 (member1), http://localhost:9091 (member2), http://localhost:9092 (member3)${RESET}"
-echo -e "${COLOR}➡️ Grafana UI: http://localhost:3000 (member1), http://localhost:3001 (member2), http://localhost:3002 (member3)${RESET}"
+echo -e "${COLOR}➡️ Prometheus UI: http://localhost:9090 (member1), http://localhost:9091 (member2)${RESET}"
+echo -e "${COLOR}➡️ Grafana UI: http://localhost:3000 (member1), http://localhost:3001 (member2)${RESET}"

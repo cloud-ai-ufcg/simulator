@@ -29,11 +29,4 @@ echo -e "${COLOR}[2/2] Tainting control-plane node of member1...${RESET}"
 CONTROL_PLANE_M1=$(kubectl get nodes -o name --context member1 | grep control-plane | sed 's|node/||')
 kubectl taint nodes "$CONTROL_PLANE_M1" node-role.kubernetes.io/control-plane=:NoSchedule --context member1 --overwrite
 
-# -----------------------------------------------------------------------------
-# 3. Taint control-plane node in member3
-# -----------------------------------------------------------------------------
-echo -e "${COLOR}[2/2] Tainting control-plane node of member3...${RESET}"
-CONTROL_PLANE_M3=$(kubectl get nodes -o name --context member3 | grep control-plane | sed 's|node/||')
-kubectl taint nodes "$CONTROL_PLANE_M3" node-role.kubernetes.io/control-plane=:NoSchedule --context member3 --overwrite
-
 echo -e "${COLOR}✅ Control-plane taints applied successfully.${RESET}"

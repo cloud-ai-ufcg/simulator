@@ -99,6 +99,5 @@ EOF
 # -----------------------------------------------------------------------------
 create_fake_nodes "member1"
 create_fake_nodes "member2"
-create_fake_nodes "member3"
 
 echo -e "${COLOR}✅ All initial KWOK fake nodes created successfully!${RESET}"

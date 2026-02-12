@@ -9,9 +9,6 @@ MEMBER2_NODES=$(yq '.clusters.member2.nodes' "$CONFIG_FILE")
 MEMBER2_CPU=$(yq '.clusters.member2.cpu' "$CONFIG_FILE")
 MEMBER2_MEM=$(yq '.clusters.member2.memory' "$CONFIG_FILE")
 MEMBER2_AUTOSCALER=$(yq '.clusters.member2.autoscaler' "$CONFIG_FILE")
-MEMBER3_NODES=$(yq '.clusters.member3.nodes' "$CONFIG_FILE")
-MEMBER3_CPU=$(yq '.clusters.member3.cpu' "$CONFIG_FILE")
-MEMBER3_MEM=$(yq '.clusters.member3.memory' "$CONFIG_FILE")
 
 PROMETHEUS_GRAFANA_ENABLE=$(yq '.prometheus.grafana_enable' "$CONFIG_FILE")
 
