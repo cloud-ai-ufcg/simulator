@@ -65,6 +65,47 @@ then, from the root folder (/simulator/) run:
 git submodule update --init --recursive
 ```
 
+The Operator Interface (HIL mode) will be available at:
+
+## LLM Provider Configuration (Required)
+
+WASP's default configuration uses **OpenRouter** as the LLM abstraction
+layer.\
+Before running the simulator, you **must configure an OpenRouter API
+key** inside the AI Engine.
+
+## Steps
+
+1.  Create an account at:\
+    https://openrouter.ai
+
+2.  Generate an API key.
+
+3.  Navigate to the `ai-engine/` directory and create a `.env` file:
+
+``` bash
+cd ai-engine
+touch .env
+```
+
+4.  Add your key to the file:
+
+``` bash
+OPENROUTER_API_KEY=your_api_key_here
+```
+
+Alternatively, you may export it directly in your shell:
+
+``` bash
+export OPENROUTER_API_KEY=your_api_key_here
+```
+
+------------------------------------------------------------------------
+
+Without a valid OpenRouter API key, the AI Engine will not be able to
+generate migration recommendations and the default simulation will fail.
+
+
 ### Human-in-the-Loop Mode (Recommended)
 
     make
@@ -76,6 +117,14 @@ This command:
 3.  Starts all required services
 4.  Cleans MongoDB state
 5.  Launches the simulator
+
+Alternatively, the commands below executes the steps above sequentially:
+
+```
+make setup-kubernetes-infra
+make run-all-containers
+make start
+```
 
 The Operator Interface (HIL mode) will be available at:
 
