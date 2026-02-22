@@ -82,7 +82,7 @@ def process_resources(data, execution_mode='kwok'):
     
     Args:
         data: Raw JSON data
-        execution_mode: 'kwok' (percentual 0-1) or 'real' (valores absolutos do cAdvisor)
+        execution_mode: 'kwok' or 'real' (both use the same standardized calculation)
     """
     timestamps = sorted([int(ts) for ts in data.keys()])
     mem_allocated = {'public': [], 'private': []}
@@ -90,10 +90,6 @@ def process_resources(data, execution_mode='kwok'):
     cpu_allocated = {'public': [], 'private': []}
     cpu_requested = {'public': [], 'private': []}
     pending_pods = {'public': [], 'private': []}
-    
-    # In KWOK mode, loads are percentages (0-1), so we limit them
-    # In REAL mode, loads are absolute values from cAdvisor, so we don't limit
-    limit_for_allocated = (execution_mode == 'kwok')
     
     for ts in timestamps:
         ts_str = str(ts)
@@ -104,14 +100,9 @@ def process_resources(data, execution_mode='kwok'):
             mem_load = c['cluster_load'].get('memory', 0)
             cpu_load = c['cluster_load'].get('cpu', 0)
             
-            # For allocated: limit load in KWOK mode, use absolute in REAL mode
-            if limit_for_allocated:
-                mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
-                cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
-            else:
-                # In REAL mode, mem_load and cpu_load are already in absolute units (GB/cores)
-                mem_allocated[label].append(mem_load if mem_load > 0 else 0.0)
-                cpu_allocated[label].append(cpu_load if cpu_load > 0 else 0.0)
+            # Loads are percentages (0-1), multiply by capacity to get absolute values
+            mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
+            cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
             
             # For requested: cpu_requested and memory_requested are ALWAYS absolute values (cores/GB)
             # from the monitor, regardless of mode (KWOK or REAL)
@@ -140,7 +131,7 @@ def process_cluster_info(data, timestamps, limit_load=True, execution_mode='kwok
         data: Raw JSON data
         timestamps: List of timestamps
         limit_load: Whether to limit load to 1.0 (for allocated metrics)
-        execution_mode: 'kwok' (percentual 0-1) or 'real' (valores absolutos do cAdvisor)
+        execution_mode: 'kwok' or 'real' (both use the same standardized calculation)
     """
     result = {k: [] for k in [
         'mem_load_public', 'mem_load_private', 'cpu_load_public', 'cpu_load_private',
@@ -166,8 +157,8 @@ def process_cluster_info(data, timestamps, limit_load=True, execution_mode='kwok
             mem_load = c['cluster_load'].get('memory', 0)
             cpu_load = c['cluster_load'].get('cpu', 0)
             
-            # Apply limit based on mode and limit_load parameter
-            if limit_load and execution_mode == 'kwok':
+            # Limit load to 1.0 when requested (for allocated metrics)
+            if limit_load:
                 mem_load = min(mem_load, 1.0)
                 cpu_load = min(cpu_load, 1.0)
             
@@ -175,26 +166,16 @@ def process_cluster_info(data, timestamps, limit_load=True, execution_mode='kwok
             cpu_cap = parse_resource_value(c['cluster_cpu_capacity'], 'm') / 1000
             
             if c['cluster_label'] == 'public':
-                if execution_mode == 'kwok':
-                    # In KWOK mode, load is percentage, multiply by capacity
-                    result['mem_load_public'].append(mem_load * mem_cap)
-                    result['cpu_load_public'].append(cpu_load * cpu_cap)
-                else:
-                    # In REAL mode, load is already in absolute units (GB/cores)
-                    result['mem_load_public'].append(mem_load if mem_load > 0 else 0.0)
-                    result['cpu_load_public'].append(cpu_load if cpu_load > 0 else 0.0)
+                # Load is percentage (0-1), multiply by capacity
+                result['mem_load_public'].append(mem_load * mem_cap)
+                result['cpu_load_public'].append(cpu_load * cpu_cap)
                 result['cpu_capacity_public'].append(cpu_cap)
                 result['memory_capacity_public'].append(mem_cap)
             
             elif c['cluster_label'] == 'private':
-                if execution_mode == 'kwok':
-                    # In KWOK mode, load is percentage, multiply by capacity
-                    result['mem_load_private'].append(mem_load * mem_cap)
-                    result['cpu_load_private'].append(cpu_load * cpu_cap)
-                else:
-                    # In REAL mode, load is already in absolute units (GB/cores)
-                    result['mem_load_private'].append(mem_load if mem_load > 0 else 0.0)
-                    result['cpu_load_private'].append(cpu_load if cpu_load > 0 else 0.0)
+                # Load is percentage (0-1), multiply by capacity
+                result['mem_load_private'].append(mem_load * mem_cap)
+                result['cpu_load_private'].append(cpu_load * cpu_cap)
                 result['cpu_capacity_private'].append(cpu_cap)
                 result['memory_capacity_private'].append(mem_cap)
 
@@ -379,14 +360,9 @@ def process_cluster_metrics_at_timestamp(
     cpu_load_requested = cluster_load.get('cpu_requested', 0.0)
     
     # Calculate allocated and requested resources
-    if execution_mode == 'kwok':
-        # In KWOK mode, loads are percentages (0-1)
-        mem_allocated = mem_cap * min(mem_load, 1.0)
-        cpu_allocated = cpu_cap * min(cpu_load, 1.0)
-    else:
-        # In REAL mode, loads are already in absolute units (GB/cores)
-        mem_allocated = mem_load if mem_load > 0 else 0.0
-        cpu_allocated = cpu_load if cpu_load > 0 else 0.0
+    # Loads are percentages (0-1), multiply by capacity to get absolute values
+    mem_allocated = mem_cap * min(mem_load, 1.0)
+    cpu_allocated = cpu_cap * min(cpu_load, 1.0)
     
     # cpu_requested and memory_requested are ALWAYS absolute values (cores/GB) from the monitor
     # They represent the total requested resources (running + pending pods)
