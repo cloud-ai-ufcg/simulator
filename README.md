@@ -268,8 +268,7 @@ Each execution generates a timestamped output directory (simulator/data/output/)
 
 ## Citation (SBRC)
 
-WASP: Workload Agent-Based Simulation Platform for Migration
-Recommendations in Hybrid Kubernetes Environments.
+WASP: Workload Agent-Based Simulation Platform
 
 ------------------------------------------------------------------------
 
