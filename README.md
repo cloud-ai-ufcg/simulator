@@ -44,9 +44,9 @@ All components are containerized and orchestrated via Docker.
 
 Minimum requirements:
 
--   Docker (with Docker Compose support)
--   GNU Make
--   Go (for running the simulator locally)
+-   Docker 28.3.2
+-   GNU Make 4.3
+-   Go 1.24.2
 
 No pre-installed Kubernetes cluster is required. The KWOK +
 Karmada-based infrastructure is provisioned automatically.
@@ -67,16 +67,14 @@ then, from the root folder (/simulator/) run:
 git submodule update --init --recursive
 ```
 
-The Operator Interface (HIL mode) will be available at:
-
-## LLM Provider Configuration (Required)
+### LLM Provider Configuration (Required)
 
 WASP's default configuration uses **OpenRouter** as the LLM abstraction
 layer.\
 Before running the simulator, you **must configure an OpenRouter API
 key** inside the AI Engine.
 
-## Steps
+### Steps
 
 1.  Create an account at:\
     https://openrouter.ai
@@ -104,6 +102,80 @@ export OPENROUTER_API_KEY=your_api_key_here
 
 ------------------------------------------------------------------------
 
+### Setting up the multi-cluster Kubernetes infrastructure
+
+WASP allows the configuration of multi-cluster capacity since the early stages of the simulation. 
+By default, the system is configured to provision two clusters with 1 vCPU and 2 GB of memory each.
+
+To change this configuration, the `simulator/data/config.yaml` file contains the `clusters` section, 
+where you can specify the number of machines by cluster and their respective CPU and memory capacity, like in the example below:
+
+```yaml
+clusters:
+  member1:
+    nodes: 2
+    cpu: "8"
+    memory: "16Gi"
+    autoscaler: false
+
+  member2:
+    nodes: 2
+    cpu: "8"
+    memory: "16Gi"
+    autoscaler: true
+```
+
+> Note: After changing the cluster configuration, you must run `make setup` (if the other WASP services are already running) 
+or `make setup-kubernetes-infra` to apply the new configuration and provision the clusters accordingly.
+
+
+------------------------------------------------------------------------
+
+### Workload for Simulation
+
+The simulator is configured to inject a workload defined in `simulator/data/workload.yaml` using the Broker service.
+The structured workload definition must follow the schema below:
+
+```yaml
+
+{
+  "config": {
+    "orchestrator": "karmada", # Example for Karmada-based infrastructure
+    "namespace": "default",
+    "kubeconfig": "karmada.config" # kubeconfig used to submit the workload to the orchestrator
+  },
+  "data": [
+    {
+      "id": "frontend",
+      "kind": "deployment",
+      "action": "create",
+      "replicas": "2",
+      "cpu": "1", # Cores
+      "memory": "2", # In GiB
+      "job_duration": "",
+      "label": "member1", # Cluster label for initial placement
+      "timestamp": 1
+    },
+    {
+      "id": "finalizer",
+      "kind": "deployment",
+      "action": "create",
+      "replicas": "2",
+      "cpu": "1",
+      "memory": "2",
+      "job_duration": "",
+      "label": "member1",
+      "timestamp": 10  # Time (in seconds) when the workload is injected into the system
+    }
+  ]
+}
+
+```
+
+> Note: The broker component will submit each event defined in data from the initial timestamp until the last one. It stops after submitting the last event.
+
+------------------------------------------------------------------------
+
 Without a valid OpenRouter API key, the AI Engine will not be able to
 generate migration recommendations and the default simulation will fail.
 
@@ -118,7 +190,8 @@ This command:
 2.  Provisions federated Kubernetes clusters
 3.  Starts all required services
 4.  Cleans MongoDB state
-5.  Launches the simulator
+5.  Read the preconfigured input and configuration
+6.  Launches the simulator
 
 Alternatively, the commands below executes the steps above sequentially:
 
