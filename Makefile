@@ -45,7 +45,7 @@ run-all-containers:
 	@echo "Starting all necessary containers via docker compose (ACTUATOR_MODE=human-in-the-loop)..."
 	@ACTUATOR_MODE=human-in-the-loop bash initializer/setup-environment.sh --components-only
 	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
-	@echo "🎯 Actuator UI available at: http://localhost:5173"
+	@echo "🎯 Operator UI available at: http://localhost:5173"
 
 
 # Starts only the Go simulator (assumes infrastructure is already set up)
@@ -87,8 +87,8 @@ stop-kubernetes-infra:
 # Stops and removes all simulator containers, volumes, and images
 stop-all-containers:
 	@echo "Stopping and removing all containers and volumes defined in simulator-infra.yaml (except infra-environment)..."
-	@sudo docker compose -f simulator-infra.yaml stop broker monitor ai-engine actuator mongo
-	@sudo docker compose -f simulator-infra.yaml rm -f broker monitor ai-engine actuator mongo
+	@sudo docker compose -f simulator-infra.yaml stop broker monitor ai-engine recommendations-manager mongo
+	@sudo docker compose -f simulator-infra.yaml rm -f broker monitor ai-engine recommendations-manager mongo
 	@echo "Removing images..."
 	@mongo_image_ids=$$(sudo docker images --format '{{.ID}} {{.Repository}}' | grep mongo | awk '{print $$1}'); \
 	for img in $$(sudo docker images -q); do \
