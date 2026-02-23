@@ -67,12 +67,12 @@ services:
             - "8083"
         depends_on:
             - monitor
-            - actuator
+            - recommendations-manager
     
-    actuator:
-        container_name: actuator
+    recommendations-manager:
+        container_name: recommendations-manager
         build:
-            context: ./actuator
+            context: ./recommendations-manager
             dockerfile: Dockerfile.apifront
         restart: unless-stopped
         environment:
