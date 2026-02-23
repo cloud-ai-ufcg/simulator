@@ -1,116 +1,136 @@
-# WASP -- Workload Agent-Based Simulation Platform
+# WASP --- Workload Agent-Based Simulation Platform
 
-WASP is a modular research platform for studying AI-driven workload
-migration strategies in hybrid Kubernetes environments. It integrates
-simulation, monitoring, reasoning, and execution components into a
-reproducible, containerized environment suitable for experimentation,
-demonstration, and academic evaluation.
+**WASP (Workload Agent-Based Simulation Platform)** is a modular
+research platform for studying AI-driven workload migration strategies
+in hybrid and multi-cluster Kubernetes environments.\
+It integrates simulation, monitoring, reasoning, validation, and
+execution components into a reproducible, containerized environment
+designed for:
+
+-   Academic experimentation
+-   Demonstrations and teaching
+-   Reproducible research workflows
+-   Individual experimentation with AI-assisted operations
+
+WASP focuses on **decision-support**, enabling migration recommendations
+that can be validated by operators before execution.
 
 ------------------------------------------------------------------------
 
 ## Overview
 
-WASP provides:
+WASP provides a controlled experimental environment for evaluating
+workload migration strategies under realistic infrastructure
+constraints.
 
--   Multi-cluster Kubernetes simulation
+### Key Features
+
+-   Multi-cluster Kubernetes simulation (KWOK + Karmada)
 -   Telemetry-driven migration recommendations
--   AI-agnostic reasoning capabilities
--   Human-in-the-loop (HIL) validation
+-   AI-agnostic reasoning engine
+-   Human-in-the-Loop (HIL) validation
 -   Fully automated execution mode
 -   Reproducible experimental runs
+-   Containerized microservice architecture
 
-WASP is a reproducible experimental platform for evaluating AI-driven workload migration strategies under controlled multi-cluster Kubernetes simulations.
+WASP is intended as a **research and evaluation platform**, not a
+production orchestration system.
 
 ------------------------------------------------------------------------
 
 ## Architecture
 
-WASP consists of the following services:
+WASP is composed of loosely coupled services:
 
--   **Simulator** -- Orchestrates execution and event scheduling
--   **Broker** -- Dispatches workload and infrastructure events
--   **Monitor** -- Collects periodic telemetry snapshots
--   **AI Engine** -- Generates structured migration recommendations
--   **Actuator** -- Validates and applies approved recommendations
--   **Operator Interface (optional)** -- Enables human review
+-   **Simulator** --- orchestrates execution timeline and scheduling
+-   **Broker** --- injects workload and infrastructure events
+-   **Monitor** --- collects telemetry snapshots
+-   **AI Engine** --- generates structured migration recommendations
+-   **Actuator** --- validates and executes approved migrations
+-   **Operator Interface (optional)** --- enables human review
 
-![WASP_architecture](/simulator_images/wasp_architecture.png)
+Simulator → Broker → Monitor → AI Engine → Operator interface (optional) → Actuator
 
-All components are containerized and orchestrated via Docker.
+All components run as containers and are orchestrated via Docker.
+
+![WASP Architecture](simulator_images/wasp_architecture.png)
 
 ------------------------------------------------------------------------
 
 ## Requirements
 
-Minimum requirements:
+Required environment:
 
--   Docker 28.3.2
+-   Docker 28.3
 -   GNU Make 4.3
--   Go 1.24.2
+-   Go 1.24
 
-No pre-installed Kubernetes cluster is required. The KWOK +
-Karmada-based infrastructure is provisioned automatically.
+No pre-existing Kubernetes cluster is required.\
+The simulation infrastructure is provisioned automatically.
 
 ------------------------------------------------------------------------
 
-## Quick Start
+## Installation
 
-### Submodules Initialization
+### 1. Clone Repository and Initialize Submodules
 
-WASP relies on Git submodules for its core services (Broker, Monitor, Actuator, AI Engine, etc.).  
-After cloning the repository, you **must initialize and update all submodules** before running the system.
+WASP uses Git submodules for its core services.
 
-First, clone the repository 
-then, from the root folder (/simulator/) run:
-
-```
+``` bash
+git clone https://github.com/cloud-ai-ufcg/simulator
+cd simulator
 git submodule update --init --recursive
 ```
 
-### LLM Provider Configuration (Required)
+Failure to initialize submodules will prevent the platform from
+starting.
 
-WASP's default configuration uses **OpenRouter** as the LLM abstraction
-layer.\
-Before running the simulator, you **must configure an OpenRouter API
-key** inside the AI Engine.
+------------------------------------------------------------------------
+
+## LLM Provider Configuration (Required)
+
+The default configuration uses **OpenRouter** as the LLM abstraction
+layer.
 
 ### Steps
 
-1.  Create an account at:\
-    https://openrouter.ai
+1.  Create an account:
+
+https://openrouter.ai
 
 2.  Generate an API key.
 
-3.  Navigate to the `ai-engine/` directory and create a `.env` file:
+3.  Configure the AI Engine:
 
 ``` bash
 cd ai-engine
 touch .env
 ```
 
-4.  Add your key to the file:
+Add:
 
-``` bash
-OPENROUTER_API_KEY=your_api_key_here
-```
+    OPENROUTER_API_KEY=your_api_key_here
 
-Alternatively, you may export it directly in your shell:
+Alternatively:
 
 ``` bash
 export OPENROUTER_API_KEY=your_api_key_here
 ```
 
+> Without a valid API key, the AI Engine will not generate
+> recommendations and simulations will fail.
+
 ------------------------------------------------------------------------
 
-### Setting up the multi-cluster Kubernetes infrastructure
+## Multi-Cluster Infrastructure Configuration
 
-WASP allows the configuration of multi-cluster capacity since the early stages of the simulation. 
-By default, the system is configured to provision two clusters with 1 vCPU and 2 GB of memory each.
+Cluster capacity is defined in:
 
-To change this configuration, the `simulator/data/config.yaml` file contains the `clusters` section, 
-where you can specify the number of machines by cluster and their respective CPU and memory capacity, like in the example below:
+    simulator/data/config.yaml
 
-```yaml
+Example:
+
+``` yaml
 clusters:
   member1:
     nodes: 2
@@ -125,83 +145,67 @@ clusters:
     autoscaler: true
 ```
 
-> Note: After changing the cluster configuration, you must run `make setup` (if the other WASP services are already running) 
-or `make setup-kubernetes-infra` to apply the new configuration and provision the clusters accordingly.
+After modifying the configuration:
 
-
-------------------------------------------------------------------------
-
-### Workload for Simulation
-
-The simulator is configured to inject a workload defined in `simulator/data/workload.yaml` using the Broker service.
-The structured workload definition must follow the schema below:
-
-```yaml
-
-{
-  "config": {
-    "orchestrator": "karmada", # Example for Karmada-based infrastructure
-    "namespace": "default",
-    "kubeconfig": "karmada.config" # kubeconfig used to submit the workload to the orchestrator
-  },
-  "data": [
-    {
-      "id": "frontend",
-      "kind": "deployment",
-      "action": "create",
-      "replicas": "2",
-      "cpu": "1", # Cores
-      "memory": "2", # In GiB
-      "job_duration": "",
-      "label": "member1", # Cluster label for initial placement
-      "timestamp": 1
-    },
-    {
-      "id": "finalizer",
-      "kind": "deployment",
-      "action": "create",
-      "replicas": "2",
-      "cpu": "1",
-      "memory": "2",
-      "job_duration": "",
-      "label": "member1",
-      "timestamp": 10  # Time (in seconds) when the workload is injected into the system
-    }
-  ]
-}
-
+``` bash
+make setup
 ```
 
-> Note: The broker component will submit each event defined in data from the initial timestamp until the last one. It stops after submitting the last event.
+or
 
-------------------------------------------------------------------------
-
-Without a valid OpenRouter API key, the AI Engine will not be able to
-generate migration recommendations and the default simulation will fail.
-
-
-### Human-in-the-Loop Mode (Recommended)
-
-    make
-
-This command:
-
-1.  Cleans previous infrastructure and containers
-2.  Provisions federated Kubernetes clusters
-3.  Starts all required services
-4.  Cleans MongoDB state
-5.  Read the preconfigured input and configuration
-6.  Launches the simulator
-
-Alternatively, the commands below executes the steps above sequentially:
-
-```
+``` bash
 make setup-kubernetes-infra
-make run-all-containers
-make start
 ```
 
-The Operator Interface (HIL mode) will be available at:
+------------------------------------------------------------------------
+
+## Workload Definition
+
+Workloads are defined in:
+
+    simulator/data/workload.yaml
+
+Example schema:
+
+``` yaml
+config:
+  orchestrator: karmada
+  namespace: default
+  kubeconfig: karmada.config
+
+data:
+  - id: frontend
+    kind: deployment
+    action: create
+    replicas: "2"
+    cpu: "1"
+    memory: "2"
+    label: member1
+    timestamp: 1
+
+  - id: finalizer
+    kind: deployment
+    action: create
+    replicas: "2"
+    cpu: "1"
+    memory: "2"
+    label: member1
+    timestamp: 10
+```
+
+The Broker injects events sequentially according to timestamps.
+
+------------------------------------------------------------------------
+
+## Quick Start
+
+### Human-in-the-Loop Mode (Recommended for Demonstrations)
+
+``` bash
+make
+```
+
+Operator Interface:
 
     http://localhost:5173
 
@@ -209,83 +213,78 @@ The Operator Interface (HIL mode) will be available at:
 
 ### Fully Automated Mode
 
-    make setup-and-start-auto
-
-In this mode, migration recommendations are automatically approved and
-applied.
+``` bash
+make setup-and-start-auto
+```
 
 ------------------------------------------------------------------------
 
 ## Execution Workflow
 
-A typical run proceeds as follows:
-
-1.  Infrastructure provisioning (two federated clusters).
-2.  Workload injection via the Broker.
-3.  Telemetry collection every 30 seconds.
-4.  AI reasoning every 60 seconds.
-5.  Recommendation validation (HIL or Auto).
-6.  Migration execution via the Actuator.
-7.  Logs and metrics persisted for analysis.
+1.  Multi-cluster infrastructure provisioning
+2.  Workload injection via Broker
+3.  Telemetry collection (30-second interval)
+4.  AI reasoning cycle (60-second interval)
+5.  Recommendation validation (HIL or Auto)
+6.  Migration execution via Actuator
+7.  Metrics and logs persistence
 
 ------------------------------------------------------------------------
 
-## Output Structure
+## Output and Reproducibility
 
-Each simulation run generates a timestamped directory containing:
+Each execution generates a timestamped output directory (simulator/data/output/) containing:
 
 -   metrics.json
--   logs/ (actuator, broker, monitor, ai-engine logs)
-
-These artifacts enable reproducibility and post-run evaluation.
+-   logs/
+    -   actuator
+    -   broker
+    -   monitor
+    -   ai-engine
 
 ------------------------------------------------------------------------
 
 ## Makefile Targets
 
-Full setup + run (HIL):
-
     make
-
-Full setup + run (Auto):
-
     make setup-and-start-auto
-
-Setup infrastructure only:
-
     make setup
-
-Start containers (HIL):
-
     make run-all-containers
-
-Start containers (Auto):
-
     make run-all-containers-auto
-
-Stop all containers:
-
     make stop-all-containers
-
-Restart services cleanly:
-
     make restart-all-containers
 
 ------------------------------------------------------------------------
 
-## Research Focus
+## Research Goals
 
-WASP emphasizes:
-
--   Clear separation between monitoring, reasoning, validation, and
-    execution
+-   Separation of monitoring, reasoning, validation, and execution
 -   Model-agnostic AI integration
--   Controlled experimentation through simulation
--   Operator oversight and auditability
--   Reproducible research workflows
+-   Transparent human-in-the-loop workflows
+-   Reproducible simulation environments
+-   Operator accountability and auditability
 
 ------------------------------------------------------------------------
 
-## Licenses
+## Citation (SBRC)
 
-This project is intended for academic and research use.
+WASP: Workload Agent-Based Simulation Platform for Migration
+Recommendations in Hybrid Kubernetes Environments.
+
+------------------------------------------------------------------------
+
+## License
+
+Copyright 2026 Laboratório de Sistemas Distribuídos (LSD), Universidade Federal de Campina Grande (UFCG)
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
