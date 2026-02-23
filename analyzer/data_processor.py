@@ -104,13 +104,12 @@ def process_resources(data, execution_mode='kwok'):
             mem_allocated[label].append(mem_cap * min(mem_load, 1.0))
             cpu_allocated[label].append(cpu_cap * min(cpu_load, 1.0))
             
-            # For requested: cpu_requested and memory_requested are ALWAYS absolute values (cores/GB)
-            # from the monitor, regardless of mode (KWOK or REAL)
-            # They represent the total requested resources (running + pending pods)
+            # Requested: cpu_requested and memory_requested are also percentages (0-1)
+            # Multiply by capacity to get absolute values (cores/GB)
             mem_requested_value = c['cluster_load'].get('memory_requested', 0)
             cpu_requested_value = c['cluster_load'].get('cpu_requested', 0)
-            mem_requested[label].append(mem_requested_value if mem_requested_value > 0 else 0.0)
-            cpu_requested[label].append(cpu_requested_value if cpu_requested_value > 0 else 0.0)
+            mem_requested[label].append(mem_cap * mem_requested_value if mem_requested_value > 0 else 0.0)
+            cpu_requested[label].append(cpu_cap * cpu_requested_value if cpu_requested_value > 0 else 0.0)
 
         pods_sum_for_ts = {'public': 0, 'private': 0}
         for workload in data[ts_str].get('workloads', []):
@@ -319,13 +318,13 @@ def extract_interval_duration(raw_data: Dict[str, Any]) -> int:
     if 'cluster_info' in first_data and first_data['cluster_info']:
         cluster = first_data['cluster_info'][0]
         if 'interval_duration' in cluster:
-            return int(cluster['interval_duration'])
+            return int(str(cluster['interval_duration']).rstrip('s'))
     
     # Check workloads for interval_duration
     if 'workloads' in first_data and first_data['workloads']:
         workload = first_data['workloads'][0]
         if 'pricing' in workload and 'interval_duration' in workload['pricing']:
-            return int(workload['pricing']['interval_duration'])
+            return int(str(workload['pricing']['interval_duration']).rstrip('s'))
     
     return 30  # Default
 
@@ -364,11 +363,10 @@ def process_cluster_metrics_at_timestamp(
     mem_allocated = mem_cap * min(mem_load, 1.0)
     cpu_allocated = cpu_cap * min(cpu_load, 1.0)
     
-    # cpu_requested and memory_requested are ALWAYS absolute values (cores/GB) from the monitor
-    # They represent the total requested resources (running + pending pods)
-    # Do NOT multiply by capacity - they are already in absolute units
-    mem_requested = mem_load_requested if mem_load_requested > 0 else 0.0
-    cpu_requested = cpu_load_requested if cpu_load_requested > 0 else 0.0
+    # cpu_requested and memory_requested are also percentages (0-1) from the monitor
+    # Multiply by capacity to get absolute values (cores/GB)
+    mem_requested = mem_cap * mem_load_requested if mem_load_requested > 0 else 0.0
+    cpu_requested = cpu_cap * cpu_load_requested if cpu_load_requested > 0 else 0.0
     
     # Get node information
     node_info = cluster_data.get('node_info', {})
