@@ -10,7 +10,7 @@
 	path = monitor
 	url = https://github.com/cloud-ai-ufcg/monitor
 	branch = sbrc
-[submodule "actuator"]
-	path = actuator
-	url = https://github.com/cloud-ai-ufcg/actuator
+[submodule "recommendations-manager"]
+	path = recommendations-manager
+	url = https://github.com/cloud-ai-ufcg/recommendations-manager
 	branch = sbrc
