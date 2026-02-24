@@ -161,39 +161,46 @@ make setup-kubernetes-infra
 
 ## Workload Definition
 
-Workloads are defined in:
+The simulator is configured to inject a workload defined in `simulator/data/workload.yaml` using the Broker service.
+The structured workload definition must follow the schema below:
 
-    simulator/data/workload.yaml
+```json
 
-Example schema:
+{
+  "config": {
+    "orchestrator": "karmada", // Example for Karmada-based infrastructure
+    "namespace": "default",
+    "kubeconfig": "karmada.config" // kubeconfig used to submit the workload to the orchestrator
+  },
+  "data": [
+    {
+      "id": "frontend",
+      "kind": "deployment",
+      "action": "create",
+      "replicas": "2",
+      "cpu": "1", // Number of vCPUs (Kubernetes format, e.g., "1" for 1 core or "1000m" for 1 core)
+      "memory": "2", // Memory in Kubernetes format (e.g., "2Gi" for 2 GiB, "2048Mi" for 2048 MiB)
+      "job_duration": "",
+      "label": "member1", // Cluster label for initial placement
+      "timestamp": 1
+    },
+    {
+      "id": "finalizer",
+      "kind": "deployment",
+      "action": "create",
+      "replicas": "2",
+      "cpu": "1",
+      "memory": "2",
+      "job_duration": "",
+      "label": "member1",
+      "timestamp": 10  // Time (in seconds) when the workload is injected into the system
+    }
+  ]
+}
 
-``` yaml
-config:
-  orchestrator: karmada
-  namespace: default
-  kubeconfig: karmada.config
-
-data:
-  - id: frontend
-    kind: deployment
-    action: create
-    replicas: "2"
-    cpu: "1"
-    memory: "2"
-    label: member1
-    timestamp: 1
-
-  - id: finalizer
-    kind: deployment
-    action: create
-    replicas: "2"
-    cpu: "1"
-    memory: "2"
-    label: member1
-    timestamp: 10
 ```
 
-The Broker injects events sequentially according to timestamps.
+> Note: The broker component will submit each event defined in data from the initial timestamp until the last one. It stops after submitting the last event.
 
 ------------------------------------------------------------------------
 
