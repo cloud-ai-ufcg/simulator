@@ -23,12 +23,43 @@ setup_components() {
     docker compose -f simulator-infra.yaml config --services | grep -v infra-environment | xargs docker compose -f simulator-infra.yaml up --no-deps -d
 }
 
+reset_and_setup_infra() {
+    sudo rm -rf "$KUBE_PATH/karmada.config" "$KUBE_PATH/members.config" "$KUBE_PATH/build.log"
+    setup_infra
+}
+
 check_call() {
-    chmod +x initializer/check_infra_status.sh
-    initializer/check_infra_status.sh
-    if [ $? -eq 1 ]; then
-        exit 1
-    fi
+    local retries=3
+    local count=0
+
+    while true; do
+        chmod +x initializer/check_infra_status.sh
+        
+        set +e
+        initializer/check_infra_status.sh
+        status=$?
+        set -e
+        
+        if [ $status -eq 0 ]; then
+            break
+        fi
+        
+        count=$((count+1))
+        if [ $count -ge $retries ]; then
+            echo "Infra environment is not ready after $retries attempts. Exiting."
+            exit 1
+        fi
+
+        echo "Retrying infra setup ($count/$retries)..."
+        sleep 5
+
+        docker rm -f member1-control-plane member2-control-plane karmada-host-control-plane || true
+	    docker compose -f simulator-infra.yaml stop infra-environment
+	    docker compose -f simulator-infra.yaml rm -f infra-environment
+
+        reset_and_setup_infra
+    done
+
 }
 
 # Clean up existing Karmada and members config files if they are empty
@@ -36,8 +67,7 @@ check_call() {
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --inframode) 
-            sudo rm -rf "$KUBE_PATH/karmada.config" "$KUBE_PATH/members.config" "$KUBE_PATH/build.log"
-            setup_infra
+            reset_and_setup_infra
             check_call
 
             echo "Infrastructure setup completed. Exiting as --inframode flag is set."
