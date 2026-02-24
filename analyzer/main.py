@@ -25,8 +25,7 @@ from data_processor import (
     process_cluster_info,
     build_dataframe,
     process_pricing_data,
-    process_json_data,
-    process_network_io_data
+    process_json_data
 )
 from plot_data_builder import (
     build_resource_dataframe,
@@ -40,9 +39,7 @@ from plotter import (
     plot_memory_load,
     plot_total_percent_pending,
     plot_resource,
-    plot_pricing,
-    plot_network_load,
-    plot_io_load
+    plot_pricing
 )
 from metrics_summarizer import summarize
 
@@ -167,39 +164,7 @@ Modes:
         plot_memory_load(df_summary, plots_dir)
         plot_total_percent_pending(df_summary, plots_dir)
         
-        # Process and plot network and I/O metrics (only in REAL mode)
-        if execution_mode == 'real':
-            network_io_data = process_network_io_data(raw_data, timestamps, execution_mode)
-            
-            # Build DataFrame for network and I/O
-            network_io_records = []
-            for ts in timestamps:
-                ts_str = str(ts)
-                # Get index for this timestamp
-                idx = timestamps.index(ts) if ts in timestamps else 0
-                
-                record = {
-                    'timestamp': pd.to_datetime(ts, unit='s'),
-                    'network_receive_private': network_io_data['network_receive_private'][idx] if idx < len(network_io_data['network_receive_private']) else 0.0,
-                    'network_receive_public': network_io_data['network_receive_public'][idx] if idx < len(network_io_data['network_receive_public']) else 0.0,
-                    'network_transmit_private': network_io_data['network_transmit_private'][idx] if idx < len(network_io_data['network_transmit_private']) else 0.0,
-                    'network_transmit_public': network_io_data['network_transmit_public'][idx] if idx < len(network_io_data['network_transmit_public']) else 0.0,
-                    'io_read_private': network_io_data['io_read_private'][idx] if idx < len(network_io_data['io_read_private']) else 0.0,
-                    'io_read_public': network_io_data['io_read_public'][idx] if idx < len(network_io_data['io_read_public']) else 0.0,
-                    'io_write_private': network_io_data['io_write_private'][idx] if idx < len(network_io_data['io_write_private']) else 0.0,
-                    'io_write_public': network_io_data['io_write_public'][idx] if idx < len(network_io_data['io_write_public']) else 0.0,
-                }
-                network_io_records.append(record)
-            
-            df_network_io = pd.DataFrame(network_io_records)
-            if not df_network_io.empty:
-                # Calculate time_seconds from timestamp (same method as other plots)
-                start_time = df_network_io['timestamp'].min()
-                df_network_io['time_seconds'] = (df_network_io['timestamp'] - start_time).dt.total_seconds()
-                
-                plot_network_load(df_network_io, plots_dir, migration_df)
-                plot_io_load(df_network_io, plots_dir, migration_df)
-                print(f"✓ Network and I/O plots generated (REAL mode)")
+        
         
         summarize(raw_data, summary_dir, migration_df)
         
