@@ -61,12 +61,13 @@ All components run as containers and are orchestrated via Docker.
 
 Required environment:
 
--   Docker 28.3
+-   Ubuntu 22.04.5 LTS
 -   GNU Make 4.3
+-   Docker 28.3.2
+-   Docker Compose 2.36.2 
 -   Go 1.24
 
-No pre-existing Kubernetes cluster is required.\
-The simulation infrastructure is provisioned automatically.
+No preexisting Kubernetes cluster is required. The simulation infrastructure is provisioned automatically.
 
 ------------------------------------------------------------------------
 
