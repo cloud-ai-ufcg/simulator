@@ -145,18 +145,6 @@ clusters:
     autoscaler: true
 ```
 
-After modifying the configuration:
-
-``` bash
-make setup
-```
-
-or
-
-``` bash
-make setup-kubernetes-infra
-```
-
 ------------------------------------------------------------------------
 
 ## Workload Definition
