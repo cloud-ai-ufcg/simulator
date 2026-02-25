@@ -2,7 +2,7 @@ package constants
 
 // Container names
 const (
-	ContainerActuator = "actuator"
+	ContainerActuator = "recommendations-manager"
 	ContainerBroker   = "broker"
 	ContainerMonitor  = "monitor"
 	ContainerAIEngine = "ai-engine"
