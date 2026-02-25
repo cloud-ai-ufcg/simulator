@@ -73,6 +73,16 @@ clean-infra:
 	@bash scripts/clean_infra.sh
 	@echo "Infrastructure cleaned."
 
+# Cleans all workloads from Karmada and member clusters (preserves nodes)
+clean-workloads:
+	@echo "Cleaning all workloads from Karmada and member clusters (preserving nodes)..."
+	@if [ ! -f ~/.kube/karmada.config ] || [ ! -f ~/.kube/members.config ]; then \
+		echo "⚠️  Karmada/members config files not found. Is the infrastructure running?"; \
+		exit 1; \
+	fi
+	@bash scripts/clean_workloads.sh
+	@echo "✅ All workloads cleaned successfully (nodes preserved)."
+
 restart-all-containers: clean-mongo-db stop-all-containers run-all-containers
 	@echo "All services have been fully restarted."
 
@@ -121,7 +131,8 @@ help:
 	@echo "  Infrastructure:"
 	@echo "    setup-kubernetes-infra : Sets up Kubernetes infrastructure via scripts/main.sh."
 	@echo "    stop-kubernetes-infra  : Stops KIND cluster containers and infra-environment."
-	@echo "    clean-infra            : Cleans infrastructure using clean_infra.sh."
+	@echo "    clean-infra            : Cleans infrastructure (workloads + KWOK nodes) using clean_infra.sh."
+	@echo "    clean-workloads        : Removes only workloads, preserves KWOK nodes."
 	@echo "  ---"
 	@echo "  Database:"
 	@echo "    clean-mongo-db         : Removes all documents from all user collections in mongo."
