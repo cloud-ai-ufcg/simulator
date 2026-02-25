@@ -59,6 +59,20 @@ All components run as containers and are orchestrated via Docker.
 
 ## Requirements
 
+### Hardware
+
+**Minimum:**
+-   CPU: 8 cores
+-   RAM: 16 GB
+-   Disk: 100 GB SSD
+
+**Recommended:**
+-   CPU: 12-16 cores
+-   RAM: 24-32 GB
+-   Disk: 100+ GB NVMe
+
+### Software
+
 Required environment:
 
 -   Ubuntu 22.04.5 LTS
