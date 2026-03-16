@@ -2,7 +2,7 @@
 
 **WASP (Workload Agent-Based Simulation Platform)** is a modular
 research platform for studying AI-driven workload migration strategies
-in hybrid and multi-cluster Kubernetes environments.\
+in hybrid and multi-cluster Kubernetes environments.
 It integrates simulation, monitoring, reasoning, validation, and
 execution components into a reproducible, containerized environment
 designed for:
@@ -26,7 +26,7 @@ constraints.
 ### Key Features
 
 -   Multi-cluster Kubernetes simulation (KWOK + Karmada)
--   Telemetry-driven migration recommendations
+-   Telemetry and AI-driven migration recommendations
 -   AI-agnostic reasoning engine
 -   Human-in-the-Loop (HIL) validation
 -   Fully automated execution mode
@@ -34,13 +34,13 @@ constraints.
 -   Containerized microservice architecture
 
 WASP is intended as a **research and evaluation platform**, not a
-production orchestration system.
+production orchestration system, as of now.
 
 ------------------------------------------------------------------------
 
 ## Architecture
 
-WASP is composed of loosely coupled services:
+WASP implementation is composed of loosely coupled services:
 
 -   **Simulator** --- orchestrates execution timeline and scheduling
 -   **Broker** --- injects workload and infrastructure events
@@ -89,7 +89,7 @@ No preexisting Kubernetes cluster is required. The simulation infrastructure is 
 
 ### 1. Clone Repository and Initialize Submodules
 
-WASP uses Git submodules for its core services.
+WASP uses Git submodules for its core services, run the following to start them:
 
 ``` bash
 git clone https://github.com/cloud-ai-ufcg/simulator
@@ -122,7 +122,7 @@ cd ai-engine
 touch .env
 ```
 
-Add:
+4. Add the following key to your environment:
 
     OPENROUTER_API_KEY=your_api_key_here
 
@@ -215,7 +215,7 @@ The structured workload definition must follow the schema below:
 make
 ```
 
-Operator Interface:
+Check the Operator Interface is up and running:
 
     http://localhost:5173
 
