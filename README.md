@@ -7,10 +7,9 @@ It integrates simulation, monitoring, reasoning, validation, and
 execution components into a reproducible, containerized environment
 designed for:
 
--   Academic experimentation
--   Demonstrations and teaching
--   Reproducible research workflows
--   Individual experimentation with AI-assisted operations
+- Experimentation with AI-assisted workload migration operations
+- Reproducible research wrokflows in the area
+- Academic experimentation and demonstrations
 
 WASP focuses on **decision-support**, enabling migration recommendations
 that can be validated by operators before execution.
@@ -42,16 +41,13 @@ production orchestration system, as of now.
 
 WASP implementation is composed of loosely coupled services:
 
--   **Simulator** --- orchestrates execution timeline and scheduling
--   **Broker** --- injects workload and infrastructure events
--   **Monitor** --- collects telemetry snapshots
--   **AI Engine** --- generates structured migration recommendations
--   **Actuator** --- validates and executes approved migrations
--   **Operator Interface (optional)** --- enables human review
-
-Simulator → Broker → Monitor → AI Engine → Operator interface (optional) → Actuator
-
-All components run as containers and are orchestrated via Docker.
+-   **[Simulator](https://github.com/cloud-ai-ufcg/simulator)** --- orchestrates the execution timeline and scheduling.
+-   **[Broker](https://github.com/cloud-ai-ufcg/broker)** --- injects workload and infrastructure events. After it starts, the Broker operates independently and is not affected by other components.
+-   **[Monitor](https://github.com/cloud-ai-ufcg/monitor)** --- collects telemetry snapshots. The Monitor (yellow box in the diagram) gathers telemetry data from Prometheus, which runs in the simulated clusters.
+-   **[AI Engine](https://github.com/cloud-ai-ufcg/ai-engine)** --- generates structured migration recommendations. At regular intervals, the AI Engine (peach box) retrieves the latest telemetry data from the Monitor and produces migration recommendations.
+-   **[Recommendations Manager](https://github.com/cloud-ai-ufcg/recommendations-manager)** --- validates and executes approved migrations. The Recommendations Manager (green box) receives recommendations from the AI Engine and, if not in automated mode, validates them through the Operator Interface.
+    -   **Actuator** --- executes migration actions. Once recommendations are approved, the Actuator carries out the migration steps.
+    -   **Operator Interface (optional)** --- enables human review before execution, allowing operators to approve or reject recommendations when not in automated mode.
 
 ![WASP Architecture](simulator_images/wasp_architecture.png)
 
