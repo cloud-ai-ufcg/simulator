@@ -66,6 +66,7 @@ generate_kwok_template "member1" "$MEMBER1_CPU" "$MEMBER1_MEM"
 # Generate template for member2 (public cloud)
 generate_kwok_template "member2" "$MEMBER2_CPU" "$MEMBER2_MEM"
 
+
 # -----------------------------------------------------------------------------
 # 2. Generate Karmada ClusterPropagationPolicies
 # -----------------------------------------------------------------------------
@@ -75,7 +76,7 @@ cat > clusterpropagationpolicy.yaml <<EOF
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
 metadata:
-  name: deploy-private
+  name: deploy-member1
 spec:
   resourceSelectors:
     - apiVersion: apps/v1
@@ -83,18 +84,18 @@ spec:
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
     - apiVersion: batch/v1
       kind: Job
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
   placement:
     clusterAffinity:
       labelSelector:
         matchLabels:
-          cloud: private
+          cloud: member1
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
@@ -102,12 +103,12 @@ spec:
         staticWeightList:
           - targetCluster:
               clusterNames: [member1]
-            weight: 100
+            weight: 1
 ---
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy
 metadata:
-  name: deploy-public
+  name: deploy-member2
 spec:
   resourceSelectors:
     - apiVersion: apps/v1
@@ -115,18 +116,18 @@ spec:
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
     - apiVersion: batch/v1
       kind: Job
       namespace: default
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
   placement:
     clusterAffinity:
       labelSelector:
         matchLabels:
-          cloud: public
+          cloud: member2
     replicaScheduling:
       replicaSchedulingType: Divided
       replicaDivisionPreference: Weighted
@@ -134,7 +135,7 @@ spec:
         staticWeightList:
           - targetCluster:
               clusterNames: [member2]
-            weight: 100
+            weight: 1
 ---
 apiVersion: policy.karmada.io/v1alpha1
 kind: ClusterPropagationPolicy

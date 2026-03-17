@@ -31,11 +31,7 @@ function create_fake_nodes() {
   local cloud_label=""
 
   # Assign cloud label based on cluster identity
-  if [[ "$cluster_name" == "member1" ]]; then
-    cloud_label="private"
-  elif [[ "$cluster_name" == "member2" ]]; then
-    cloud_label="public"
-  fi
+  cloud_label=$cluster_name
 
   local NUM_NODES=${!num_nodes_var}
   local CPU=${!cpu_var}

@@ -1,7 +1,7 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
 # Karmada Local Bootstrap – initializes local Karmada environment, labels clusters,
-# and applies ClusterPropagationPolicies. Also removes legacy member3 artifacts.
+# and applies ClusterPropagationPolicies. Removes member3 cluster not defined in config.
 # -----------------------------------------------------------------------------
 # ‣ Behaviour
 #   • Clones Karmada repo if absent.
@@ -85,8 +85,8 @@ export KUBECONFIG=~/.kube/karmada.config
 kubectl config use-context karmada-apiserver
 
 echo -e "${COLOR}🏷️  Labeling clusters...${RESET}"
-kubectl label cluster member1 cloud=private --overwrite
-kubectl label cluster member2 cloud=public --overwrite
+kubectl label cluster member1 cloud=member1 --overwrite
+kubectl label cluster member2 cloud=member2 --overwrite
 
 # -----------------------------------------------------------------------------
 # 3. Apply ClusterPropagationPolicies if not already present
@@ -103,18 +103,24 @@ fi
 # 4. Cleanup: remove legacy member3 context and container
 # -----------------------------------------------------------------------------
 echo -e "${COLOR}🧹 Removing cluster member3...${RESET}"
+# Remove from Karmada API
+export KUBECONFIG=~/.kube/karmada.config
+kubectl delete cluster member3 --ignore-not-found=true 2>/dev/null || true
+
+# Remove from member kubeconfig
 export KUBECONFIG=~/.kube/members.config
-kubectl config delete-context member3 || true
-kubectl config delete-cluster kind-member3 || true
+kubectl config delete-context member3 2>/dev/null || true
+kubectl config delete-cluster kind-member3 2>/dev/null || true
 
 # Docker permissions were already verified in section 1, so we can use docker directly
-CONTAINER_ID=$(docker ps -q --filter "name=member3-control-plane")
+CONTAINER_ID=$(docker ps -aq --filter "name=member3-control-plane")
 if [ -n "$CONTAINER_ID" ]; then
-  echo -e "${COLOR}🧹 Stopping container $CONTAINER_ID for cluster member3...${RESET}"
-  docker stop "$CONTAINER_ID"
-  docker rm "$CONTAINER_ID"
+  echo -e "${COLOR}  → Stopping and removing member3 container...${RESET}"
+  docker stop "$CONTAINER_ID" 2>/dev/null || true
+  docker rm "$CONTAINER_ID" 2>/dev/null || true
+  echo -e "${COLOR}✅ member3 cluster removed successfully.${RESET}"
 else
-  echo -e "${COLOR}ℹ️ Container kind-member3 is not running.${RESET}"
+  echo -e "${COLOR}ℹ️  member3 container not found (may have been cleaned up already).${RESET}"
 fi
 
 # -----------------------------------------------------------------------------

@@ -8,6 +8,19 @@
 #   • Installs prerequisites, generates manifests, starts Karmada.
 #   • Deploys Prometheus, KWOK, Cluster Autoscaler (conditionally), and nodes.
 # -----------------------------------------------------------------------------
+
+# Parse command-line arguments
+SERVERMODE=0
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --server) SERVERMODE=1 ;;
+        *) echo "Opção desconhecida: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+
 COLOR="\033[1;32m"  # Green – this script's identity color
 RESET="\033[0m"
 
@@ -15,15 +28,20 @@ set -euo pipefail
 trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
 # -----------------------------------------------------------------------------
-# Setup Python venv and dependencies for Analyzer
+# Setup Python venv and dependencies for Analyzer (if NOVENV is not set)
 # -----------------------------------------------------------------------------
-echo -e "${COLOR}🐍 Setting up Python venv for Analyzer...${RESET}"
-SCRIPT_DIR="$(dirname "$0")"
-pushd "$SCRIPT_DIR" > /dev/null
-chmod +x setup_venv.sh
-./setup_venv.sh
-popd > /dev/null
-echo -e "${COLOR}✅ Python venv ready.${RESET}"
+
+if [[ "${SERVERMODE:-0}" -eq 0 ]]; then 
+    echo -e "${COLOR}🐍 Setting up Python venv for Analyzer...${RESET}"
+    SCRIPT_DIR="$(dirname "$0")"
+    pushd "$SCRIPT_DIR" > /dev/null
+    chmod +x setup_venv.sh
+    ./setup_venv.sh
+    popd > /dev/null
+    echo -e "${COLOR}✅ Python venv ready.${RESET}"
+else 
+    echo -e "${COLOR}🐍 Skipping Python venv setup as NOVENV is set.${RESET}"
+fi
 
 # -----------------------------------------------------------------------------
 # 1. Ensure all scripts are executable
@@ -38,7 +56,13 @@ echo -e "${COLOR}[1/8] 📦 Installing prerequisites...${RESET}"
 # -----------------------------------------------------------------------------
 # 2. Load all variables 
 # -----------------------------------------------------------------------------
-CONFIG_FILE="../simulator/data/config.yaml"
+
+if [ "${SERVERMODE:-0}" -eq 1 ]; then
+    CONFIG_FILE="data/config.yaml"
+else
+    CONFIG_FILE="../simulator/data/config.yaml"
+fi
+
 [[ ! -f $CONFIG_FILE ]] && { echo "❌ $CONFIG_FILE not found."; exit 1; }
 
 echo -e "${COLOR}[2/8] 📦 Load configuration...${RESET}"
@@ -84,4 +108,12 @@ echo -e "${COLOR}[8/8] 🧪 Applying taints and creating KWOK nodes...${RESET}"
 # -----------------------------------------------------------------------------
 # 5. Final message
 # -----------------------------------------------------------------------------
+export BUILDLOG="$HOME/.kube/build.log"
+
 echo -e "\n${COLOR}[🎉] Environment provisioned successfully!${RESET}"
+if [ "${SERVERMODE:-0}" -eq 1 ]; then
+    echo "Server Mode: Build log available at $BUILDLOG"
+    echo "" > $BUILDLOG
+    
+    tail -f /dev/null
+fi

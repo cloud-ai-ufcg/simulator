@@ -1,4 +1,17 @@
 services:
+    infra-environment:
+        container_name: infra-environment
+        build:
+            context: ./scripts
+            dockerfile: Dockerfile
+        privileged: true
+        restart: unless-stopped
+        network_mode: "host"
+        volumes:
+            - ./simulator/data/config.yaml:/workspace/data/config.yaml
+            - ~/.kube:/root/.kube
+            - /var/run/docker.sock:/var/run/docker.sock
+
     broker:
         container_name: broker
         build:
@@ -17,6 +30,7 @@ services:
             - "8081"
         depends_on:
             - mongo
+            - infra-environment
 
     monitor:
         container_name: monitor
@@ -33,6 +47,9 @@ services:
         network_mode: host
         expose:
             - "8082"
+        depends_on:
+            - infra-environment
+    
     ai-engine:
         container_name: ai-engine
         build:
@@ -41,9 +58,6 @@ services:
         restart: unless-stopped
         environment:
             - SIMULATOR_CONFIG=/app/simulator_config.yaml
-            - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-            - GROQ_API_KEY=${GROQ_API_KEY}
-            - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
         volumes:
             - type: bind
               source: ./simulator/data/config.yaml
@@ -53,15 +67,17 @@ services:
             - "8083"
         depends_on:
             - monitor
-            - actuator
-    actuator:
-        container_name: actuator
+            - recommendations-manager
+    
+    recommendations-manager:
+        container_name: recommendations-manager
         build:
-            context: ./actuator
-            dockerfile: Dockerfile.api
+            context: ./recommendations-manager
+            dockerfile: Dockerfile.apifront
         restart: unless-stopped
         environment:
             - SIMULATOR_CONFIG=/simulator/data/config.yaml
+            - ACTUATOR_MODE=${ACTUATOR_MODE:-auto}
         volumes:
             - type: bind
               source: ~/.kube/karmada.config
@@ -77,6 +93,7 @@ services:
             - "8084"
         depends_on:
             - mongo
+            - infra-environment
     mongo:
         container_name: mongo
         image: mongo:latest
