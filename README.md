@@ -40,16 +40,18 @@ production orchestration system, as of now.
 ## Architecture
 
 WASP implementation is composed of loosely coupled services:
+-   **[Simulator](https://github.com/cloud-ai-ufcg/simulator)** --- orchestrates execution timeline and scheduling
+-   **[Broker](https://github.com/cloud-ai-ufcg/broker)** --- injects workload and infrastructure events
+-   **[Monitor](https://github.com/cloud-ai-ufcg/monitor)** --- collects telemetry snapshots
+-   **[AI Engine](https://github.com/cloud-ai-ufcg/ai-engine)** --- generates structured migration recommendations
+- **[Recommendations Manager](https://github.com/cloud-ai-ufcg/recommendations-manager)** --- validates and executes approved migrations
+  -   **Actuator** --- executes migration actions
+  -   **Operator Interface (optional)** --- enables human review before execution
 
--   **[Simulator](https://github.com/cloud-ai-ufcg/simulator)** --- orchestrates the execution timeline and scheduling.
--   **[Broker](https://github.com/cloud-ai-ufcg/broker)** --- injects workload and infrastructure events. After it starts, the Broker operates independently and is not affected by other components.
--   **[Monitor](https://github.com/cloud-ai-ufcg/monitor)** --- collects telemetry snapshots. The Monitor (yellow box in the diagram) gathers telemetry data from Prometheus, which runs in the simulated clusters.
--   **[AI Engine](https://github.com/cloud-ai-ufcg/ai-engine)** --- generates structured migration recommendations. At regular intervals, the AI Engine (peach box) retrieves the latest telemetry data from the Monitor and produces migration recommendations.
--   **[Recommendations Manager](https://github.com/cloud-ai-ufcg/recommendations-manager)** --- validates and executes approved migrations. The Recommendations Manager (green box) receives recommendations from the AI Engine and, if not in automated mode, validates them through the Operator Interface.
-    -   **Actuator** --- executes migration actions. Once recommendations are approved, the Actuator carries out the migration steps.
-    -   **Operator Interface (optional)** --- enables human review before execution, allowing operators to approve or reject recommendations when not in automated mode.
+Figure 1 below illustrates how the components interact during execution. The Broker operates independently after it starts, and its behavior is not affected by other components. The Monitor collects telemetry data from Prometheus, which runs in the clusters. At regular intervals, the AI Engine retrieves the latest telemetry data from the Monitor and generates migration recommendations. The Recommendations Manager receives these recommendations and, if not in automated mode, validates them through the Operator Interface. Once approved, the Actuator executes the migration actions.
 
 ![WASP Architecture](simulator_images/wasp_architecture.png)
+<p align="center"><b>Figure 1:</b> WASP Architecture and component interactions.</p>
 
 ------------------------------------------------------------------------
 
