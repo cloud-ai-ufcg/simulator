@@ -390,10 +390,6 @@ During the execution of the framework, you can monitor the components by observi
     [0] > INFO: 2026/03/17 05:23:40 Successfully applied workload default/redis-cache
     ```
 
-### 7. Metrics and logs persistence
-
-  Finally, the framework stores the metrics exported by the Monitor at the end of the simulation, along with the logs of each WASP component. These artifacts are stored in `simulator/data/output/YYYYMMDD_HHMMSS/`.
-
 ------------------------------------------------------------------------
 
 ## Output and Reproducibility
