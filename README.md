@@ -56,6 +56,7 @@ Figure 1 below illustrates how the components interact during execution. The Bro
 ------------------------------------------------------------------------
 
 ## Requirements
+Below are the minimum and recommended specifications your machine should meet to run WASP reliably and without performance issues.
 
 ### Hardware
 
@@ -112,6 +113,7 @@ layer.
 https://openrouter.ai
 
 2.  Generate an API key.
+  > OpenRouter offers a free API key with some usage limitations. This allows you to test and run the framework without payment, though higher usage or premium models may require a paid plan.
 
 3.  Configure the AI Engine:
 
@@ -124,14 +126,95 @@ touch .env
 
     OPENROUTER_API_KEY=your_api_key_here
 
-Alternatively:
-
-``` bash
-export OPENROUTER_API_KEY=your_api_key_here
-```
-
 > Without a valid API key, the AI Engine will not generate
 > recommendations and simulations will fail.
+
+------------------------------------------------------------------------
+
+## AI Engine Configuration
+
+
+After configuring the LLM provider, you can set up the AI Engine before running the framework by editing the `ai-engine` properties section in `simulator/data/config.yaml`. The engine configuration allows you to define the following behaviors:
+
+
+1. Selected model:
+
+    The model used by the engine to generate recommendations.
+
+    ```yaml
+    ai-engine:
+      # other properties
+      ai:
+        selected_model: google/gemini-2.5-flash # default model
+      # other properties
+    ```
+    > Check the models available in your OpenRouter dashboard and update this value if needed.
+
+
+2. Scheduler interval:
+
+    The period of time (in seconds) between each recommendation generation by the engine.
+
+    ```yaml
+    ai-engine:
+      # other properties
+      ai:
+        scheduler_interval: 60
+      # other properties
+    ```
+
+
+3. Graph version:
+
+    The architecture used by the agent for generating recommendations with the selected LLM.
+
+    ```yaml
+    ai-engine:
+      # other properties
+      ai:
+        multi_agent: 
+          graph_version: v1 # v1 is a single-agent architecture; v2 is a multi-agent architecture
+      # other properties
+    ```
+    > The multi-agent architecture is composed of three agents: performance, cost, and consolidator.
+
+### AI Engine Prompts
+
+
+By default, the engine includes some predefined prompts. However, you can add new prompts by specifying them in the `simulator/data/config.yaml` file and saving them in the `ai-engine/prompts/` directory.
+
+
+Two kinds of prompts can be used: one for the `v1 architecture` and another for the `v2 architecture`. Both can be configured as follows:
+
+
+1. Setting for `v1 architecture` (single agent):
+
+    ```yaml
+    ai-engine:
+      # other properties
+      ai:
+        multi_agent: 
+          selected_prompt: multi_agent_v3
+      # other properties
+    ```
+
+
+2. Setting for `v2 architecture` (multi-agent):
+
+    ```yaml
+    ai-engine:
+      # other properties
+      ai:
+        multi_agent: 
+          agents:
+            prompts:
+              performance_prompt_file: performance_agent
+              cost_prompt_file: cost_agent
+              consolidator_prompt_file: consolidator_agent
+      # other properties
+    ```
+
+> The prompt names must match the correct file names present in the `ai-engine/prompts/` directory.
 
 ------------------------------------------------------------------------
 
@@ -162,7 +245,7 @@ clusters:
 
 ## Workload Definition
 
-The simulator is configured to inject a workload defined in `simulator/data/workload.yaml` using the Broker service.
+The simulator is configured to inject a workload defined in `simulator/data/input.json` using the Broker service.
 The structured workload definition must follow the schema below:
 
 ```json
