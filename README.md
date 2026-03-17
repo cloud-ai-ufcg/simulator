@@ -288,19 +288,27 @@ The structured workload definition must follow the schema below:
 
 ## Quick Start
 
+You can quickly get started by running the following make commands from the root of the WASP repository.
+
 ### Human-in-the-Loop Mode (Recommended for Demonstrations)
+
+This command will set up the infrastructure locally using Docker, prepare all components for safe execution, and then run a simulation with the default input and configuration. The full setup process may take 10–20 minutes. When it finishes, the screen shown in Figure 2 will appear in the terminal, indicating that the simulation is running. The Operator Interface will be accessible at http://localhost:5173, as shown in Figure 3.
 
 ``` bash
 make
 ```
 
-Check the Operator Interface is up and running:
+![WASP Running](simulator_images/wasp_running.jpeg)
+<p align="center"><b>Figure 2:</b> Simulation running.</p>
 
-    http://localhost:5173
+![Operator Interface](simulator_images/operator_interface.jpeg)
+<p align="center"><b>Figure 3:</b> Operator Interface.</p>
 
 ------------------------------------------------------------------------
 
 ### Fully Automated Mode
+
+The initial flow of this make rule is similar to the previous mode. However, instead of exposing an Operator Interface for human-in-the-loop validation, the Recommendations Manager will automatically apply the AI Engine's recommendations.
 
 ``` bash
 make setup-and-start-auto
