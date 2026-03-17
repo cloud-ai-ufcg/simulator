@@ -220,11 +220,7 @@ Two kinds of prompts can be used: one for the `v1 architecture` and another for 
 
 ## Multi-Cluster Infrastructure Configuration
 
-Cluster capacity is defined in:
-
-    simulator/data/config.yaml
-
-Example:
+The cluster specifications are defined in `simulator/data/config.yaml` and must match the following schema:
 
 ``` yaml
 clusters:
@@ -240,6 +236,8 @@ clusters:
     memory: "16Gi"
     autoscaler: true
 ```
+
+> This schema is the default configuration for the quick start scenario.
 
 ------------------------------------------------------------------------
 
