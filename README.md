@@ -415,13 +415,20 @@ Each execution generates a timestamped output directory (simulator/data/output/)
 
 ## Makefile Targets
 
-    make
-    make setup-and-start-auto
-    make setup
-    make run-all-containers
-    make run-all-containers-auto
-    make stop-all-containers
-    make restart-all-containers
+Makefile Targets:
+
+- `make` or `make all`: Alias for `setup-and-start`. Sets up the infrastructure and runs the simulator in human-in-the-loop mode (with Operator UI). This is the main entry point and will automatically execute the `setup-and-start` target, which itself calls `setup` and then `start`. The simulation will use the workload defined in `simulator/data/input.json` as described in the Workload Definition section above.
+- `make setup-and-start-auto`: Sets up the infrastructure and runs the simulator in auto mode (no Operator UI). This target includes all setup steps and starts the simulation with automatic recommendation application, also using the workload from `simulator/data/input.json`.
+- `make setup`: Sets up the complete infrastructure (stops/starts Kubernetes and containers). This is called by both `setup-and-start` and `setup-and-start-auto`.
+- `make run-all-containers`: Starts all containers in human-in-the-loop mode (with Operator UI). Used internally by `setup`.
+- `make run-all-containers-auto`: Starts all containers in auto mode (no Operator UI). Used internally by `setup-and-start-auto`.
+- `make stop-all-containers`: Stops and removes all simulator containers, volumes, and images (except infra-environment). Useful for cleanup.
+- `make restart-all-containers`: Stops, removes, and recreates all containers, then starts them in human-in-the-loop mode.
+- `make start`: Starts only the Go simulator (assumes infrastructure and containers are already running). This target, and any other that calls it, will execute the simulation using the workload defined in `simulator/data/input.json`.
+- `make clean-workloads`: Removes all workloads from Karmada and member clusters, but preserves KWOK nodes. Useful for resetting the simulation environment without deleting cluster nodes.
+- `make clean-mongo-db`: Removes all documents from all user collections in the MongoDB container. Useful for clearing simulation data between runs.
+- `make help`: Shows a help message listing all available make targets and their descriptions.
+
 
 ------------------------------------------------------------------------
 
