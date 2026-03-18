@@ -272,8 +272,6 @@ make
 ![Operator Interface](simulator_images/operator_interface.jpeg)
 <p align="center"><b>Figure 3:</b> Operator Interface.</p>
 
-------------------------------------------------------------------------
-
 ### 4.2. Fully Automated Mode (Alternative)
 
 The initial flow of this make rule is similar to the previous mode. However, instead of exposing an Operator Interface for human-in-the-loop validation, the Recommendations Manager will automatically apply the AI Engine's recommendations.
