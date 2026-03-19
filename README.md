@@ -14,15 +14,13 @@ designed for:
 WASP focuses on **decision-support**, enabling migration recommendations
 that can be validated by operators before execution.
 
-------------------------------------------------------------------------
-
-## Overview
+## 1. Overview
 
 WASP provides a controlled experimental environment for evaluating
 workload migration strategies under realistic infrastructure
 constraints.
 
-### Key Features
+### 1.1. Key Features
 
 -   Multi-cluster Kubernetes simulation (KWOK + Karmada)
 -   Telemetry and AI-driven migration recommendations
@@ -35,9 +33,7 @@ constraints.
 WASP is intended as a **research and evaluation platform**, not a
 production orchestration system, as of now.
 
-------------------------------------------------------------------------
-
-## Architecture
+### 1.2. Architecture
 
 WASP implementation is composed of loosely coupled services:
 -   **[Simulator](https://github.com/cloud-ai-ufcg/simulator)** --- orchestrates execution timeline and scheduling
@@ -53,24 +49,18 @@ Figure 1 below illustrates how the components interact during execution. The Bro
 ![WASP Architecture](simulator_images/wasp_architecture.png)
 <p align="center"><b>Figure 1:</b> WASP Architecture and component interactions.</p>
 
-------------------------------------------------------------------------
-
-## Requirements
+## 2. Requirements
 Below are the minimum and recommended specifications your machine should meet to run WASP reliably and without performance issues.
 
-### Hardware
+### 2.1. Hardware
 
 **Minimum:**
--   CPU: 8 cores
--   RAM: 16 GB
--   Disk: 100 GB SSD
+-   CPU: 8 cores; RAM: 16 GB; Disk: 100 GB SSD.
 
 **Recommended:**
--   CPU: 12-16 cores
--   RAM: 24-32 GB
--   Disk: 100+ GB NVMe
+-   CPU: 12-16 cores; RAM: 24-32 GB; Disk: 100+ GB NVMe.
 
-### Software
+### 2.2. Software
 
 Required environment:
 
@@ -82,11 +72,9 @@ Required environment:
 
 No preexisting Kubernetes cluster is required. The simulation infrastructure is provisioned automatically.
 
-------------------------------------------------------------------------
+## 3. Setup and Initial Infrastructure
 
-## Installation
-
-### 1. Clone Repository and Initialize Submodules
+### 3.1. Clone Repository and Initialize Submodules
 
 WASP uses Git submodules for its core services, run the following to start them:
 
@@ -99,45 +87,11 @@ git submodule update --init --recursive
 Failure to initialize submodules will prevent the platform from
 starting.
 
-------------------------------------------------------------------------
-
-## LLM Provider Configuration (Required)
-
-The default configuration uses **OpenRouter** as the LLM abstraction
-layer.
-
-### Steps
-
-1.  Create an account:
-
-https://openrouter.ai
-
-2.  Generate an API key.
-  > OpenRouter offers a free API key with some usage limitations. This allows you to test and run the framework without payment, though higher usage or premium models may require a paid plan.
-
-3.  Configure the AI Engine:
-
-``` bash
-cd ai-engine
-touch .env
-```
-
-4. Add the following key to your environment:
-
-    OPENROUTER_API_KEY=your_api_key_here
-
-> Without a valid API key, the AI Engine will not generate
-> recommendations and simulations will fail.
-
-------------------------------------------------------------------------
-
-## AI Engine Configuration
-
+### 3.2. AI Engine Configuration
 
 After configuring the LLM provider, you can set up the AI Engine before running the framework by editing the `ai-engine` properties section in `simulator/data/config.yaml`. The engine configuration allows you to define the following behaviors:
 
-
-1. Selected model:
+* Selected model:
 
     The model used by the engine to generate recommendations.
 
@@ -150,8 +104,7 @@ After configuring the LLM provider, you can set up the AI Engine before running 
     ```
     > Check the models available in your OpenRouter dashboard and update this value if needed.
 
-
-2. Scheduler interval:
+* Scheduler interval:
 
     The period of time (in seconds) between each recommendation generation by the engine.
 
@@ -163,8 +116,7 @@ After configuring the LLM provider, you can set up the AI Engine before running 
       # other properties
     ```
 
-
-3. Graph version:
+* Graph version:
 
     The architecture used by the agent for generating recommendations with the selected LLM.
 
@@ -178,16 +130,13 @@ After configuring the LLM provider, you can set up the AI Engine before running 
     ```
     > The multi-agent architecture is composed of three agents: performance, cost, and consolidator.
 
-### AI Engine Prompts
-
+#### 3.2.1. AI Engine Prompts
 
 By default, the engine includes some predefined prompts. However, you can add new prompts by specifying them in the `simulator/data/config.yaml` file and saving them in the `ai-engine/prompts/` directory.
 
-
 Two kinds of prompts can be used: one for the `v1 architecture` and another for the `v2 architecture`. Both can be configured as follows:
 
-
-1. Setting for `v1 architecture` (single agent):
+* Setting for `v1 architecture` (single agent):
 
     ```yaml
     ai-engine:
@@ -198,8 +147,7 @@ Two kinds of prompts can be used: one for the `v1 architecture` and another for 
       # other properties
     ```
 
-
-2. Setting for `v2 architecture` (multi-agent):
+* Setting for `v2 architecture` (multi-agent):
 
     ```yaml
     ai-engine:
@@ -216,9 +164,33 @@ Two kinds of prompts can be used: one for the `v1 architecture` and another for 
 
 > The prompt names must match the correct file names present in the `ai-engine/prompts/` directory.
 
-------------------------------------------------------------------------
+#### 3.2.2. LLM Provider Configuration (Required)
 
-## Multi-Cluster Infrastructure Configuration
+The default configuration uses **OpenRouter** as the LLM abstraction
+layer.
+
+1.  [Create an OpenRouter account;](https://openrouter.ai)
+
+2.  Generate an API key;
+  > OpenRouter offers a free API key with some usage limitations. This allows you to test and run the framework without payment, though higher usage or premium models may require a paid plan.
+
+3.  Configure the AI Engine:
+
+``` bash
+cd ai-engine
+touch .env
+```
+
+4. Add the following key to your environment:
+
+    `OPENROUTER_API_KEY=your_api_key_here`
+
+> Without a valid API key, the AI Engine will not generate
+> recommendations and simulations will fail.
+
+### 3.3. Data and Infrastructure
+
+#### 3.3.1. Multi-Cluster Infrastructure Configuration
 
 The cluster specifications are defined in `simulator/data/config.yaml` and must match the following schema:
 
@@ -239,9 +211,7 @@ clusters:
 
 > This schema is the default configuration for the quick start scenario.
 
-------------------------------------------------------------------------
-
-## Workload Definition
+#### 3.3.2. Workload Definition
 
 The simulator is configured to inject a workload defined in `simulator/data/input.json` using the Broker service.
 The structured workload definition must follow the schema below:
@@ -284,13 +254,11 @@ The structured workload definition must follow the schema below:
 
 > Note: The broker component will submit each event defined in data from the initial timestamp until the last one. It stops after submitting the last event.
 
-------------------------------------------------------------------------
-
-## Quick Start
+## 4. Quick Start
 
 You can quickly get started by running the following make commands from the root of the WASP repository.
 
-### Human-in-the-Loop Mode (Recommended for Demonstrations)
+### 4.1. Human-in-the-Loop Mode (Recommended for Demonstrations)
 
 This command will set up the infrastructure locally using Docker, prepare all components for safe execution, and then run a simulation with the default input and configuration. The full setup process may take 10–20 minutes. When it finishes, the screen shown in Figure 2 will appear in the terminal, indicating that the simulation is running. The Operator Interface will be accessible at http://localhost:5173, as shown in Figure 3.
 
@@ -304,9 +272,7 @@ make
 ![Operator Interface](simulator_images/operator_interface.jpeg)
 <p align="center"><b>Figure 3:</b> Operator Interface.</p>
 
-------------------------------------------------------------------------
-
-### Fully Automated Mode
+### 4.2. Fully Automated Mode (Alternative)
 
 The initial flow of this make rule is similar to the previous mode. However, instead of exposing an Operator Interface for human-in-the-loop validation, the Recommendations Manager will automatically apply the AI Engine's recommendations.
 
@@ -314,21 +280,25 @@ The initial flow of this make rule is similar to the previous mode. However, ins
 make setup-and-start-auto
 ```
 
-------------------------------------------------------------------------
+## 5. Execution Workflow
 
-## Execution Workflow
+During the execution of the framework, you can monitor the components by observing their expected log formats and behaviors, as described below.
 
-During the execution of the framework, you can monitor the components by observing their expected log formats and behaviors:
+### 5.1. Multi-cluster infrastructure provisioning
 
-1.  Multi-cluster infrastructure provisioning
+  After running the infra-environment container, WASP will wait for the Karmada config file to be generated by the infrastructure scripts. During this step, the terminal will display: 
+  
+  ```bash
+  Waiting for Karmada config to be generated...
+  ```
 
-  After running the infra-environment container, WASP will wait for the Karmada config file to be generated by the infrastructure scripts. During this step, the terminal will display: `Waiting for Karmada config to be generated...`.
-
-2.  Workload injection via Broker
+### 5.2. Workload injection via Broker
 
   When running, the Broker submits the workload provided in the input file throughout the simulation period. Below is an example of logs generated by the Broker:
 
-    ```bash
+  ```bash
+    $ docker logs -f broker
+
     time=2026-03-17T04:16:54.222Z level=INFO msg="➡️ [1s] [Deployment] CREATE: redis-cache (propagated by Karmada for label 'member1')"
     time=2026-03-17T04:16:54.227Z level=INFO msg="DEBUG: Processing row 5: Kind='deployment', ID='notifications'"
     time=2026-03-17T04:16:54.227Z level=INFO msg="⏳ Waiting 69 seconds"
@@ -339,25 +309,27 @@ During the execution of the framework, you can monitor the components by observi
     time=2026-03-17T04:18:03.273Z level=INFO msg="➡️ [70s] [Deployment] CREATE: search-service (propagated by Karmada for label 'member1')"
     time=2026-03-17T04:18:03.276Z level=INFO msg="DEBUG: Processing row 7: Kind='deployment', ID='metrics-exporter'"
     time=2026-03-17T04:18:03.276Z level=INFO msg="DEBUG: Matched kind: deployment"
-    ```
+  ```
 
-
-3.  Telemetry collection (30-second interval)
+### 5.3. Telemetry collection (30-second interval)
 
   The Monitor logs its collection times as shown below:
 
-    ```bash
+  ```bash
+    $ docker logs -f monitor
+
     [GIN] 2026/03/17 - 04:17:57 | 200 |     649.534µs |       127.0.0.1 | GET      "/metrics"
     [GIN] 2026/03/17 - 04:19:02 | 200 |     497.136µs |       127.0.0.1 | GET      "/metrics"
     [GIN] 2026/03/17 - 04:20:06 | 200 |     577.845µs |       127.0.0.1 | GET      "/metrics"
-    ```
+  ```
 
-
-4.  AI reasoning cycle (60-second interval)
+### 5.4. AI reasoning cycle (60-second interval)
 
   The following log is an example from the AI Engine, showing a short result generated during a recommendation process.
 
-    ```bash
+  ```bash
+    $ docker logs -f ai-engine
+
     [2026-03-17 04:17:57] DEBUG [ai_engine.api] - Fetching metrics from MONITOR: http://0.0.0.0:8082/metrics
     [2026-03-17 04:17:57] INFO [ai_engine.api] - 📊 Successfully fetched metrics from MONITOR
     [2026-03-17 04:17:57] INFO [ai_engine.main] - 🔄 Filtered to 5 unique workloads with non-zero resources 
@@ -374,33 +346,36 @@ During the execution of the framework, you can monitor the components by observi
     [2026-03-17 04:18:01] INFO [httpx] - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
     # ...
     [2026-03-17 04:18:02] INFO [ai_engine.api] - ✅ Successfully applied recommendations
-    ```
-
-
-5.  Recommendation validation
+  ```
+    
+### 5.5. Recommendation validation
 
   In Human-in-the-Loop mode, you can accept or deny the migration of a given workload using the web interface provided by the Recommendations Manager. When a new batch of recommendations arrives in the Operator Interface, they will be listed (after a manual refresh). The Operator Interface provides filters to list pending, approved, rejected, or expired recommendations (the latter are recommendations not decided in a previous batch), as shown below.
 
-![Operator Interface With Content](simulator_images/operator_interface_with_recommendations.jpeg)
+![Operator Interface With Content](simulator_images/operator_interface_with_recommendations.png)
 <p align="center"><b>Figure 4:</b> Recommendations at Operator Interface.</p>
 
+![Operator Interface Acceptance](simulator_images/approved_workload.png)
+<p align="center"><b>Figure 5:</b> Accepted recommendations at the Operator Interface.</p>
 
-6.  Migration execution via Actuator
+![Operator Interface Acceptance](simulator_images/rejected_workload.png)
+<p align="center"><b>Figure 6:</b> Rejected recommendations at the Operator Interface.</p>
+
+![Operator Interface Acceptance](simulator_images/expired_workload.png)
+<p align="center"><b>Figure 7:</b> Expired recommendations at the Operator Interface.</p>
+
+### 5.6. Migration execution via Actuator
 
   After approving a migration, the Actuator (a component of the Recommendations Manager) will apply the action to the respective workload.
 
-    ```bash
+  ```bash
+    $ docker logs -f recommendations-manager
+    
     [0] 2026/03/17 05:23:40 🔄 Deployment default/redis-cache updated to member2
     [0] > INFO: 2026/03/17 05:23:40 Successfully applied workload default/redis-cache
-    ```
+  ```
 
-7.  Metrics and logs persistence
-
-  Finally, the framework stores the metrics exported by the Monitor at the end of the simulation, along with the logs of each WASP component. These artifacts are stored in `simulator/data/output/YYYYMMDD_HHMMSS/`.
-
-------------------------------------------------------------------------
-
-## Output and Reproducibility
+## 6. Output and Reproducibility
 
 Each execution generates a timestamped output directory (simulator/data/output/) containing:
 
@@ -411,9 +386,7 @@ Each execution generates a timestamped output directory (simulator/data/output/)
     -   monitor
     -   ai-engine
 
-------------------------------------------------------------------------
-
-## Makefile Targets
+## 7. Makefile Targets
 
 Makefile Targets:
 
@@ -429,10 +402,7 @@ Makefile Targets:
 - `make clean-mongo-db`: Removes all documents from all user collections in the MongoDB container. Useful for clearing simulation data between runs.
 - `make help`: Shows a help message listing all available make targets and their descriptions.
 
-
-------------------------------------------------------------------------
-
-## Research Goals
+## 8. Research Goals
 
 -   Separation of monitoring, reasoning, validation, and execution
 -   Model-agnostic AI integration
@@ -440,15 +410,11 @@ Makefile Targets:
 -   Reproducible simulation environments
 -   Operator accountability and auditability
 
-------------------------------------------------------------------------
-
-## Citation (SBRC)
+## 9. Citation (SBRC)
 
 WASP: Workload Agent-Based Simulation Platform
 
-------------------------------------------------------------------------
-
-## License
+## 10. License
 
 Copyright 2026 Laboratório de Sistemas Distribuídos (LSD), Universidade Federal de Campina Grande (UFCG) and Hewlett Packard Enterprise Development LP
 
