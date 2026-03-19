@@ -352,8 +352,17 @@ During the execution of the framework, you can monitor the components by observi
 
   In Human-in-the-Loop mode, you can accept or deny the migration of a given workload using the web interface provided by the Recommendations Manager. When a new batch of recommendations arrives in the Operator Interface, they will be listed (after a manual refresh). The Operator Interface provides filters to list pending, approved, rejected, or expired recommendations (the latter are recommendations not decided in a previous batch), as shown below.
 
-![Operator Interface With Content](simulator_images/operator_interface_with_recommendations.jpeg)
+![Operator Interface With Content](simulator_images/operator_interface_with_recommendations.png)
 <p align="center"><b>Figure 4:</b> Recommendations at Operator Interface.</p>
+
+![Operator Interface Acceptance](simulator_images/approved_workload.png)
+<p align="center"><b>Figure 5:</b> Accepted recommendations at the Operator Interface.</p>
+
+![Operator Interface Acceptance](simulator_images/rejected_workload.png)
+<p align="center"><b>Figure 6:</b> Rejected recommendations at the Operator Interface.</p>
+
+![Operator Interface Acceptance](simulator_images/expired_workload.png)
+<p align="center"><b>Figure 7:</b> Expired recommendations at the Operator Interface.</p>
 
 ### 5.6. Migration execution via Actuator
 
