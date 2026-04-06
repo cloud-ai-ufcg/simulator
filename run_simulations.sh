@@ -67,9 +67,9 @@ echo "Creating configuration backup at: ${BACKUP_FILE}"
 cp "${CONFIG_FILE}" "${BACKUP_FILE}"
 
 # Parameter combinations
-MODELS=("openai/gpt-5" "openai/gpt-5-mini")
+MODELS=("deepseek/deepseek-v3.2")
 INPUTS=("input_const.json" "input_varia.json")
-TEMPERATURES=(0.1 0.5)
+TEMPERATURES=(0.1)
 GRAPH_VERSIONS=("v1" "v2")
 
 # Optional CLI filters:
