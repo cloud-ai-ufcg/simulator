@@ -1,6 +1,4 @@
-# 1. Project title
-
-**WASP — Workload Agent-Based Simulation Platform**
+# 1. WASP — Workload Agent-Based Simulation Plataform
 
 WASP is a modular research platform for studying AI-driven workload migration strategies in hybrid and multi-cluster Kubernetes environments. The platform integrates simulation, monitoring, reasoning, validation, and execution in a reproducible and containerized environment, focusing on decision support to recommend migrations that can be validated by operators before execution.
 
