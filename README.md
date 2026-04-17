@@ -1,64 +1,64 @@
-# 1. Título projeto
+# 1. Project title
 
 **WASP — Workload Agent-Based Simulation Platform**
 
-WASP é uma plataforma modular de pesquisa para estudo de estratégias de migração de workloads orientadas por IA em ambientes Kubernetes híbridos e multi-cluster. A plataforma integra simulação, monitoramento, raciocínio, validação e execução em um ambiente reprodutível e containerizado, com foco em suporte à decisão para recomendar migrações que podem ser validadas por operadores antes da execução.
+WASP is a modular research platform for studying AI-driven workload migration strategies in hybrid and multi-cluster Kubernetes environments. The platform integrates simulation, monitoring, reasoning, validation, and execution in a reproducible and containerized environment, focusing on decision support to recommend migrations that can be validated by operators before execution.
 
-**Título do artigo:** WASP: Workload Agent-Based Simulation Platform for Migration Recommendations in Federated Kubernetes Environments
+**Paper title:** WASP: Workload Agent-Based Simulation Platform for Migration Recommendations in Federated Kubernetes Environments
 
-**Resumo do artigo:** A migração de workloads em ambientes Kubernetes federados é uma tarefa complexa, pois exige estratégias robustas que operem sob condições dinâmicas para equilibrar desempenho, custo e disponibilidade. Aplicar essas estratégias diretamente em produção, especialmente com agentes autônomos não validados, pode causar degradação de desempenho. Este trabalho apresenta o WASP (Workload Agent-Based Simulation Platform), uma ferramenta de suporte à decisão que permite simular estratégias de migração baseadas em agentes antes da implantação em produção. O WASP adota uma arquitetura modular com camadas de monitoramento, recomendação e controle de execução, além de suportar políticas configuráveis com aprovação human-in-the-loop.
+**Paper abstract:** Workload migration in federated Kubernetes environments is a complex task, as it requires robust strategies that operate under dynamic conditions to balance performance, cost, and availability. Applying these strategies directly in production, especially with unvalidated autonomous agents, can cause performance degradation. This work presents WASP (Workload Agent-Based Simulation Platform), a decision-support tool that enables simulation of agent-based migration strategies before deployment in production. WASP adopts a modular architecture with monitoring, recommendation, and execution-control layers, and supports configurable policies with human-in-the-loop approval.
 
 
-# 2. Estrutura do readme.md
+# 2. Structure of readme.md
 
-Este README está organizado nas seguintes seções:
+This README is organized into the following sections:
 
-1. Título do projeto e resumo do artefato;
-2. Estrutura deste README;
-3. Selos considerados na avaliação;
-4. Informações básicas (arquitetura, requisitos e ambiente);
-5. Dependências (software, serviços externos e arquivos de configuração);
-6. Preocupações com segurança;
-7. Instalação;
-8. Teste mínimo;
-9. Experimentos e reprodução de reivindicações;
-10. Licença.
+1. Project title and artifact summary;
+2. Structure of this README;
+3. Badges considered in the evaluation;
+4. Basic information (architecture, requirements, and environment);
+5. Dependencies (software, external services, and configuration files);
+6. Security concerns;
+7. Installation;
+8. Minimal test;
+9. Experiments and claim reproduction;
+10. License.
 
-Além disso, o repositório WASP é composto por serviços estruturados em submódulos que incluem, entre outros, `broker`, `monitor`, `ai-engine`, `recommendations-manager`, além de scripts de infraestrutura e análise.
+In addition, the WASP repository is composed of services structured as submodules, including, among others, `broker`, `monitor`, `ai-engine`, `recommendations-manager`, as well as infrastructure and analysis scripts.
 
-# 3. Selos Considerados
+# 3. Considered badges
 
-Os selos considerados são no processo de avaliação: 
-- Artefatos Disponíveis (SeloD);
-- Artefatos Funcionais (SeloF);
-- Artefatos Sustentáveis (SeloS);
-- Experimentos Reprodutíveis (SeloR).
+The badges considered in the evaluation process are:
+- Available Artifacts (SeloD);
+- Functional Artifacts (SeloF);
+- Sustainable Artifacts (SeloS);
+- Reproducible Experiments (SeloR).
 
-# 4. Informações básicas
+# 4. Basic information
 
-## 4.1. Componentes principais
+## 4.1. Main components
 
-- **Simulator**: orquestra linha do tempo e o fluxo de execução da simulação;
-- **Broker**: injeta eventos de workload e infraestrutura;
-- **Monitor**: coleta snapshots de telemetria da infraestrutura;
-- **AI Engine**: gera recomendações estruturadas de migração;
-- **Recommendations Manager**: composto por outros dois elementos, valida e executa migrações aprovadas;
-	- **Actuator**: executa ações de migração;
-	- **Operator Interface** (opcional): validação humana antes da execução.
+- **Simulator**: orchestrates the simulation timeline and execution flow;
+- **Broker**: injects workload and infrastructure events;
+- **Monitor**: collects infrastructure telemetry snapshots;
+- **AI Engine**: generates structured migration recommendations;
+- **Recommendations Manager**: composed of two additional elements, validates and executes approved migrations;
+	- **Actuator**: executes migration actions;
+	- **Operator Interface** (optional): human validation before execution.
 
-## 4.2. Requisitos de hardware
+## 4.2. Hardware requirements
 
-**Mínimo:**
-- CPU: 8 núcleos
+**Minimum:**
+- CPU: 8 cores
 - RAM: 16 GiB
-- Disco: 100 GiB SSD
+- Disk: 100 GiB SSD
 
-**Recomendado:**
-- CPU: 12–16 núcleos
+**Recommended:**
+- CPU: 12–16 cores
 - RAM: 24–32 GiB
-- Disco: 100+ GiB NVMe
+- Disk: 100+ GiB NVMe
 
-## 4.3. Requisitos de software
+## 4.3. Software requirements
 
 - Ubuntu 22.04.5 LTS
 - GNU Make 4.3
@@ -66,23 +66,23 @@ Os selos considerados são no processo de avaliação:
 - Docker Compose 2.36.2
 - Go 1.24
 
-Não é necessário cluster Kubernetes pré-existente. A infraestrutura de simulação é provisionada automaticamente.
+No pre-existing Kubernetes cluster is required. The simulation infrastructure is provisioned automatically.
 
-# 5. Dependências
+# 5. Dependencies
 
-## 5.1. Dependências de software e serviços
+## 5.1. Software and service dependencies
 
-- Submódulos Git para serviços centrais do WASP (`broker`, `monitor`, `ai-engine`, `recommendations-manager`);
-- Provedor LLM para a geração de recomendações (por padrão utilizamos o **OpenRouter**);
-- Chave de API que será utilizada para a comunicação com o provedor;
+- Git submodules for WASP core services (`broker`, `monitor`, `ai-engine`, `recommendations-manager`);
+- LLM provider for recommendation generation (by default, we use **OpenRouter**);
+- API key used for communication with the provider;
 
-## 5.2. Configurações de execução
+## 5.2. Execution configurations
 
-Antes de iniciar a ferramenta, algumas configurações devem ser realizadas para determinar parâmetros de execução e implantação da infraestrutura e dos componentes do WASP.
+Before starting the tool, some configurations must be set to define execution parameters and deployment of WASP infrastructure and components.
 
-### 5.2.1. Configuração de clusters
+### 5.2.1. Cluster configuration
 
-As especificações dos clusters estão definidas no arquivo `simulator/data/config.yaml` e seguem o seguinte esquema:
+Cluster specifications are defined in `simulator/data/config.yaml` and follow the schema below:
 
 ```yaml
 clusters:
@@ -99,11 +99,11 @@ clusters:
 		autoscaler: true
 ```
 
-> Esse esquema é a configuração padrão para o cenário de teste.
+> This schema is the default configuration for the test scenario.
 
-### 5.2.2. Configuração de workload
+### 5.2.2. Workload configuration
 
-O simulador está configurado para submeter uma carga de trabalho definida no arquivo `simulator/data/input.json`, essa submissão utiliza o componente broker auxilia o WASP com a submissão da carga de trabalho. A estrutura esperada para o arquivo de entrada usada pelo broker segue o esquema abaixo:
+The simulator is configured to submit a workload defined in `simulator/data/input.json`. This submission uses the broker component, which assists WASP with workload submission. The expected structure for the broker input file follows the schema below:
 
 ```json
 {
@@ -139,104 +139,104 @@ O simulador está configurado para submeter uma carga de trabalho definida no ar
 }
 ```
 
-> O broker vai submeter cada evento definido no arquivo seguindo do timestamp inicial até o último timestamp. O componente irá parar o período de submissões após o último evento ser submetido.
+> The broker submits each event defined in the file from the initial timestamp to the last timestamp. The component stops submitting events after the final event is submitted.
 
-### 5.2.3. Configuração do AI Engine
+### 5.2.3. AI Engine configuration
 
-A configuração relacionada ao componente `ai-engine` pode ser realizada via `simulator/data/config.yaml`. 
+Configuration related to the `ai-engine` component can be set through `simulator/data/config.yaml`.
 
 #### LLM Provider Configuration (Required)
 
-Por padrão, o AI engine utiliza o OpenRouter como camada de abstração para a utilização dos modelos.
+By default, the AI engine uses OpenRouter as the abstraction layer for model usage.
 
-1.  [Crie uma conta no OpenRouter;](https://openrouter.ai)
+1.  [Create an OpenRouter account;](https://openrouter.ai)
 
-2.  Gere uma chave de API;
-  > O OpenRouter oferece uma chave de API gratuita com algumas limitações de uso. Isso permite testar e executar o framework sem custo, embora um uso mais elevado ou modelos premium possam exigir um plano pago.
+2.  Generate an API key;
+  > OpenRouter offers a free API key with some usage limitations. This allows testing and running the framework at no cost, although higher usage or premium models may require a paid plan.
 
-3.  Configure o AI Engine:
+3.  Configure the AI Engine:
 
 ```bash
 cd ai-engine
 touch .env
 ```
-4. Adicione a seguinte chave ao seu ambiente:
+4. Add the following key to your environment:
 
    `OPENROUTER_API_KEY=your_api_key_here`
 
-> Sem uma chave de API válida, o AI Engine não vai gerar recomendações e as simulações irão falhar.
+> Without a valid API key, the AI Engine will not generate recommendations and simulations will fail.
 
-#### Parâmetros básicas
+#### Basic parameters
 
-Após definir as configurações do provedor, é necessário definir os seguintes parâmetros para o funcionamento do ai-engine:
+After defining provider settings, you need to set the following parameters for `ai-engine` operation:
 
-* 'scheduler_interval':
-    O periodo, em segundos, entre cada geração das recomendações pela ai-engine.
+* `scheduler_interval`:
+    The period, in seconds, between recommendation generations by `ai-engine`.
 
     ```yaml
     ai-engine:
-      # outras propiedades
+      # other properties
       ai:
         scheduler_interval: 60
-        # outras propiedades
+        # other properties
     ```
 
-* 'graph_version':
-    A arquitetura usada pelo agente para a geração das recomendações com o modelo selecionado.
+* `graph_version`:
+    The architecture used by the agent to generate recommendations with the selected model.
 
     ```yaml
     ai-engine:
-      # outras propiedades
+      # other properties
       ai:
         multi_agent:
-          graph_version: v1 # v1 está relacionada à arquitetura single-agent; v2 à multi-agent 
-        # outras propiedades
+          graph_version: v1 # v1 is related to single-agent architecture; v2 to multi-agent
+        # other properties
     ```
-    > A arquitetura multi-agent é composta de três agentes: performance, custo, e consolidador.
+    > The multi-agent architecture is composed of three agents: performance, cost, and consolidator.
 
-#### Configuração dos prompts
+#### Prompt configuration
 
-Por padrão, o engine inclui alguns prompts predefinidos. No entanto, você pode adicionar novos prompts especificando-os no arquivo `simulator/data/config.yaml` e salvando-os no diretório `ai-engine/prompts/`.
+By default, the engine includes some predefined prompts. However, you can add new prompts by specifying them in `simulator/data/config.yaml` and saving them in the `ai-engine/prompts/` directory.
 
-Dois tipos de prompts podem ser usados: um para a `arquitetura v1` e outro para a `arquitetura v2`. Ambos podem ser configurados da seguinte forma:
+Two types of prompts can be used: one for `v1 architecture` and another for `v2 architecture`. Both can be configured as follows:
 
-* Configuração para `arquitetura v1` (single agent):
+* Configuration for `v1 architecture` (single agent):
 
     ```yaml
     ai-engine:
-      # outras propiedades
+      # other properties
       ai:
-        multi_agent: 
+        multi_agent:
           selected_prompt: multi_agent_v3
-      # outras propiedades
+      # other properties
     ```
 
-* Configuração para `arquitetura v2` (multi-agent):
+* Configuration for `v2 architecture` (multi-agent):
 
     ```yaml
     ai-engine:
-      # outras propiedades
+      # other properties
       ai:
-        multi_agent: 
+        multi_agent:
           agents:
             prompts:
               performance_prompt_file: performance_agent
               cost_prompt_file: cost_agent
               consolidator_prompt_file: consolidator_agent
-      # outras propiedades
+      # other properties
     ```
 
-> Os nomes dos prompts devem corresponder exatamente aos nomes dos arquivos presentes no diretório `ai-engine/prompts/`.
+> Prompt names must exactly match the names of files in the `ai-engine/prompts/` directory.
 
-# 6. Preocupações com segurança
+# 6. Security concerns
 
-- O artefato foi projetado para ambiente de pesquisa e avaliação, não produção.
-- A execução padrão ocorre localmente em contêineres Docker.
-- O único segredo explicitamente necessário no fluxo descrito é a chave `OPENROUTER_API_KEY`, que deve ser armazenada em arquivo `.env` local e não deve ser versionada.
+- The artifact was designed for research and evaluation environments, not production.
+- Standard execution takes place locally in Docker containers.
+- The only explicitly required secret in the described flow is `OPENROUTER_API_KEY`, which must be stored in a local `.env` file and must not be versioned.
 
-# 7. Instalação
+# 7. Installation
 
-## 7.1. Clonar o repositório e inicializar submódulos
+## 7.1. Clone the repository and initialize submodules
 
 ```bash
 git clone https://github.com/cloud-ai-ufcg/simulator
@@ -244,58 +244,58 @@ cd simulator
 git submodule update --init --recursive
 ```
 
-> A não inicialização dos submódulos impede a plataforma de iniciar.
+> Not initializing submodules prevents the platform from starting.
 
-## 7.2. Configurar o provedor LLM (OpenRouter)
+## 7.2. Configure the LLM provider (OpenRouter)
 
-1. Criar conta em https://openrouter.ai;
-2. Gerar chave de API;
-3. Configurar ambiente do AI Engine:
+1. Create an account at https://openrouter.ai;
+2. Generate an API key;
+3. Configure the AI Engine environment:
 
 ```bash
 cd ai-engine
 touch .env
 ```
 
-4. Adicionar ao `.env`:
+4. Add to `.env`:
 
 ```bash
 OPENROUTER_API_KEY=your_api_key_here
 ```
 
-# 8. Teste mínimo
+# 8. Minimal test
 
-Você pode começar rapidamente executando os seguintes comandos `make` a partir da raiz do repositório WASP.
+You can quickly get started by running the following `make` commands from the root of the WASP repository.
 
-### 8.1. Modo Human-in-the-Loop (Recomendado para Demonstrações)
+### 8.1. Human-in-the-Loop Mode (Recommended for Demonstrations)
 
-Este comando configura a infraestrutura localmente usando Docker, prepara todos os componentes para uma execução segura e, em seguida, executa uma simulação com a entrada e a configuração padrão. O processo completo de setup pode levar de 10 a 20 minutos. Quando terminar, a tela mostrada na Figura 2 aparecerá no terminal, indicando que a simulação está em execução. A Interface do Operador ficará acessível em http://localhost:5173, conforme mostrado na Figura 3.
+This command sets up infrastructure locally using Docker, prepares all components for safe execution, and then runs a simulation with default input and configuration. The full setup process may take 10 to 20 minutes. When it finishes, the screen shown in Figure 2 appears in the terminal, indicating that the simulation is running. The Operator Interface is available at http://localhost:5173, as shown in Figure 3.
 
 ```bash
 make
 ```
 
-![WASP em execução](simulator_images/wasp_running.jpeg)
-<p align="center"><b>Figura 2:</b> Simulação em execução.</p>
+![WASP running](simulator_images/wasp_running.jpeg)
+<p align="center"><b>Figure 2:</b> Simulation running.</p>
 
-![Interface do Operador](simulator_images/operator_interface.jpeg)
-<p align="center"><b>Figura 3:</b> Interface do Operador.</p>
+![Operator Interface](simulator_images/operator_interface.jpeg)
+<p align="center"><b>Figure 3:</b> Operator Interface.</p>
 
-### 8.2. Modo Totalmente Automatizado (Alternativo)
+### 8.2. Fully automated mode (Alternative)
 
-O fluxo inicial desta regra `make` é semelhante ao modo anterior. No entanto, em vez de expor uma Interface do Operador para validação human-in-the-loop, o Recommendations Manager aplicará automaticamente as recomendações do AI Engine.
+The initial flow of this `make` rule is similar to the previous mode. However, instead of exposing an Operator Interface for human-in-the-loop validation, the Recommendations Manager automatically applies AI Engine recommendations.
 
 ```bash
 make setup-and-start-auto
 ```
 
-# 9. Experimentos
+# 9. Experiments
 
-As configurações padrões para cada componente do WASP neste repositório já estão relacionadas aos experimentos apresentados no artigo.
+The default settings for each WASP component in this repository are already aligned with the experiments presented in the paper.
 
-## 9.1. Saídas e reprodutibilidade
+## 9.1. Outputs and reproducibility
 
-Cada execução gera um diretório com timestamp em `simulator/data/output/` contendo:
+Each run generates a timestamped directory in `simulator/data/output/` containing:
 
 - `metrics.json`
 - `logs/actuator`
@@ -303,34 +303,34 @@ Cada execução gera um diretório com timestamp em `simulator/data/output/` con
 - `logs/monitor`
 - `logs/ai-engine`
 
-**Como reproduzir (passo a passo):**
-1. Executar `make`.
-2. Observar o workflow:
-	 - Provisionamento da infraestrutura multi-cluster;
-   - Setup dos componentes
-	 - Injeção de workload pelo Broker;
-	 - Coleta de telemetria pelo Monitor (intervalo de 30s);
-	 - Ciclo de raciocínio do AI Engine (intervalo de 60s);
-	 - Validação na Operator Interface;
-	 - Execução de migração via Actuator.
-3. Coletar evidências nos logs de cada componente em `simulator/data/output/`.
+**How to reproduce (step by step):**
+1. Run `make`.
+2. Observe the workflow:
+	 - Multi-cluster infrastructure provisioning;
+   - Component setup
+	 - Workload injection by Broker;
+	 - Telemetry collection by Monitor (30s interval);
+	 - AI Engine reasoning cycle (60s interval);
+	 - Validation in the Operator Interface;
+	 - Migration execution via Actuator.
+3. Collect evidence in logs from each component in `simulator/data/output/`.
 
-**Arquivos/configurações relevantes:**
+**Relevant files/configurations:**
 - `simulator/data/config.yaml`
 - `simulator/data/input.json`
 
-**Tempo esperado:** 10–20 minutos para setup + tempo do cenário.
+**Expected time:** 10–20 minutes for setup + scenario duration.
 
-**Resultado esperado:** observar claramente os papéis de cada serviço em logs independentes.
+**Expected result:** clear observation of each service role in independent logs.
 
 # 10. LICENSE
 
 Copyright 2026 Laboratório de Sistemas Distribuídos (LSD), Universidade Federal de Campina Grande (UFCG) and Hewlett Packard Enterprise Development LP.
 
-Licenciado sob a Apache License, Version 2.0.
+Licensed under the Apache License, Version 2.0.
 
-Você pode obter uma cópia da licença em:
+You may obtain a copy of the license at:
 
 http://www.apache.org/licenses/LICENSE-2.0
 
-Salvo disposição legal aplicável ou acordo por escrito, o software distribuído sob esta licença é distribuído "como está", sem garantias ou condições de qualquer tipo.
+Unless required by applicable law or agreed to in writing, software distributed under this license is distributed on an "AS IS" basis, without warranties or conditions of any kind.
