@@ -29,10 +29,10 @@ In addition, the WASP repository is composed of services structured as submodule
 # 3. Considered badges
 
 The badges considered in the evaluation process are:
-- Available Artifacts (SeloD);
-- Functional Artifacts (SeloF);
-- Sustainable Artifacts (SeloS);
-- Reproducible Experiments (SeloR).
+- Artefatos Disponíveis (SeloD);
+- Artefatos Funcionais (SeloF);
+- Artefatos Sustentáveis (SeloS);
+- Experimentos Reprodutíveis (SeloR).
 
 # 4. Basic information
 
