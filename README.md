@@ -315,6 +315,8 @@ Each run generates a timestamped directory in `simulator/data/output/` containin
 	 - Migration execution via Actuator.
 3. Collect evidence in logs from each component in `simulator/data/output/`.
 
+> To generate the same charts as in the paper, use the `analyzer`. Move the process data file, saved in `simulator/data/output/`, to the `analyzer_input` directory and run the script `create_plot_for_input.R` to generate the plots in the `plots` directory. You can also use the `create_plot_for_input.R` script to generate plots for any other input file.
+
 **Relevant files/configurations:**
 - `simulator/data/config.yaml`
 - `simulator/data/input.json`
