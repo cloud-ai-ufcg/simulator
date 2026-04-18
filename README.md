@@ -1,4 +1,4 @@
-# 1. WASP — Workload Agent-Based Simulation Plataform
+# 1. WASP — Workload Agent-Based Simulation Platform
 
 WASP is a modular research platform for studying AI-driven workload migration strategies in hybrid and multi-cluster Kubernetes environments. The platform integrates simulation, monitoring, reasoning, validation, and execution in a reproducible and containerized environment, focusing on decision support to recommend migrations that can be validated by operators before execution.
 
@@ -22,15 +22,16 @@ This README is organized into the following sections:
 9. Experiments and claim reproduction;
 10. License.
 
-In addition, the WASP repository is composed of services structured as submodules, including, among others, `broker`, `monitor`, `ai-engine`, `recommendations-manager`, as well as infrastructure and analysis scripts.
+In addition, the WASP repository is composed of services structured as submodules, including broker, monitor, ai-engine, and recommendations-manager, as well as infrastructure provisioning scripts and analysis scripts for plot generation.
 
 # 3. Considered badges
 
 The badges considered in the evaluation process are:
-- Artefatos Disponíveis (SeloD);
-- Artefatos Funcionais (SeloF);
-- Artefatos Sustentáveis (SeloS);
-- Experimentos Reprodutíveis (SeloR).
+
+- **Artefatos Disponíveis (SeloD)**: code and configurations are publicly available on GitHub, including all submodules;
+- **Artefatos Funcionais (SeloF)**: the platform runs end-to-end via a single make command in a local Docker environment, with observable output at each component layer;
+- **Artefatos Sustentáveis (SeloS)**: the codebase is modular, with clearly separated services, declarative YAML configuration, and documented component responsibilities;
+- **Experimentos Reprodutíveis (SeloR)**: the default configuration reproduces the use case scenario from the paper, with timestamped output logs per component.
 
 # 4. Basic information
 
@@ -58,6 +59,8 @@ The badges considered in the evaluation process are:
 
 ## 4.3. Software requirements
 
+The versions listed below are those used during development and testing. Compatibility with earlier minor versions has not been verified; using these exact versions is recommended for reproducibility.
+
 - Ubuntu 22.04.5 LTS
 - GNU Make 4.3
 - Docker 28.3.2
@@ -70,9 +73,11 @@ No pre-existing Kubernetes cluster is required. The simulation infrastructure is
 
 ## 5.1. Software and service dependencies
 
-- Git submodules for WASP core services (`broker`, `monitor`, `ai-engine`, `recommendations-manager`);
-- LLM provider for recommendation generation (by default, we use **OpenRouter**);
-- API key used for communication with the provider;
+Git submodules for WASP core services (broker, monitor, ai-engine, recommendations-manager);
+LLM provider for recommendation generation (by default, OpenRouter);
+API key used for communication with the provider.
+
+Internet access is required during execution, as the AI Engine communicates with the OpenRouter API to generate migration recommendations.
 
 ## 5.2. Execution configurations
 
@@ -261,6 +266,8 @@ touch .env
 OPENROUTER_API_KEY=your_api_key_here
 ```
 
+After completing these steps, proceed to Section 8 to run the platform.
+
 # 8. Minimal test
 
 You can quickly get started by running the following `make` commands from the root of the WASP repository.
@@ -279,6 +286,8 @@ make
 ![Operator Interface](simulator_images/operator_interface.jpeg)
 <p align="center"><b>Figure 3:</b> Operator Interface.</p>
 
+Within approximately 2 minutes of workload injection, at least one migration recommendation should appear in the Operator Interface as a pending item. The presence of pending recommendations confirms that the Monitor, AI Engine, and Recommendations Manager are all functioning correctly.
+
 ### 8.2. Fully automated mode (Alternative)
 
 The initial flow of this `make` rule is similar to the previous mode. However, instead of exposing an Operator Interface for human-in-the-loop validation, the Recommendations Manager automatically applies AI Engine recommendations.
@@ -289,39 +298,115 @@ make setup-and-start-auto
 
 # 9. Experiments
 
-The default settings for each WASP component in this repository are already aligned with the experiments presented in the paper.
+The default settings for each WASP component are already aligned with the use case scenario presented in the paper. Each capability below can be observed independently through component logs and the Operator Interface.
 
-## 9.1. Outputs and reproducibility
+Each run generates a timestamped output directory at `simulator/data/output/` containing:
 
-Each run generates a timestamped directory in `simulator/data/output/` containing:
+```
+metrics.json
+logs/
+  actuator
+  broker
+  monitor
+  ai-engine
+```
 
-- `metrics.json`
-- `logs/actuator`
-- `logs/broker`
-- `logs/monitor`
-- `logs/ai-engine`
+## Capability #1 — End-to-End Pipeline Execution
 
-**How to reproduce (step by step):**
-1. Run `make`.
-2. Observe the workflow:
-	 - Multi-cluster infrastructure provisioning;
-   - Component setup
-	 - Workload injection by Broker;
-	 - Telemetry collection by Monitor (30s interval);
-	 - AI Engine reasoning cycle (60s interval);
-	 - Validation in the Operator Interface;
-	 - Migration execution via Actuator.
-3. Collect evidence in logs from each component in `simulator/data/output/`.
+**What it demonstrates:** all components start, the Broker injects workloads, the Monitor collects telemetry, and the AI Engine produces recommendations that reach the Recommendations Manager.
 
-> To generate the same charts as in the paper, use the `analyzer`. Move the process data file, saved in `simulator/data/output/`, to the `analyzer_input` directory and run the script `create_plot_for_input.R` to generate the plots in the `plots` directory. You can also use the `create_plot_for_input.R` script to generate plots for any other input file.
+**Configuration files:** `simulator/data/config.yaml`, `simulator/data/input.json` (defaults, no changes needed).
 
-**Relevant files/configurations:**
-- `simulator/data/config.yaml`
-- `simulator/data/input.json`
+**Command:**
+```bash
+make
+```
 
-**Expected time:** 10–20 minutes for setup + scenario duration.
+**Expected time:** 10–20 minutes for setup + ~5 minutes for workload injection to complete.
 
-**Expected result:** clear observation of each service role in independent logs.
+**Expected resources:** ~8 GB RAM, ~10 GB disk during execution.
+
+**How to verify:** observe the following log patterns from each component:
+
+Broker — workload submission:
+```
+time=... level=INFO msg="➡️ [1s] [Deployment] CREATE: frontend (propagated by Karmada for label 'member1')"
+```
+
+Monitor — telemetry collection (every 30 seconds):
+```
+[GIN] 2026/... | 200 | ... | GET "/metrics"
+```
+
+AI Engine — recommendation cycle (every 60 seconds):
+```
+[...] INFO [ai_engine.api] - 📊 Successfully fetched metrics from MONITOR
+[...] INFO [ai_engine.api] - ✅ Successfully applied recommendations
+```
+
+**Success criterion:** all three log patterns are observable within the first 3 minutes of simulation. The AI Engine log confirms that at least one recommendation batch was generated and forwarded to the Recommendations Manager.
+
+---
+
+## Capability #2 — Human-in-the-Loop Validation
+
+**What it demonstrates:** migration recommendations are exposed in the Operator Interface, the operator approves or rejects them, and the Actuator enforces only approved actions.
+
+**Configuration files:** no changes needed from defaults. HIL mode is active when running `make`.
+
+**Command:**
+```bash
+make
+```
+
+**Expected time:** recommendations appear within ~2 minutes of workload injection.
+
+**Expected resources:** same as Capability #1.
+
+**How to verify:**
+
+1. Open http://localhost:5173 in a browser;
+2. Filter by "Pending": at least one recommendation should be listed with a migration target and justification;
+3. Approve a recommendation;
+4. Filter by "Approved": the recommendation status should update;
+5. Check the Actuator log:
+
+```bash
+docker logs -f recommendations-manager
+```
+
+Expected output after approval:
+```
+[0] 2026/... 🔄 Deployment default/<workload> updated to member2
+[0] > INFO: 2026/... Successfully applied workload default/<workload>
+```
+
+**Success criterion:** the Actuator log confirms enforcement of the approved migration, and no unapproved recommendations are applied.
+
+---
+
+## Capability #3 — Workload Redistribution Under Resource Pressure
+
+**What it demonstrates:** as workload demand in member1 approaches capacity thresholds, the AI Engine recommends migrations to member2, reproducing the CPU redistribution behavior shown in Figures 2 and 3 of the paper.
+
+**Configuration files:** `simulator/data/config.yaml`, `simulator/data/input.json` (workloads submitted in waves at timestamps 1, 70, 130, and 200 seconds).
+
+**Command:**
+```bash
+make
+```
+
+**Expected time:** redistribution recommendations begin appearing between 120–150 seconds into the simulation, after the third workload wave triggers threshold violations.
+
+**Expected resources:** same as Capability #1.
+
+**How to verify:** after approving recommendations in the Operator Interface, check `simulator/data/output/metrics.json`. The expected pattern is:
+
+- A clear increase in requested CPU and memory at member1 cluster.
+- Shifting of CPU allocation to member2, according to accepted migration recommendations.
+
+**Success criterion:** `metrics.json` shows CPU allocation shifting from member1 to member2 following migration approvals.
+
 
 # 10. LICENSE
 
