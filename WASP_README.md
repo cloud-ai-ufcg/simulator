@@ -414,7 +414,22 @@ Makefile Targets:
 
 WASP: Workload Agent-Based Simulation Platform
 
-## 10. License
+## 10. SBRC Demonstration
+The demonstration follows the Human-in-the-Loop execution mode (make), walking through the complete WASP workflow live at the venue.
+### Step 1 — Infrastructure provisioning
+Running make from the repository root starts the multi-cluster simulation environment automatically. The terminal output shows each component coming online.
+### Step 2 — Workload injection
+The Broker begins submitting workloads to member1 at predefined timestamps. The audience can follow injection events in real time through the terminal logs.
+### Step 3 — Telemetry collection and AI reasoning
+The Monitor collects cluster metrics every 30 seconds. Every 60 seconds, the AI Engine analyzes the current cluster state and generates migration recommendations with structured justifications.
+### Step 4 — Operator validation
+Recommendations appear in the Operator Interface at http://localhost:5173. The audience can observe pending recommendations, read the AI-generated justification for each proposed migration, and see the operator approve or reject actions in real time.
+### Step 5 — Migration enforcement
+Approved recommendations are forwarded to the Actuator, which enforces the migration. The terminal reflects the updated workload placement immediately after approval.
+Audience interaction
+Attendees are welcome to interact directly with the Operator Interface during Step 4: approving or rejecting recommendations and observing how each decision affects subsequent AI Engine reasoning cycles or by requesting inspection of any microservice during a simulation.
+
+## 11. License
 
 Copyright 2026 Laboratório de Sistemas Distribuídos (LSD), Universidade Federal de Campina Grande (UFCG) and Hewlett Packard Enterprise Development LP
 
