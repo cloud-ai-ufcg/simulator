@@ -2,7 +2,7 @@ package aiengine
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	simcfg "simulator/internal/config"
 	"simulator/internal/constants"
@@ -11,7 +11,7 @@ import (
 )
 
 func CallAIEngineAPI(enabled bool) error {
-	client := &http.Client{Timeout: 0}
+	client := &http.Client{Timeout: 5 * time.Minute}
 	var url string
 	var successMsg, errorMsg string
 	var maxRetries int = 5
@@ -54,7 +54,7 @@ func CallAIEngineAPI(enabled bool) error {
 			return nil
 		}
 
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		lastErr = fmt.Errorf("%s returned non-OK status: %s, body: %s", url, resp.Status, string(body))
 		log.Errorf("%v (attempt %d/%d). Retrying in %v...", lastErr, i+1, maxRetries, retryDelay)

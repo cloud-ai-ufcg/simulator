@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -29,7 +28,7 @@ type AIEngineModuleFallback struct {
 }
 
 func LoadAIEngineEnabled(configPath string) (bool, error) {
-	data, err := ioutil.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return false, err
 	}
@@ -44,7 +43,7 @@ func LoadAIEngineEnabled(configPath string) (bool, error) {
 // If host is 0.0.0.0, we return localhost for client connections.
 func LoadAIEngineServer(configPath string) (string, int, error) {
 	// Prefer simulator config
-	data, err := ioutil.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	var cfg Config
 	if err == nil {
 		_ = yaml.Unmarshal(data, &cfg)
@@ -103,7 +102,7 @@ func loadAIEngineServerFromModule(simulatorConfigPath string) (string, int, bool
 		if _, err := os.Stat(p); err != nil {
 			continue
 		}
-		b, err := ioutil.ReadFile(p)
+		b, err := os.ReadFile(p)
 		if err != nil {
 			continue
 		}

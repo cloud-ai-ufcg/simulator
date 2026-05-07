@@ -31,18 +31,13 @@ setup-kubernetes-infra: stop-kubernetes-infra
 
 # Starts all required containers via docker-compose
 run-all-containers-auto:
-	@echo "Updating compose.yaml paths with the user's HOME..."
-	@echo scripts/replace_paths_in_compose.sh
-	@echo "Starting all necessary containers via docker-compose..."
+	@echo "Starting all containers in auto mode..."
 	@bash initializer/setup-environment.sh --components-only
 	@echo "All containers started successfully."
 
 # Run containers in human-in-the-loop mode (UI review required)
 run-all-containers:
 	@echo "Starting all containers in HUMAN-IN-THE-LOOP mode..."
-	@echo "Updating compose.yaml paths with the user's HOME..."
-	@echo scripts/replace_paths_in_compose.sh
-	@echo "Starting all necessary containers via docker compose (ACTUATOR_MODE=human-in-the-loop)..."
 	@ACTUATOR_MODE=human-in-the-loop bash initializer/setup-environment.sh --components-only
 	@echo "All containers started successfully in HUMAN-IN-THE-LOOP mode."
 	@echo "🎯 Operator UI available at: http://localhost:5173"

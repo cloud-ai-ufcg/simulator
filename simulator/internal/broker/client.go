@@ -3,11 +3,12 @@ package broker
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"simulator/internal/constants"
 	"simulator/internal/log"
+	"time"
 )
 
 // CallBrokerAPI reads a JSON file and sends its content to the Broker API.
@@ -21,13 +22,13 @@ func CallBrokerAPI(inputFilePath string) error {
 	}
 	defer jsonFile.Close()
 
-	byteValue, err := ioutil.ReadAll(jsonFile)
+	byteValue, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return fmt.Errorf("error reading JSON file: %w", err)
 	}
 
 	client := &http.Client{
-		Timeout: 0,
+		Timeout: 30 * time.Second,
 	}
 
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(byteValue))
@@ -43,7 +44,7 @@ func CallBrokerAPI(inputFilePath string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("broker API returned non-OK status: %s, body: %s", resp.Status, string(body))
 	}
 
