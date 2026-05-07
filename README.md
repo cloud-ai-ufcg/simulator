@@ -323,7 +323,7 @@ make setup-and-start-auto
 
 The default settings for each WASP component are already aligned with the use case scenario presented in the paper. Each capability below can be observed independently through component logs and the Operator Interface.
 
-> ** Note on LLM non-determinism:** The AI Engine relies on Large Language Models (LLMs) to generate migration recommendations. Due to the inherent non-determinism of LLMs, recommendations may vary between executions even with identical inputs and configurations. This is expected behavior. When evaluating results, focus on whether the _type_ of recommendation (e.g., migrating workloads from an overloaded cluster) is consistent, rather than expecting identical outputs across runs. Differences in specific workload selections, ordering, or justification text are normal and do not indicate a malfunction.
+> **Note on LLM non-determinism:** The AI Engine relies on Large Language Models (LLMs) to generate migration recommendations. Due to the inherent non-determinism of LLMs, recommendations may vary between executions even with identical inputs and configurations. This is expected behavior. When evaluating results, focus on whether the _type_ of recommendation (e.g., migrating workloads from an overloaded cluster) is consistent, rather than expecting identical outputs across runs. Differences in specific workload selections, ordering, or justification text are normal and do not indicate a malfunction.
 
 Each run generates a timestamped output directory at `simulator/data/output/` containing:
 
