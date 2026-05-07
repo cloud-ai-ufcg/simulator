@@ -11,7 +11,7 @@ import (
 )
 
 func CallAIEngineAPI(enabled bool) error {
-	client := &http.Client{Timeout: 5 * time.Minute}
+	client := &http.Client{Timeout: 0}
 	var url string
 	var successMsg, errorMsg string
 	var maxRetries int = 5

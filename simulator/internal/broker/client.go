@@ -8,7 +8,6 @@ import (
 	"os"
 	"simulator/internal/constants"
 	"simulator/internal/log"
-	"time"
 )
 
 // CallBrokerAPI reads a JSON file and sends its content to the Broker API.
@@ -28,7 +27,7 @@ func CallBrokerAPI(inputFilePath string) error {
 	}
 
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 0,
 	}
 
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(byteValue))
