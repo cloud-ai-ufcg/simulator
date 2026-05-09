@@ -2,7 +2,7 @@ package analyzer
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -26,14 +26,14 @@ func SaveMetrics(runDir string) error {
 		return fmt.Errorf("metrics API returned status code: %d", resp.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("error reading metrics response: %w", err)
 	}
 
 	// Save metrics.json in the run directory
 	metricsFile := filepath.Join(runDir, "metrics.json")
-	if err := ioutil.WriteFile(metricsFile, body, 0644); err != nil {
+	if err := os.WriteFile(metricsFile, body, 0644); err != nil {
 		return fmt.Errorf("error writing metrics.json: %w", err)
 	}
 
@@ -58,7 +58,7 @@ func CallAnalyzerAndProcess() {
 		return
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("Error reading metrics response body: %v", err)
 		return
@@ -76,7 +76,7 @@ func CallAnalyzerAndProcess() {
 
 	// Save metrics.json in the run directory
 	metricsFile := filepath.Join(runDir, "metrics.json")
-	err = ioutil.WriteFile(metricsFile, body, 0644)
+	err = os.WriteFile(metricsFile, body, 0644)
 	if err != nil {
 		log.Errorf("Error writing metrics.json: %v", err)
 		return

@@ -3,7 +3,7 @@ package broker
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"simulator/internal/constants"
@@ -21,7 +21,7 @@ func CallBrokerAPI(inputFilePath string) error {
 	}
 	defer jsonFile.Close()
 
-	byteValue, err := ioutil.ReadAll(jsonFile)
+	byteValue, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return fmt.Errorf("error reading JSON file: %w", err)
 	}
@@ -43,7 +43,7 @@ func CallBrokerAPI(inputFilePath string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("broker API returned non-OK status: %s, body: %s", resp.Status, string(body))
 	}
 

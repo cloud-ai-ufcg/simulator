@@ -66,6 +66,7 @@ The versions listed below are those used during development and testing. Compati
 - Docker 28.3.2
 - Docker Compose 2.36.2
 - Go 1.24
+- R ≥ 4.3 with packages: `ggplot2`, `dplyr`, `readr`, `tidyr` (required for plot generation)
 
 No pre-existing Kubernetes cluster is required. The simulation infrastructure is provisioned automatically.
 
@@ -78,6 +79,9 @@ LLM provider for recommendation generation (by default, OpenRouter);
 API key used for communication with the provider.
 
 Internet access is required during execution, as the AI Engine communicates with the OpenRouter API to generate migration recommendations.
+
+For post-simulation analysis and plot generation, the following are also required:
+- **R** (≥ 4.3) with packages: `ggplot2`, `dplyr`, `readr`, `tidyr`
 
 ## 5.2. Execution configurations
 
@@ -168,6 +172,10 @@ touch .env
    `OPENROUTER_API_KEY=your_api_key_here`
 
 > Without a valid API key, the AI Engine will not generate recommendations and simulations will fail.
+
+#### Alternative LLM Providers
+
+The only credential required for standard operation is `OPENROUTER_API_KEY`, which provides access to multiple LLM models through a single abstraction layer. Environment variables for alternative providers (`GOOGLE_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`) may appear in legacy configuration files but are **not required** and are not used in the default setup. If you wish to use a direct provider instead of OpenRouter, you would need to modify the AI Engine source code accordingly. This is not covered by the default artifact setup.
 
 #### Basic parameters
 
@@ -266,6 +274,21 @@ touch .env
 OPENROUTER_API_KEY=your_api_key_here
 ```
 
+## 7.3. Install analysis dependencies (optional — required only for plot generation)
+
+The `analyzer/` directory contains R scripts for generating CPU allocation plots from simulation output. To use them, install R and the required packages:
+
+```r
+install.packages(c("ggplot2", "dplyr", "readr", "tidyr"))
+```
+
+Alternatively, from the `analyzer/` directory:
+
+```bash
+cd analyzer
+make install-deps
+```
+
 After completing these steps, proceed to Section 8 to run the platform.
 
 # 8. Minimal test
@@ -300,6 +323,8 @@ make setup-and-start-auto
 
 The default settings for each WASP component are already aligned with the use case scenario presented in the paper. Each capability below can be observed independently through component logs and the Operator Interface.
 
+> **Note on LLM non-determinism:** The AI Engine relies on Large Language Models (LLMs) to generate migration recommendations. Due to the inherent non-determinism of LLMs, recommendations may vary between executions even with identical inputs and configurations. This is expected behavior. When evaluating results, focus on whether the _type_ of recommendation (e.g., migrating workloads from an overloaded cluster) is consistent, rather than expecting identical outputs across runs. Differences in specific workload selections, ordering, or justification text are normal and do not indicate a malfunction.
+
 Each run generates a timestamped output directory at `simulator/data/output/` containing:
 
 ```
@@ -312,6 +337,8 @@ logs/
 ```
 
 ## Capability #1 — End-to-End Pipeline Execution
+
+**Corresponds to:** Figure 1 of the paper (WASP architecture overview). This capability validates that all modules shown in the architecture diagram are operational and communicating.
 
 **What it demonstrates:** all components start, the Broker injects workloads, the Monitor collects telemetry, and the AI Engine produces recommendations that reach the Recommendations Manager.
 
@@ -350,6 +377,8 @@ AI Engine — recommendation cycle (every 60 seconds):
 
 ## Capability #2 — Human-in-the-Loop Validation
 
+**Corresponds to:** Figures 4 and 5 of the paper (Operator Interface screenshots showing pending and approved recommendations).
+
 **What it demonstrates:** migration recommendations are exposed in the Operator Interface, the operator approves or rejects them, and the Actuator enforces only approved actions.
 
 **Configuration files:** no changes needed from defaults. HIL mode is active when running `make`.
@@ -387,6 +416,8 @@ Expected output after approval:
 
 ## Capability #3 — Workload Redistribution Under Resource Pressure
 
+**Corresponds to:** Figure 2 (CPU requested by the submitted workloads over time) and Figure 3 (CPU requested over time showing redistribution from member1 to member2) of the paper.
+
 **What it demonstrates:** as workload demand in member1 approaches capacity thresholds, the AI Engine recommends migrations to member2, reproducing the CPU redistribution behavior shown in Figures 2 and 3 of the paper.
 
 **Configuration files:** `simulator/data/config.yaml`, `simulator/data/input.json` (workloads submitted in waves at timestamps 1, 70, 130, and 200 seconds).
@@ -402,8 +433,11 @@ make
 
 **How to verify:** after approving recommendations in the Operator Interface, check `simulator/data/output/metrics.json`. The expected pattern is:
 
-- A clear increase in requested CPU and memory at member1 cluster.
-- Shifting of CPU allocation to member2, according to accepted migration recommendations.
+- A progressive increase in requested CPU at the member1 cluster as workloads are injected at timestamps 1, 70, 130, and 200 seconds;
+- After migration recommendations are approved, a decrease in CPU allocated at member1 and a corresponding increase at member2;
+- CPU capacity remains constant at each cluster (determined by the number of nodes × CPUs per node configured in `config.yaml`).
+
+> **Note:** Due to LLM non-determinism (see note at the beginning of this section), the exact moment and specific workloads chosen for migration may vary between runs. The qualitative pattern of CPU pressure relief at member1 through redistribution to member2 should be consistently observable.
 
 **Success criterion:** `metrics.json` shows CPU allocation shifting from member1 to member2 following migration approvals.
 
