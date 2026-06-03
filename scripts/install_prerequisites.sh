@@ -227,4 +227,8 @@ install_pip
 install_go
 install_yq
 
+# Ensure required directories exist for docker-compose volume mounts
+mkdir -p ~/.kube
+mkdir -p ~/.kwok
+
 echo -e "${COLOR}✅ Environment is ready.${RESET}"
