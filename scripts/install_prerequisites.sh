@@ -56,6 +56,11 @@ function install_docker() {
     fi
   else
     echo -e "${COLOR}✅ Docker is already installed.${RESET}"
+    if ! id -nG "$USER" | grep -qw "docker"; then
+      echo -e "${COLOR}🐳 Adding user $USER to docker group...${RESET}"
+      sudo usermod -aG docker "$USER"
+      echo -e "${COLOR}ℹ️ User added to 'docker' group. You will need to log out and log back in, or run 'newgrp docker' for it to take effect.${RESET}"
+    fi
   fi
 }
 
@@ -179,10 +184,14 @@ function install_go() {
 }
 
 function install_yq() {
-  DESIRED_VERSION="v4.44.5"
-  CURRENT_VERSION="$(yq --version 2>/dev/null | awk '{print $NF}')"
+  local DESIRED_VERSION="v4.44.5"
+  local CURRENT_VERSION=""
 
-  if ! command -v yq &> /dev/null || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
+  if command -v yq &> /dev/null; then
+    CURRENT_VERSION="$(yq --version 2>/dev/null | awk '{print $NF}')" || true
+  fi
+
+  if [[ -z "$CURRENT_VERSION" ]] || [[ "$CURRENT_VERSION" != "$DESIRED_VERSION" ]]; then
     echo -e "${COLOR}📦 Installing yq ${DESIRED_VERSION} (from GitHub)...${RESET}"
     sudo wget -O /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${DESIRED_VERSION}/yq_linux_amd64"
     sudo chmod +x /usr/local/bin/yq

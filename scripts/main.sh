@@ -15,6 +15,9 @@ RESET="\033[0m"
 set -euo pipefail
 trap 'echo -e "${COLOR}❌ Error in ${BASH_SOURCE[0]}:$LINENO – $BASH_COMMAND${RESET}"' ERR
 
+# Ensure /usr/local/go/bin is in PATH for Go-related commands (like local-up-karmada.sh)
+export PATH=$PATH:/usr/local/go/bin
+
 # -----------------------------------------------------------------------------
 # Parse execution mode from argument
 # -----------------------------------------------------------------------------
