@@ -78,38 +78,63 @@ def extract_interval_duration(raw_data: Dict[str, Any]) -> int:
 
 def process_cluster_metrics_at_timestamp(
     cluster_data: Dict[str, Any],
-    timestamp: int
+    timestamp: int,
+    workloads: List[Dict[str, Any]] = None
 ) -> ClusterMetrics:
     """
     Process cluster information for a single cluster at a specific timestamp.
-    
-    Args:
-        cluster_data: Raw cluster data from JSON
-        timestamp: Unix timestamp
-        
-    Returns:
-        ClusterMetrics object
     """
-    label = cluster_data['cluster_id']
+    c_id = cluster_data.get('cluster_id', 'unknown')
+    label = cluster_data.get('cluster_profile', c_id)
     
-
     # Parse capacity
-    cpu_capacity = parse_resource_value(cluster_data['cluster_cpu_capacity'], 'm') / 1000.0
-    memory_capacity = parse_resource_value(cluster_data['cluster_memory_capacity'], 'Mi') / 1024.0
+    cpu_capacity = parse_resource_value(cluster_data.get('cluster_cpu_capacity', '0m'), 'm') / 1000.0
+    memory_capacity = parse_resource_value(cluster_data.get('cluster_memory_capacity', '0Mi'), 'Mi') / 1024.0
+
+    # Get load information (convert to float explicitly to avoid string "0" bugs)
+    cluster_load = cluster_data.get('cluster_load') or {}
+    try:
+        cpu_load = float(cluster_load.get('cpu', 0.0))
+        memory_load = float(cluster_load.get('memory', 0.0))
+        cpu_load_requested = float(cluster_load.get('cpu_requested', 0.0))
+        memory_load_requested = float(cluster_load.get('memory_requested', 0.0))
+    except (ValueError, TypeError):
+        cpu_load, memory_load, cpu_load_requested, memory_load_requested = 0.0, 0.0, 0.0, 0.0
     
-    # Get load information
-    cluster_load = cluster_data.get('cluster_load', {})
-    cpu_load = cluster_load.get('cpu', 0.0)
-    memory_load = cluster_load.get('memory', 0.0)
-    cpu_load_requested = cluster_load.get('cpu_requested', 0.0)
-    memory_load_requested = cluster_load.get('memory_requested', 0.0)
-    
-    # Calculate allocated and requested resources
+    # Calculate allocated and requested resources from raw metrics
     cpu_allocated = cpu_capacity * cpu_load
     memory_allocated = memory_capacity * memory_load
     cpu_requested = cpu_capacity * cpu_load_requested
     memory_requested = memory_capacity * memory_load_requested
     
+    if (cpu_load == 0.0 or memory_load == 0.0) and workloads:
+        total_w_cpu = 0.0
+        total_w_mem = 0.0
+        for w in workloads:
+            if w.get('cluster_id') == c_id:
+                pods_total = int(w.get('pods_total', 0))
+                pods_pending = int(w.get('pods_pending', 0))
+                pods_running = max(0, pods_total - pods_pending)
+                
+                if pods_total > 0 and pods_running > 0:
+                    w_cpu = parse_resource_value(w.get('resources', {}).get('cpu', '0m'), 'm') / 1000.0
+                    w_mem = parse_resource_value(w.get('resources', {}).get('memory', '0Mi'), 'Mi') / 1024.0
+                    
+                    fraction_running = pods_running / pods_total
+                    total_w_cpu += w_cpu * fraction_running
+                    total_w_mem += w_mem * fraction_running
+        
+        if total_w_cpu > 0 or total_w_mem > 0:
+            cpu_allocated = total_w_cpu
+            memory_allocated = total_w_mem
+            cpu_requested = total_w_cpu
+            memory_requested = total_w_mem
+            
+            cpu_load = cpu_allocated / cpu_capacity if cpu_capacity > 0 else 0.0
+            cpu_load_requested = cpu_requested / cpu_capacity if cpu_capacity > 0 else 0.0
+            memory_load = memory_allocated / memory_capacity if memory_capacity > 0 else 0.0
+            memory_load_requested = memory_requested / memory_capacity if memory_capacity > 0 else 0.0
+
     # Node information
     node_info = cluster_data.get('node_info', {})
     node_cpu = int(node_info.get('cpu', 0))
@@ -147,18 +172,9 @@ def process_pricing_metrics_at_timestamp(
     timestamp: int,
     interval_duration: int
 ) -> PricingMetrics:
-    """
-    Process pricing information for a single cluster at a specific timestamp.
-    
-    Args:
-        cluster_data: Raw cluster data from JSON
-        timestamp: Unix timestamp
-        interval_duration: Interval duration in seconds
-        
-    Returns:
-        PricingMetrics object
-    """
-    label = cluster_data['cluster_id']
+    """Process pricing information for a single cluster at a specific timestamp."""
+    c_id = cluster_data.get('cluster_id', 'unknown')
+    label = cluster_data.get('cluster_profile', c_id)
     
     # Get node information
     node_info = cluster_data.get('node_info', {})
@@ -208,18 +224,10 @@ def process_pricing_metrics_at_timestamp(
 
 def process_workload_metrics_at_timestamp(
     workloads: List[Dict[str, Any]],
-    timestamp: int
+    timestamp: int,
+    cluster_id_to_profile: Dict[str, str] = None
 ) -> WorkloadMetrics:
-    """
-    Process workload information at a specific timestamp.
-    
-    Args:
-        workloads: List of workload data from JSON
-        timestamp: Unix timestamp
-        
-    Returns:
-        WorkloadMetrics object
-    """
+    """Process workload information at a specific timestamp."""
     total_pods = 0
     total_pending = 0
     pending_public = 0
@@ -231,9 +239,11 @@ def process_workload_metrics_at_timestamp(
         total_pending += pending
         
         cluster_id = workload.get('cluster_id', '')
-        if cluster_id == 'private':
+        profile = cluster_id if cluster_id_to_profile is None else cluster_id_to_profile.get(cluster_id, cluster_id)
+        
+        if profile == 'private':
             pending_private += pending
-        else:
+        elif profile == 'public':
             pending_public += pending
     
     total_percent_pending = (total_pending / total_pods) if total_pods > 0 else 0.0
@@ -253,7 +263,6 @@ def update_pending_pods_in_clusters(
 ):
     """
     Update pending_pods count in ClusterMetrics based on WorkloadMetrics.
-    Modifies cluster_metrics in place.
     """
     for timestamp, workload in workload_metrics.items():
         if timestamp in cluster_metrics:
@@ -265,15 +274,7 @@ def update_pending_pods_in_clusters(
 
 
 def process_migration_events(migration_df) -> List[MigrationEvent]:
-    """
-    Convert migration DataFrame to list of MigrationEvent objects.
-    
-    Args:
-        migration_df: DataFrame from parse_migration_logs
-        
-    Returns:
-        List of MigrationEvent objects
-    """
+    """Convert migration DataFrame to list of MigrationEvent objects."""
     if migration_df is None or migration_df.empty:
         return []
     
@@ -296,62 +297,48 @@ def process_simulation_data(
     migration_df=None,
     run_name: str = "unknown"
 ) -> ProcessedSimulationData:
-    """
-    Process complete simulation data from raw JSON.
-    
-    This is the main processing function that converts raw data into
-    structured ProcessedSimulationData.
-    
-    Args:
-        raw_data: Raw metrics JSON data
-        migration_df: Optional DataFrame with migration events
-        run_name: Name of the simulation run (usually timestamp)
-        
-    Returns:
-        ProcessedSimulationData object with all processed metrics
-    """
-    # Extract basic information
-    # Create mapping from original keys to Unix timestamps
+    """Process complete simulation data from raw JSON."""
     key_to_unix = {key: parse_timestamp_key(key) for key in raw_data.keys()}
     timestamps = sorted(key_to_unix.values())
     unix_to_key = {v: k for k, v in key_to_unix.items()}
     
     interval_duration = extract_interval_duration(raw_data)
     
-    # Initialize collections
+    cluster_id_to_profile = {}
+    for ts_key, ts_data in raw_data.items():
+        for c_info in ts_data.get('cluster_info', []):
+            c_id = c_info.get('cluster_id')
+            c_prof = c_info.get('cluster_profile')
+            if c_id and c_prof:
+                cluster_id_to_profile[c_id] = c_prof
+
     cluster_metrics = {}
     pricing_metrics = {}
     workload_metrics = {}
     
-    # Process each timestamp
     for ts in timestamps:
         original_key = unix_to_key[ts]
         ts_data = raw_data[original_key]
         
-        # Process cluster data
+        workloads = ts_data.get('workloads', [])
         cluster_info_list = ts_data.get('cluster_info', [])
+        
         cluster_metrics[ts] = []
         pricing_metrics[ts] = []
         
         for cluster_data in cluster_info_list:
-            # Process cluster metrics
-            cluster_metric = process_cluster_metrics_at_timestamp(cluster_data, ts)
+            cluster_metric = process_cluster_metrics_at_timestamp(cluster_data, ts, workloads)
             cluster_metrics[ts].append(cluster_metric)
             
-            # Process pricing metrics
             pricing_metric = process_pricing_metrics_at_timestamp(
                 cluster_data, ts, interval_duration
             )
             pricing_metrics[ts].append(pricing_metric)
         
-        # Process workload data
-        workloads = ts_data.get('workloads', [])
-        workload_metrics[ts] = process_workload_metrics_at_timestamp(workloads, ts)
-    
-    # Update pending pods in cluster metrics
+        workload_metrics[ts] = process_workload_metrics_at_timestamp(workloads, ts, cluster_id_to_profile)
+
     update_pending_pods_in_clusters(cluster_metrics, workload_metrics)
     
-    # Process migration events
     migration_events = process_migration_events(migration_df)
     
     return ProcessedSimulationData(
