@@ -3,7 +3,7 @@ export PATH := $(PATH):/usr/local/go/bin
 
 ACTUATOR_MODE ?= auto
 
-.PHONY: all setup-and-start setup-and-start-human start setup-kubernetes-infra stop-all-containers restart-all-containers help start-auto-mode start-human-loop-mode run-auto-mode run-all-containers run-all-containers-human
+.PHONY: all setup-and-start setup-and-start-human start setup-kubernetes-infra stop-all-containers restart-all-containers help start-auto-mode start-human-loop-mode run-auto-mode run-all-containers run-all-containers-human setup-auto
 
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
@@ -17,6 +17,9 @@ setup-and-start: setup start
 
 # Sets up the complete infrastructure
 setup: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers
+
+# Sets up the complete infrastructure and runs the simulator in automated mode
+setup-auto: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto
 
 # Sets up the complete infrastructure and runs the simulator without human-in-the-loop (auto mode)
 setup-and-start-auto: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto clean-mongo-db start

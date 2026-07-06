@@ -23,7 +23,7 @@ ai-engine:
     input_json: monitor_outputs.json
   ai:
     selected_model: google/gemini-2.5-flash  # Selected model to be used
-    scheduler_interval: 60           # Number of seconds between scheduler runs
+    scheduler_interval: 300           # Number of seconds between scheduler runs
     timestamp_lookback_seconds: 600   # Number of seconds to look back for metrics
     fetch_metrics_immediately: false   # Whether to fetch metrics immediately or wait for the scheduler
     
