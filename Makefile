@@ -3,7 +3,7 @@ export PATH := $(PATH):/usr/local/go/bin
 
 ACTUATOR_MODE ?= auto
 
-.PHONY: all setup-and-start setup-and-start-human start setup-kubernetes-infra stop-all-containers restart-all-containers help start-auto-mode start-human-loop-mode run-auto-mode run-all-containers run-all-containers-human
+.PHONY: all setup-and-start setup-and-start-human start setup-kubernetes-infra stop-all-containers restart-all-containers help start-auto-mode start-human-loop-mode run-auto-mode run-all-containers run-all-containers-human setup-baseline run-baseline teardown-baseline setup-and-start-baseline clean-mongo-db
 
 # Default target: sets up infrastructure and runs the simulator
 all: setup-and-start
@@ -49,6 +49,46 @@ start: clean-mongo-db
 
 fast-setup:
 	@cd scripts && ./fast_deploy.sh
+
+# -----------------------------------------------------------------------------
+# Karmada-native baseline (Approach B) — no AI, placement decided purely by
+# karmada-scheduler. See scripts/baseline/README.md for the design.
+# -----------------------------------------------------------------------------
+
+# Reconfigures a RUNNING environment (after 'make setup') for baseline runs
+setup-baseline:
+	@bash scripts/baseline/setup_baseline.sh
+
+# Runs one baseline simulation (same input.json and metrics pipeline as AI runs)
+run-baseline: clean-mongo-db
+	@bash initializer/check_infra_status.sh
+	@bash scripts/baseline/run_baseline.sh
+
+# Restores the AI-driven configuration
+teardown-baseline:
+	@bash scripts/baseline/teardown_baseline.sh
+
+# Full baseline cycle: infra + setup + run + plots + workload cleanup + teardown.
+# Teardown always runs (even if the run or the plots fail) so the
+# environment is never left in baseline mode by accident;
+setup-and-start-baseline: setup
+	@bash scripts/baseline/setup_baseline.sh
+	@status=0; \
+	$(MAKE) run-baseline || status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		ts=$$(cat simulator/data/output/.last_baseline_run 2>/dev/null); \
+		if [ -n "$$ts" ]; then \
+			$(MAKE) -C analyzer generate-plots TIMESTAMP=$$ts || status=$$?; \
+		else \
+			echo "⚠️  Could not determine the run directory; skipping plots."; status=1; \
+		fi; \
+	fi; \
+	bash scripts/clean_workloads.sh || status=$$?; \
+	bash scripts/baseline/teardown_baseline.sh || status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		echo "✅ setup-and-start-baseline finished. Run data: simulator/data/output/$$(cat simulator/data/output/.last_baseline_run)"; \
+	fi; \
+	exit $$status
 
 
 # Cleans all documents from all collections in the mongo container
@@ -116,6 +156,12 @@ help:
 	@echo "    setup-and-start-auto   : Sets up infrastructure and runs simulator in auto mode (no UI)."
 	@echo "    fast-setup             : Fast deployment using fast_deploy.sh script."
 	@echo "    start                  : Starts ONLY the Go simulator (assumes infrastructure and containers are running)."
+	@echo "  ---"
+	@echo "  Karmada-native baseline (no AI):"
+	@echo "    setup-baseline         : Reconfigures a running environment for baseline runs."
+	@echo "    run-baseline           : Runs one baseline simulation (AI disabled)."
+	@echo "    teardown-baseline      : Restores the AI-driven configuration."
+	@echo "    setup-and-start-baseline : Full cycle: infra + setup + run + plots + cleanup + teardown."
 	@echo "  ---"
 	@echo "  Container Management:"
 	@echo "    run-all-containers     : Starts all containers in human-in-the-loop mode (with UI)."
