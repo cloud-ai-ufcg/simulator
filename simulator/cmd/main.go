@@ -71,6 +71,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Generate plots automatically for this run
+	if err := analyzer.GeneratePlots(runDir); err != nil {
+		log.Errorf("Failed to generate plots: %v", err)
+	}
+
 	// Convert to absolute path for display
 	absRunDir, err := filepath.Abs(runDir)
 	if err != nil {
