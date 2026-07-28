@@ -1,0 +1,53 @@
+# Virtual "elastic capacity" node for member2 (public cloud), used only by
+# the Karmada-native baseline.
+#
+# Purpose: model the public cloud as elastically large from the Karmada
+# control plane's point of view. Karmada's general estimator computes
+# member2's available capacity from Cluster.Status.ResourceSummary, which
+# sums the allocatable of ALL nodes regardless of taints. This node 
+# therefore makes the 'public-burst' affinity group always schedulable, 
+# so no workload ever ends up in the silent Scheduled=False state.
+#
+# Nothing ever runs here:
+#   - the 'virtual-capacity' NoSchedule taint is NOT tolerated by the
+#     workloads the broker creates (they only tolerate 'kwok-provider'),
+#     so the member2 kube-scheduler never binds pods to this node;
+#   - it carries only the kwok.x-k8s.io/node ANNOTATION (so the KWOK
+#     controller keeps it Ready) and not the label the Cluster Autoscaler
+#     KWOK provider uses for nodegroup membership, so the CA neither
+#     counts nor scales it.
+#
+# The monitor's Prometheus queries exclude it by name
+# (node!~".*control-plane|.*virtual-capacity.*"), so cluster capacity,
+# node-count and pricing metrics are unaffected.
+apiVersion: v1
+kind: Node
+metadata:
+  name: member2-virtual-capacity
+  annotations:
+    node.alpha.kubernetes.io/ttl: "0"
+    kwok.x-k8s.io/node: fake
+    cluster-autoscaler.kubernetes.io/scale-down-disabled: "true"
+  labels:
+    kubernetes.io/hostname: member2-virtual-capacity
+    kubernetes.io/os: linux
+    kubernetes.io/arch: amd64
+    type: virtual
+    wasp.cloud-ai/virtual-capacity: "true"
+spec:
+  taints:
+    - effect: NoSchedule
+      key: virtual-capacity
+      value: "true"
+status:
+  allocatable:
+    cpu: "100000"
+    memory: 200000Gi
+    pods: "100000"
+  capacity:
+    cpu: "100000"
+    memory: 200000Gi
+    pods: "100000"
+  nodeInfo:
+    architecture: amd64
+    operatingSystem: linux
