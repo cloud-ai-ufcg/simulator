@@ -41,7 +41,34 @@ func SaveMetrics(runDir string) error {
 	return nil
 }
 
-// CallAnalyzerAndProcess runs the analyzer to generate plots and summaries
+// GeneratePlots runs the analyzer Makefile to generate plots and summaries
+// for the given run directory (expects metrics.json to already be there)
+func GeneratePlots(runDir string) error {
+	absRunDir, err := filepath.Abs(runDir)
+	if err != nil {
+		return fmt.Errorf("error getting absolute path: %w", err)
+	}
+
+	log.Infof("Running analyzer using Makefile...")
+	cmd := exec.Command(
+		"make",
+		"-C",
+		"../../analyzer",
+		"generate-plots",
+		fmt.Sprintf("RUN_DIR=%s", absRunDir),
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error running analyzer: %w", err)
+	}
+
+	log.Infof("Finished generating visualizations. Results saved in %s/plots/", absRunDir)
+	return nil
+}
+
+// CallAnalyzerAndProcess fetches metrics and runs the analyzer to generate plots and summaries
 // This function is kept for backward compatibility but can be called separately
 func CallAnalyzerAndProcess() {
 	log.Infof("Calling metrics endpoint at %s...", constants.MetricsURL)
@@ -84,30 +111,7 @@ func CallAnalyzerAndProcess() {
 
 	log.Infof("Metrics saved to %s", metricsFile)
 
-	// Convert to absolute path for the Makefile
-	absRunDir, err := filepath.Abs(runDir)
-	if err != nil {
-		log.Errorf("Error getting absolute path: %v", err)
-		return
+	if err := GeneratePlots(runDir); err != nil {
+		log.Errorf("%v", err)
 	}
-
-	// Run the analyzer using make with the run directory
-	log.Infof("Running analyzer using Makefile...")
-	cmd := exec.Command(
-		"make",
-		"-C",
-		"../../analyzer",
-		"generate-plots",
-		fmt.Sprintf("RUN_DIR=%s", absRunDir),
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	log.Infof("Running metrics analysis and generating visualizations using analyzer Makefile...")
-	if err := cmd.Run(); err != nil {
-		log.Errorf("Error running analyzer: %v", err)
-		return
-	}
-
-	log.Infof("Finished generating visualizations. Results saved in analyzer/output/%s/", timestamp)
 }
