@@ -1,0 +1,53 @@
+# ClusterPropagationPolicy for the Karmada-native baseline.
+#
+# Replaces the label-driven policies used by the AI approach
+# (scripts/clusterpropagationpolicy.yaml) during baseline runs.
+#
+# How the three baseline rules map to this policy:
+#
+# 1. "Whole workload in a single cluster" — each clusterAffinities group
+#    contains exactly one cluster, so the scheduler can never split the
+#    replicas of one workload across member1 and member2. Aggregated
+#    division over a single-cluster group is all-or-nothing.
+#
+# 2. "Burst to the public cloud only when needed" — the karmada-scheduler
+#    walks clusterAffinities in order: it first tries 'private-first' 
+#    ([member1]); Divided+Aggregated makes that attempt capacity-checked
+#    (the scheduler-estimator-member1 gRPC service gives a precise per-node
+#    estimate, min()-ed with the general estimator). Only when member1
+#    cannot host ALL replicas does the scheduler fall through to
+#    'public-burst' ([member2]).
+#
+# 3. "Never fail silently" — member2's capacity is estimated by the
+#    general estimator only (setup_baseline.sh scales
+#    karmada-scheduler-estimator-member2 to 0; per-cluster gRPC failures
+#    yield UnauthenticReplica, which calAvailableReplicas skips). The
+#    general estimator sums Cluster.Status.ResourceSummary over ALL nodes,
+#    taints included — so the huge tainted 'member2-virtual-capacity' node
+#    (virtual-capacity-node.yaml) makes the 'public-burst' group always
+#    succeed. Real pods are then created in member2; whatever doesn't fit
+#    real nodes stays genuinely Pending (visible in Prometheus as
+#    kube_pod_status_phase{phase="Pending"}), giving the Cluster
+#    Autoscaler its normal trigger to add nodes.
+apiVersion: policy.karmada.io/v1alpha1
+kind: ClusterPropagationPolicy
+metadata:
+  name: baseline-native
+spec:
+  conflictResolution: Overwrite
+  resourceSelectors:
+    - apiVersion: apps/v1
+      kind: Deployment
+      namespace: default
+    - apiVersion: batch/v1
+      kind: Job
+      namespace: default
+  placement:
+    clusterAffinities:
+      - affinityName: private-first
+        clusterNames: [member1]
+      - affinityName: public-burst
+        clusterNames: [member2]
+    replicaScheduling:
+      replicaSchedulingType: Divided
+      replicaDivisionPreference: Aggregated
