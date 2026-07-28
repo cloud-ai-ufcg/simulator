@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -28,6 +29,11 @@ type AIEngineModuleFallback struct {
 }
 
 func LoadAIEngineEnabled(configPath string) (bool, error) {
+	// WASP_DISABLE_AI=1 forces an AI-free run thout touching the shared config.yaml, 
+	// which other components also read.
+	if v := os.Getenv("WASP_DISABLE_AI"); v == "1" || strings.EqualFold(v, "true") {
+		return false, nil
+	}
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return false, err
