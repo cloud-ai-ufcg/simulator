@@ -68,21 +68,13 @@ run-baseline: clean-mongo-db
 teardown-baseline:
 	@bash scripts/baseline/teardown_baseline.sh
 
-# Full baseline cycle: infra + setup + run + plots + workload cleanup + teardown.
-# Teardown always runs (even if the run or the plots fail) so the
-# environment is never left in baseline mode by accident;
-setup-and-start-baseline: setup
+# Full baseline cycle: infra + setup + run + workload cleanup + teardown.
+# Teardown always runs (even if the run fails) so the environment is never
+#  left in baseline mode by accident;
+setup-and-start-baseline: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto
 	@bash scripts/baseline/setup_baseline.sh
 	@status=0; \
 	$(MAKE) run-baseline || status=$$?; \
-	if [ $$status -eq 0 ]; then \
-		ts=$$(cat simulator/data/output/.last_baseline_run 2>/dev/null); \
-		if [ -n "$$ts" ]; then \
-			$(MAKE) -C analyzer generate-plots TIMESTAMP=$$ts || status=$$?; \
-		else \
-			echo "⚠️  Could not determine the run directory; skipping plots."; status=1; \
-		fi; \
-	fi; \
 	bash scripts/clean_workloads.sh || status=$$?; \
 	bash scripts/baseline/teardown_baseline.sh || status=$$?; \
 	if [ $$status -eq 0 ]; then \
