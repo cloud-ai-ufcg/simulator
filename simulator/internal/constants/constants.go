@@ -2,10 +2,18 @@ package constants
 
 // Container names
 const (
-	ContainerActuator = "recommendations-manager"
-	ContainerBroker   = "broker"
-	ContainerMonitor  = "monitor"
-	ContainerAIEngine = "ai-engine"
+	ContainerActuator         = "recommendations-manager"
+	ContainerBroker           = "broker"
+	ContainerMonitor          = "monitor"
+	ContainerAIEngine         = "ai-engine"
+	ContainerInfraEnvironment = "infra-environment"
+)
+
+// Karmada control-plane access (read from inside ContainerInfraEnvironment,
+// where ~/.kube/karmada.config is mounted root-owned)
+const (
+	KarmadaKubeconfigPath = "/root/.kube/karmada.config"
+	KarmadaAPIServerContext = "karmada-apiserver"
 )
 
 // API routes
