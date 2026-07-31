@@ -5,12 +5,14 @@ import (
 	"path/filepath"
 	"simulator/internal/aiengine"
 	"simulator/internal/analyzer"
+	"simulator/internal/baseline"
 	"simulator/internal/broker"
 	"simulator/internal/config"
 	"simulator/internal/constants"
 	"simulator/internal/log"
 	"simulator/internal/utils"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -24,6 +26,17 @@ func main() {
 		os.Exit(1)
 	}
 	inputFilePath := "../data/input.json"
+
+	// Baseline-only safety net: samples ResourceBindings stuck Scheduled=False
+	// every 30s while the simulation runs, written into the run directory
+	// alongside metrics.json once it exists (see below). Nil (and never
+	// started) for AI-driven runs, matching analyzer/data_loader.py's
+	// handling of a missing unschedulable_bindings.jsonl as "not applicable".
+	var unschedulablePoller *baseline.UnschedulablePoller
+	if config.IsAIDisabledByEnv() {
+		unschedulablePoller = baseline.NewUnschedulablePoller(30 * time.Second)
+		unschedulablePoller.Start()
+	}
 
 	var wg sync.WaitGroup
 	var brokerErr error
@@ -54,6 +67,9 @@ func main() {
 	}()
 
 	wg.Wait()
+	if unschedulablePoller != nil {
+		unschedulablePoller.Stop()
+	}
 	if brokerErr != nil {
 		os.Exit(1)
 	}
@@ -71,7 +87,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Generate plots automatically for this run
+	if unschedulablePoller != nil {
+		unschedFile := filepath.Join(runDir, "unschedulable_bindings.jsonl")
+		if err := unschedulablePoller.WriteJSONL(unschedFile); err != nil {
+			log.Errorf("Failed to write unschedulable_bindings.jsonl: %v", err)
+		}
+	}
+
 	if err := analyzer.GeneratePlots(runDir); err != nil {
 		log.Errorf("Failed to generate plots: %v", err)
 	}
