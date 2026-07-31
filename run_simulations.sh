@@ -305,9 +305,9 @@ for model in "${MODELS[@]}"; do
               fi
 
               # Rename the simulator output directory (and everything the
-              # analyzer just wrote inside it) to a descriptive name. A repeat
-              # suffix is only added when repeating (REPEAT > 1), so a plain
-              # single run keeps the exact same naming as before.
+              # analyzer just wrote inside it) to a descriptive name. The
+              # original TIMESTAMP is always appended so separate script
+              # invocations (or repeats) with the same config never collide.
               input_base="$(basename "${input_file}" .json)"
               if [ "${SCENARIO}" = "baseline" ]; then
                 new_name="baseline_${input_base}"
@@ -316,9 +316,7 @@ for model in "${MODELS[@]}"; do
                 safe_model="${safe_model// /_}"
                 new_name="${safe_model}_${input_base}_${graph}_${temp}"
               fi
-              if [ "${REPEAT}" -gt 1 ]; then
-                new_name="${new_name}_rep${rep}"
-              fi
+              new_name="${new_name}_${TIMESTAMP}"
 
               old_sim_dir="${LAST_RUN_DIR%/}"
               new_sim_dir="${ROOT_DIR}/simulator/data/output/${new_name}"
