@@ -12,7 +12,8 @@ def load_json_data(filepath):
 def load_unschedulable_data(filepath):
     """
     Loads unschedulable_bindings.jsonl — one JSON object per line, written by
-    run_baseline.sh's 30s polling loop while the simulator runs:
+    simulator/internal/baseline.UnschedulablePoller's polling loop while
+    the simulator runs (started from cmd/main.go under WASP_DISABLE_AI):
         {"timestamp": "2026-07-20 21:34:59", "unschedulable_count": 2,
          "unschedulable_workloads": ["default/12-345-deployment", ...]}
 
