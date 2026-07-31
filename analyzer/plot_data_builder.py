@@ -68,8 +68,9 @@ def build_resource_dataframe(data: ProcessedSimulationData) -> pd.DataFrame:
                 record[f'cpu_requested_{label}'] = cluster.cpu_requested
                 record[f'cluster_mem_load_{label}'] = cluster.memory_load * cluster.memory_capacity
                 record[f'cluster_cpu_load_{label}'] = cluster.cpu_load * cluster.cpu_capacity
-                record[f'cluster_cpu_capacity_{label}'] = cluster.cpu_capacity
-                record[f'cluster_memory_capacity_{label}'] = cluster.memory_capacity
+                # 80% of reported capacity
+                record[f'cluster_cpu_capacity_{label}'] = cluster.cpu_capacity * 0.8
+                record[f'cluster_memory_capacity_{label}'] = cluster.memory_capacity * 0.8
             else:
                 # Fill with zeros if cluster data is missing
                 record[f'mem_allocated_{label}'] = 0.0
