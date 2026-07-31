@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"simulator/internal/constants"
 	"simulator/internal/log"
-	"simulator/internal/utils"
 )
 
 // SaveMetrics fetches metrics from Monitor API and saves to the run directory
@@ -66,52 +65,4 @@ func GeneratePlots(runDir string) error {
 
 	log.Infof("Finished generating visualizations. Results saved in %s/plots/", absRunDir)
 	return nil
-}
-
-// CallAnalyzerAndProcess fetches metrics and runs the analyzer to generate plots and summaries
-// This function is kept for backward compatibility but can be called separately
-func CallAnalyzerAndProcess() {
-	log.Infof("Calling metrics endpoint at %s...", constants.MetricsURL)
-
-	resp, err := http.Get(constants.MetricsURL)
-	if err != nil {
-		log.Errorf("Error calling metrics API: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Errorf("Metrics API returned non-200 status code: %d", resp.StatusCode)
-		return
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Errorf("Error reading metrics response body: %v", err)
-		return
-	}
-
-	// Get the current run timestamp (already created by SaveContainerLogs)
-	timestamp := utils.GetOrCreateRunTimestamp()
-	runDir := filepath.Join(constants.OutputDir, timestamp)
-
-	// Ensure run directory exists (should already be created by SaveContainerLogs)
-	if err := os.MkdirAll(runDir, 0755); err != nil {
-		log.Errorf("Error ensuring run directory exists: %v", err)
-		return
-	}
-
-	// Save metrics.json in the run directory
-	metricsFile := filepath.Join(runDir, "metrics.json")
-	err = os.WriteFile(metricsFile, body, 0644)
-	if err != nil {
-		log.Errorf("Error writing metrics.json: %v", err)
-		return
-	}
-
-	log.Infof("Metrics saved to %s", metricsFile)
-
-	if err := GeneratePlots(runDir); err != nil {
-		log.Errorf("%v", err)
-	}
 }
