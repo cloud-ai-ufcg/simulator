@@ -98,7 +98,9 @@ run:
 		exit 1; \
 	fi; \
 	echo "Running analyzer with $$RUN_PATH..."; \
-	if [ -d "../venv" ]; then \
+	if [ -n "$$ANALYZER_PYTHON" ]; then \
+		"$$ANALYZER_PYTHON" main.py "$$RUN_PATH"; \
+	elif [ -d "../venv" ]; then \
 		../venv/bin/python main.py "$$RUN_PATH"; \
 	elif [ -d "venv" ]; then \
 		./venv/bin/python main.py "$$RUN_PATH"; \
