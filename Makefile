@@ -86,13 +86,16 @@ setup-and-start-baseline: stop-kubernetes-infra stop-all-containers setup-kubern
 # Cleans all documents from all collections in the mongo container
 clean-mongo-db:
 	@echo "Cleaning all documents from all collections in mongo container..."
-	@container_id=$$(sudo docker ps -q -f name=mongo); \
-	if [ -z "$$container_id" ]; then \
-		echo "Mongo container is not running. Nothing to clean."; \
-		exit 0; \
-	fi; \
-	js='dbs=db.getMongo().getDBNames().filter(function(x){return ["admin","local","config"].indexOf(x)<0});dbs.forEach(function(dbName){db=db.getSiblingDB(dbName);db.getCollectionNames().forEach(function(coll){db[coll].deleteMany({});});});'; \
-	sudo docker exec $$container_id mongosh --quiet --eval "$$js"; \
+	@js='dbs=db.getMongo().getDBNames().filter(function(x){return ["admin","local","config"].indexOf(x)<0});dbs.forEach(function(dbName){db=db.getSiblingDB(dbName);db.getCollectionNames().forEach(function(coll){db[coll].deleteMany({});});});'; \
+	attempt=0; max_attempts=60; \
+	until container_id=$$(sudo docker ps -q -f name=mongo) && [ -n "$$container_id" ] && sudo docker exec "$$container_id" mongosh --quiet --eval "$$js" >/dev/null 2>&1; do \
+		attempt=$$((attempt + 1)); \
+		if [ "$$attempt" -ge "$$max_attempts" ]; then \
+			echo "ERROR: mongo did not become ready to clean after $$max_attempts attempts (~$$max_attempts s). Aborting."; \
+			exit 1; \
+		fi; \
+		sleep 1; \
+	done; \
 	echo "All documents removed from all user collections via mongosh in container."
 
 clean-infra:
