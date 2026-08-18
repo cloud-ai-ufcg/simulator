@@ -143,10 +143,7 @@ def main():
             # Convert migration unix timestamp to datetime for merge
             df_migrations_for_merge = df_migrations.copy()
             df_migrations_for_merge['timestamp'] = pd.to_datetime(df_migrations_for_merge['timestamp'], unit='s')
-            
-            # Adjust timezone if needed (subtract 3 hours as done in plotter)
-            df_migrations_for_merge['timestamp'] = df_migrations_for_merge['timestamp'] - pd.Timedelta(hours=3)
-            
+
             # Rename columns to avoid conflicts
             df_migrations_for_merge = df_migrations_for_merge.rename(columns={
                 'execution': 'migration_execution',
@@ -155,15 +152,20 @@ def main():
                 'migrated_to_private': 'migration_to_private',
                 'migrated_to_public': 'migration_to_public'
             })
-            
-            # Merge with left join (keep all timestamps, fill NaN for non-migration rows)
-            df_combined = df_combined.merge(
-                df_migrations_for_merge[['timestamp', 'migration_execution', 'migration_type', 
-                                         'migration_total_pods', 'migration_to_private', 'migration_to_public']], 
-                on='timestamp', 
-                how='left'
+
+            # Attach each event to its nearest snapshot (tolerance = half
+            # the polling interval, so it can't jump to a neighboring snapshot).
+            df_combined = df_combined.sort_values('timestamp')
+            df_migrations_for_merge = df_migrations_for_merge.sort_values('timestamp')
+            df_combined = pd.merge_asof(
+                df_combined,
+                df_migrations_for_merge[['timestamp', 'migration_execution', 'migration_type',
+                                         'migration_total_pods', 'migration_to_private', 'migration_to_public']],
+                on='timestamp',
+                direction='nearest',
+                tolerance=pd.Timedelta(seconds=15),
             )
-            
+
             print(f"✓ Merged {len(df_migrations)} migration events into combined data")
         
         # Save combined data
