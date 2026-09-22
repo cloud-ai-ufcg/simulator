@@ -52,31 +52,31 @@ fast-setup:
 
 # -----------------------------------------------------------------------------
 # Karmada-native baseline (Approach B) — no AI, placement decided purely by
-# karmada-scheduler. See scripts/baseline/README.md for the design.
+# karmada-scheduler. See experiments-baseline/baseline/README.md for the design.
 # -----------------------------------------------------------------------------
 
 # Reconfigures a RUNNING environment (after 'make setup') for baseline runs
 setup-baseline:
-	@bash scripts/baseline/setup_baseline.sh
+	@bash experiments-baseline/baseline/setup_baseline.sh
 
 # Runs one baseline simulation (same input.json and metrics pipeline as AI runs)
 run-baseline: clean-mongo-db
 	@bash initializer/check_infra_status.sh
-	@bash scripts/baseline/run_baseline.sh
+	@bash experiments-baseline/baseline/run_baseline.sh
 
 # Restores the AI-driven configuration
 teardown-baseline:
-	@bash scripts/baseline/teardown_baseline.sh
+	@bash experiments-baseline/baseline/teardown_baseline.sh
 
 # Full baseline cycle: infra + setup + run + workload cleanup + teardown.
 # Teardown always runs (even if the run fails) so the environment is never
 #  left in baseline mode by accident;
 setup-and-start-baseline: stop-kubernetes-infra stop-all-containers setup-kubernetes-infra run-all-containers-auto
-	@bash scripts/baseline/setup_baseline.sh
+	@bash experiments-baseline/baseline/setup_baseline.sh
 	@status=0; \
 	$(MAKE) run-baseline || status=$$?; \
 	bash scripts/clean_workloads.sh || status=$$?; \
-	bash scripts/baseline/teardown_baseline.sh || status=$$?; \
+	bash experiments-baseline/baseline/teardown_baseline.sh || status=$$?; \
 	if [ $$status -eq 0 ]; then \
 		echo "✅ setup-and-start-baseline finished. Run data: simulator/data/output/$$(cat simulator/data/output/.last_baseline_run)"; \
 	fi; \

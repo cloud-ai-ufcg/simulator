@@ -1,24 +1,49 @@
-# Automating batch runs
+# AI vs. baseline experiments — how to run everything
 
-This document describes the generic mechanism used in this repository to run **many
-simulator executions unattended**, varying configuration parameters between them,
-collecting each one's metrics, and aggregating/plotting the results at the end.
+This folder is the single, self-contained entry point for the experiment campaign that
+compares WASP's AI-driven workload placement against a Karmada-native baseline (no AI).
+Everything you need to reproduce a run, aggregate results across runs, and find the
+results we already obtained lives here:
 
+`run_simulations.sh` itself stays at the repository root (`../run_simulations.sh` from
+here) — it drives both the AI scenarios and the baseline, so it isn't specific to this
+folder. Everything else related to this campaign is here:
+
+```
+experiments-baseline/
+├── README.md                       # this file
+├── aggregate_scenario_metrics.py   # aggregates summary_metrics_*.csv across repetitions
+├── list_scenario_runs.py           # same input, no aggregation — one row per run
+├── plots_comparation.r             # example plot built from the aggregated CSV
+├── scenario_runs*.csv              # already-aggregated results (per-run, no aggregation)
+├── scenario_summary*.csv           # already-aggregated results (per scenario, across repetitions)
+├── results/*.png                   # final comparison plots from those CSVs
+└── baseline/                       # the Karmada-native baseline itself: design, scripts, detailed report
+    ├── README.md                   # design of the baseline mechanism (short, in English)
+    ├── baseline-policy.yaml        # the ClusterPropagationPolicy that implements it
+    ├── virtual-capacity-node.yaml  # the elastic-capacity KWOK node it relies on
+    ├── setup_baseline.sh           # reconfigures a running environment for baseline mode
+    ├── run_baseline.sh             # runs one baseline simulation
+    └── teardown_baseline.sh        # restores the AI-driven configuration
+```
+
+For the platform itself (architecture, install, requirements), see
+[`../README.md`](../README.md) and [`../WASP_README.md`](../WASP_README.md).
 
 ## 1. The three layers
 
 ```
 1 run                →  make setup-and-start-auto | setup-and-start-baseline | ...
-N runs (matrix)      →  ./run_simulations.sh (repo root)
-aggregation + plots  →  scripts/aggregate_scenario_metrics.py, list_scenario_runs.py, plots_comparation.r
+N runs (matrix)      →  ../run_simulations.sh (repo root — shared by AI and baseline scenarios)
+aggregation + plots  →  experiments-baseline/{aggregate_scenario_metrics.py, list_scenario_runs.py, plots_comparation.r}
 ```
 
-- A single run is just a `make` target (see `make help` at the root). On its own, it
-  already produces a complete output directory with metrics and plots.
+- A single run is just a `make` target (see `make help` at the repo root). On its own,
+  it already produces a complete output directory with metrics and plots.
 - `run_simulations.sh` runs that target multiple times, each time editing
   `config.yaml`/`input.json` for a different combination of parameters, and renames each
   run's output to a name that encodes the parameters used.
-- The scripts in `scripts/` scan a directory full of runs named this way and produce
+- The scripts in this folder scan a directory full of runs named this way and produce
   aggregated CSVs and comparison plots.
 
 Any of the three layers can be used on its own — you don't need the whole matrix to run
@@ -33,7 +58,7 @@ In addition to the hardware/software requirements already described in
   between runs, without depending on a template per combination.
 - **Python 3 + venv** — created automatically by `scripts/setup_venv.sh` (called by
   `scripts/main.sh`); used by `analyzer/` to generate each run's plots and by the
-  aggregation scripts (`pandas`).
+  aggregation scripts here (`pandas`).
 - **R (≥ 4.3)** with `ggplot2`, `dplyr`, `readr` — only for the final comparison plot
   (`plots_comparation.r`); `tidyr` is used by the analyzer's legacy pipeline
   (`create_plot_for_input.R`).
@@ -74,13 +99,14 @@ The starting point is always a single `make` command that already works on its o
 ### 4.1 Provision the infrastructure once
 
 ```bash
-cd simulator   # root of this simulation repository
+cd simulator   # root of this repository
 make setup
 ```
 
 ### 4.2 Run a matrix (or a subset of it)
 
-Everything from the repository root (`simulator/`):
+From the repository root (`run_simulations.sh` lives there, not in this folder, since it
+drives both scenarios):
 
 ```bash
 ./run_simulations.sh                                     # all default axes, "ai" scenario
@@ -97,9 +123,9 @@ For each combination (or repetition), the script:
 2. applies the current iteration's combination via `yq`;
 3. syncs the chosen workload file to the name the broker actually reads
    (`input.json`);
-4. runs `sudo make <target>` — each call already rebuilds the infrastructure from
-   scratch, so repetitions end up just as clean as distinct combinations, with no
-   manual cleanup step needed between them;
+4. runs `sudo make <target>` from the repo root — each call already rebuilds the
+   infrastructure from scratch, so repetitions end up just as clean as distinct
+   combinations, with no manual cleanup step needed between them;
 5. locates the freshly created output directory (the most recent one in
    `simulator/data/output/`), renames it to the combination's descriptive name, and
    copies the `config.yaml`/`input.json` actually used into it (`config_used.yaml`,
@@ -110,10 +136,15 @@ For each combination (or repetition), the script:
 A failure in one combination does **not** stop the others — the script keeps going and
 reports each one's status in the final summary.
 
+Individual `make` targets for the baseline flow (`setup-baseline`, `run-baseline`,
+`teardown-baseline`) are also available directly, without going through the matrix
+runner — see [`baseline/README.md`](baseline/README.md) §Usage.
+
 ## 5. Output of each run
 
 Every individual run (whether from the matrix or a direct `make` call) produces, under
-`simulator/data/output/<name>/`:
+`simulator/data/output/<name>/` — **not** in this folder, because that's where the
+simulator and the analyzer write as they run:
 
 ```
 metrics.json            # raw time series (cluster_info, workloads), collected at fixed intervals
@@ -130,6 +161,13 @@ metrics summarized in `summary_metrics_*.csv` are generated by
 `pending_pods`, `time_with_pending`, `wokloads_with_pending_pods`,
 `number_of_migrations`.
 
+`simulator/data/output/` is listed in `.gitignore` (it's where every local run lands,
+including throwaway ones), **except** for three archived folders that were deliberately
+committed because they're the raw evidence behind the aggregated CSVs/plots in this
+folder: `runs_baseline_test/`, `runs-input-all-private/`, `runs-input-orig/`. If you're
+looking for a specific run's full logs/plots behind a number in `scenario_runs.csv`,
+that's where to find it.
+
 ## 6. Aggregating multiple runs
 
 After running one or more combinations, the runs sit loose under
@@ -139,7 +177,7 @@ After running one or more combinations, the runs sit loose under
 (`extract_scenario`, shared by both scripts):
 
 ```bash
-cd scripts
+cd experiments-baseline
 python3 aggregate_scenario_metrics.py \
   --root ../simulator/data/output/<folder_with_the_runs> \
   --output scenario_summary.csv
@@ -151,7 +189,8 @@ python3 list_scenario_runs.py \
 
 - `--root` should point to a folder whose direct children are the run directories
   (folders with one extra level of nesting are deliberately skipped, so as not to mix
-  different campaigns).
+  different campaigns). The three archived folders from §5 are exactly this kind of
+  root, e.g. `--root ../simulator/data/output/runs-input-all-private`.
 - `--load const|varia` filters by load — this filter is specific to the current regex.
 - `aggregate_scenario_metrics.py --selftest` validates directory-name parsing without
   needing real data.
@@ -160,11 +199,13 @@ python3 list_scenario_runs.py \
 statistics **across repetitions** (`mean_across_runs` = mean of each run's mean,
 `std_across_runs` = standard deviation of the per-run means, `n_runs` = how many
 repetitions were found). This is the CSV meant for comparison plots across
-combinations.
+combinations — `scenario_summary_median.csv`/`scenario_summary_varia.csv` in this
+folder are its output.
 
 **`list_scenario_runs.py`** → no aggregation: stacks the rows of every
 `summary_metrics_*.csv` found, one per `(parameters, run_dir, metric)`. Useful for
-inspecting individual runs or spotting outliers before aggregating.
+inspecting individual runs or spotting outliers before aggregating —
+`scenario_runs.csv`/`scenario_runs_varia.csv` in this folder are its output.
 
 If your naming regex doesn't recognize a directory, both scripts warn on stderr
 ("unidentifiable scenario from ...") and simply skip that directory — they never abort
@@ -177,14 +218,17 @@ aggregated CSV: it reads a `scenario_summary_*.csv`, groups by parameter combina
 metric, and plots the mean with min/max bars, one color per chosen axis:
 
 ```bash
-cd scripts
+cd experiments-baseline
 Rscript plots_comparation.r
 ```
 
 Adjust the `read_csv(...)` at the top of the script to your aggregated CSV's name, and
 the columns used in `aes(...)` to your campaign's axes. There is no single generic
 script for every possible chart — treat this file as a starting point to copy/adapt per
-campaign, not as a fixed command-line tool.
+campaign, not as a fixed command-line tool. The PNGs in `results/` were produced from
+these same aggregated CSVs; the ones not produced directly by `plots_comparation.r` came
+from ad-hoc analysis on top of them (there's no single versioned script for every plot —
+if reproducing, start from the two `scenario_summary_*.csv` files).
 
 ## 8. Reproducibility notes
 
@@ -192,10 +236,10 @@ campaign, not as a fixed command-line tool.
   stochastic component, the same configuration can produce different results between
   runs; always run with repetitions (`--repeat`) and treat `std_across_runs`/`n_runs`
   as part of the result, not as noise to ignore.
-- **Real-time jitter** — even deterministically decided scenarios show run-to-run
-  variance because of the monitor's scrape granularity (30s by default) vs. the actual
-  bind/reconciliation latency of the underlying infrastructure; compare distributions
-  across repetitions, not values from a single run.
+- **Real-time jitter** — even deterministically decided scenarios (like the baseline)
+  show run-to-run variance because of the monitor's scrape granularity (30s by default)
+  vs. the actual bind/reconciliation latency of the underlying infrastructure; compare
+  distributions across repetitions, not values from a single run.
 - Between consecutive runs that reuse the same infrastructure (outside the automatic
   flow of `run_simulations.sh`, which already reprovisions from scratch on every call),
   run `make clean-workloads` so you don't collide with workload names the broker

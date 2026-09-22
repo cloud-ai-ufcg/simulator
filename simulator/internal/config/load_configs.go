@@ -29,7 +29,7 @@ type AIEngineModuleFallback struct {
 }
 
 // IsAIDisabledByEnv reports whether WASP_DISABLE_AI forces an AI-free run
-// (used by scripts/baseline/run_baseline.sh) without touching the shared
+// (used by experiments-baseline/baseline/run_baseline.sh) without touching the shared
 // config.yaml, which other components also read.
 func IsAIDisabledByEnv() bool {
 	v := os.Getenv("WASP_DISABLE_AI")

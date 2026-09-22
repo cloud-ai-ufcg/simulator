@@ -29,6 +29,8 @@ constraints.
 -   Fully automated execution mode
 -   Reproducible experimental runs
 -   Containerized microservice architecture
+-   Karmada-native (AI-free) baseline for comparison, with a self-contained batch
+    experiment campaign — see [`experiments-baseline/README.md`](experiments-baseline/README.md)
 
 WASP is intended as a **research and evaluation platform**, not a
 production orchestration system, as of now.
