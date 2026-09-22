@@ -44,6 +44,7 @@ The badges considered in the evaluation process are:
 - **Recommendations Manager**: composed of two additional elements, validates and executes approved migrations;
 	- **Actuator**: executes migration actions;
 	- **Operator Interface** (optional): human validation before execution.
+- **Baseline** (optional, no AI): Karmada-native placement used as a comparison point against the AI-driven approach above; see [`experiments-baseline/`](experiments-baseline/README.md) for the batch experiment campaign, design, and results.
 
 ## 4.2. Hardware requirements
 
